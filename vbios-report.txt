@@ -1,0 +1,112 @@
+file            : reference\ga107-firmware\vbios-ga107.rom
+size            : 65024 bytes (0xfe00)
+md5             : 2299fa8b2b12518c475f1024a197091f
+sha256          : d56bbec55878ab38d6b3e0395837631a8a50c7b16031fac56bf29716816dc2fe
+first u32 LE    : 0xeb7faa55
+
+=== PCI expansion ROM image chain ===
+image 0 @0x000000
+  PCIR at       : 0x000170 (pointer 0x0170 at +0x18)
+    000170  50 43 49 52 de 10 a2 25 00 00 18 00 00 00 02 03  PCIR...%........
+    000180  7f 00 01 00 00 80 00 00 2e 8b c0 2e 8b c0 8b c0  ................
+  vendor:device : 0x10de:0x25a2
+  ds length/rev : 24 bytes, revision 0
+  class code    : 030200 (base 0x03, sub 0x02, prog-if 0x00)
+  image length  : 127 blocks = 65024 bytes (0xfe00)
+  code revision : 0x0001
+  code type     : 0 (x86 PC-AT (legacy VGA BIOS))
+  indicator     : 0x80 -> last_image=YES
+  NPDE at       : 0x000190  revision 0x0101, length 20
+  NPDE image    : 127 blocks = 65024 bytes
+  NPDE indicator: 0x00 -> last_image=NO
+  spans         : 0x000000 .. 0x00fe00  (file ends 0x00fe00)
+  -> ends exactly at end of file
+
+=== last-image indicators DISAGREE ===
+  image 0: PCIR@0x000170 says last=YES, NPDE@0x000190 says last=NO
+  Linux pci_get_rom_size() stops on the PCIR bit, so a dump taken
+  from /sys/bus/pci/devices/*/rom ends here even when NVIDIA's own
+  extension records that further images follow. Such a dump is
+  complete as an IMAGE and incomplete as a ROM.
+
+=== BIT table ===
+  header at     : 0x0001b0
+    0001b0  ff b8 42 49 54 00 00 01 0c 06 11 46 32 01 04 00  ..BIT......F2...
+  bcd version   : 0x0100
+  header size   : 12 bytes
+  token size    : 6 bytes
+  token entries : 17
+  checksum      : 0x46  (header bytes sum to 0x00 mod 256 -> VALID)
+
+  id   chr ver   len    ptr    name
+  0x32 2   1     4      0x0232 BIT_TOKEN_2?
+  0x42 B   2     37     0x023e BIT_TOKEN_BIOSDATA
+  0x43 C   2     44     0x0263 BIT_TOKEN_CLOCK_PTRS?
+  0x44 D   1     4      0x028f BIT_TOKEN_DAC_PTRS?
+  0x49 I   1     36     0x0293 BIT_TOKEN_NVINIT_PTRS?
+  0x4d M   2     41     0x02b7 BIT_TOKEN_MEMORY_PTRS?
+  0x4e N   0     0      0x0000 BIT_TOKEN_NOP
+  0x50 P   2     232    0x02e0 BIT_TOKEN_PERF_PTRS?
+  0x53 S   2     24     0x03c8 BIT_TOKEN_STRING_PTRS
+  0x54 T   1     2      0x03e0 BIT_TOKEN_TMDS_PTRS?
+  0x55 U   1     5      0x03e2 BIT_TOKEN_DISPLAY_PTRS?
+  0x56 V   1     6      0x03e7 BIT_TOKEN_VIRTUAL_PTRS?
+  0x78 x   1     8      0x03ed BIT_TOKEN_X?
+  0x64 d   1     2      0x03f5 BIT_TOKEN_DP_PTRS?
+  0x70 p   2     4      0x03f7 BIT_TOKEN_FALCON_DATA
+  0x75 u   1     17     0x03fb BIT_TOKEN_UEFI_DATA?
+  0x69 i   2     110    0x040c BIT_TOKEN_BIT_INIT?
+  (17 of 17 declared entries decoded)
+
+=== BIOS version (BIT token 0x42) ===
+  raw u32       : 0x94074e00, oem byte 0x4b
+  formatted     : 94.07.4E.00.4B
+
+=== string table (BIT token 0x53) ===
+  slot 0  ptr 0x0068 len 80  'E4736 SKU 10 VGA BIOS'
+  slot 1  ptr 0x00b9 len 25  'Version 94.07.4E.00.4B'
+  slot 2  ptr 0x00d3 len 40  'Copyright (C) 1996-2021 NVIDIA Corp'
+  slot 3  ptr 0x4eb4 len 20  'NVIDIA'
+  slot 4  ptr 0x4ec8 len 35  'NVIDIA Corporation'
+  slot 5  ptr 0x0104 len 35  'GPU Board'
+  slot 6  ptr 0x0127 len 20  'Chip Rev'
+  slot 7  ptr 0x4eeb len 40  'BIOS Certificate Check Failed!!!'
+
+=== falcon ucode table (BIT token 0x70) ===
+  token         : version 2, 4 bytes at 0x03f7
+  payload bytes : 77 7f 07 00
+  state         : off_file
+  detail        : token 0x70 points to 0x077f77, which is 426365 bytes past the end of this 65024-byte dump
+  pointer       : 0x077f77 (491383)
+  dump covers   : 0x000000 .. 0x00fe00 (65024 bytes)
+  needs a ROM of: >= 491389 bytes (480 KiB)
+  shortfall     : 426365 bytes
+
+=== self-describing container magics ===
+  nvfw_bin_hdr binMagic 0x000010de LE   : absent
+  NVGI container                        : absent
+  NVDA container                        : absent
+
+=== printable strings >= 12 chars (13 found) ===
+  0x00001e  IBM VGA Compatible
+  0x000068  E4736 SKU 10 VGA BIOS 
+  0x0000b9  Version 94.07.4E.00.4B 
+  0x0000d3  Copyright (C) 1996-2021 NVIDIA Corp.
+  0x00043c  725M47360010
+  0x001587  Y}Y}Y}Y}Y}Y}#
+  0x002468  Build Date:    
+  0x00247a  Revision Date: 
+  0x002837  ~"6~#D~$R~<0tT`
+  0x00371f  d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}
+  0x003e43  PLEASE POWER DOWN AND CONNECT THE PCIe POWER CABLE(S) FOR THIS GRAPHICS CARD
+  0x004ec8  NVIDIA Corporation
+  0x004eeb  BIOS Certificate Check Failed!!!
+
+=== VERDICT ===
+  1 image(s) walked; image 0 is 10de:25a2, class 030200, 65024 bytes.
+  Falcon ucode table: NOT IN THIS DUMP. The pointer is well-formed
+  and lands 426365 bytes past the end, so the table is not absent from
+  the ROM -- it is outside the image that was dumped. Recovering it
+  needs a full-ROM read, not a re-parse of this file.
+  No nvfw/NVGI/NVDA container magic anywhere in the file, so this
+  image carries no self-describing firmware blob either.

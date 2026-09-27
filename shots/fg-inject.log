@@ -1,0 +1,10 @@
+window : Sonoma - VMware Workstation (hwnd 67505164)
+guest  : VMware.GuestWindow 1024x768 at 1502,176 (hwnd 6495268)
+click  : screen 2014,580
+key    : cmd+space (1 modifier)
+result : 1 event group(s) accepted by SendInput
+         NOT proof of delivery -- SendInput reports success even
+         when every event is discarded (Medium IL / UAC-filtered).
+         Verify by post-condition: vm-screenshot.py --compare, or
+         re-run this from an ELEVATED terminal.
+exit   : 0

@@ -1,0 +1,25 @@
+=== STEP 7 build attempt ===
+date          : 2026-08-14T20:15:22Z
+uname         : Darwin kennys-Mac.local 24.6.0 Darwin Kernel Version 24.6.0: Tue Jul 21 20:50:07 PDT 2026; root:xnu-11417.140.69.711.44~1/RELEASE_X86_64 x86_64
+sw_vers       : ProductName:		macOS ProductVersion:		15.7.9 BuildVersion:		24G830 
+xcode-select  : xcode-select: error: Unable to get active developer directory. Use `sudo xcode-select --switch path/to/Xcode.app` to set one (or see `man xcode-select`)
+clang         : xcode-select: note: No developer tools were found, requesting install.
+
+--- Kernel.framework presence ---
+sdk path      : xcode-select: note: No developer tools were found, requesting install.
+If developer tools are located at a non-default location on disk, use `sudo xcode-select --switch path/to/Xcode.app` to specify the Xcode that you wish to use for command line developer tools, and cancel the installation dialog.
+See `man xcode-select` for more details.
+Kernel.framework: ABSENT -- a kext cannot build without it.
+                  It ships with full Xcode, not with the
+                  Command Line Tools alone.
+
+--- make ---
+xcode-select: note: No developer tools were found, requesting install.
+If developer tools are located at a non-default location on disk, use `sudo xcode-select --switch path/to/Xcode.app` to specify the Xcode that you wish to use for command line developer tools, and cancel the installation dialog.
+See `man xcode-select` for more details.
+
+--- result ---
+make exit status: 1
+bundle: ABSENT -- the build did not get as far as a bundle.
+
+=== end ===

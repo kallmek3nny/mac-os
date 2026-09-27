@@ -1,0 +1,110 @@
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01HBdsDxe: failed to load Boot0001 "UEFI QEMU HARDDISK QM00013 " from PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0): Not Found
+BdsDxe: loading Boot0002 "EFI Internal Shell" from Fv(7CB8BDC9-F8EB-4F34-AAEA-3EE4AF6516A1)/FvFile(7C04A583-9E3E-4F1C-AD65-E05268D0B4D1)
+BdsDxe: starting Boot0002 "EFI Internal Shell" from Fv(7CB8BDC9-F8EB-4F34-AAEA-3EE4AF6516A1)/FvFile(7C04A583-9E3E-4F1C-AD65-E05268D0B4D1)
+[2J[01;01H[01;01HUEFI Interactive Shell v2.2
+EDK II
+UEFI v2.70 (EDK II, 0x00010000)
+[1m[33m[40mMapping table[0m[37m[40m
+[1m[33m[40m      FS0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a1:;BLK1:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,29A79563-5185-42C4-9134-50CFD94E1526,0x28,0x64000)
+[1m[33m[40m      FS1:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0b65535a1:;BLK4:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)/HD(1,MBR,0xBE1AFDFA,0x3F,0xFBFC1)
+[1m[33m[40m     BLK0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)
+[1m[33m[40m     BLK3:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)
+[1m[33m[40m     BLK2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)
+[17;01HPress [1m[37m[40mESC[0m[37m[40m in 5 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[17;01HPress [1m[37m[40mESC[0m[37m[40m in 4 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[17;01HPress [1m[37m[40mESC[0m[37m[40m in 3 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[17;01HPress [1m[37m[40mESC[0m[37m[40m in 2 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[17;01HPress [1m[37m[40mESC[0m[37m[40m in 1 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.
+[1m[33m[40mShell> [0m[37m[40mecho NSH-MARK-START
+NSH-MARK-START
+[1m[33m[40mShell> [0m[37m[40mecho --- map before load ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mmap
+[1m[33m[40mMapping table[0m[37m[40m
+[1m[33m[40m      FS0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a1:;BLK1:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,29A79563-5185-42C4-9134-50CFD94E1526,0x28,0x64000)
+[1m[33m[40m      FS1:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0b65535a1:;BLK4:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)/HD(1,MBR,0xBE1AFDFA,0x3F,0xFBFC1)
+[1m[33m[40m     BLK0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)
+[1m[33m[40m     BLK3:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)
+[1m[33m[40m     BLK2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)
+[1m[33m[40mShell> [0m[37m[40mecho --- loading apfs.efi ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mload fs0:pfs.efi
+[1m[37m[40mload[0m[37m[40m: File not found - '[1m[37m[40mfs0:pfs.efi[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mecho NSH-MARK-LOAD-RETURNED
+NSH-MARK-LOAD-RETURNED
+[1m[33m[40mShell> [0m[37m[40mecho --- reconnecting drivers to handles ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mconnect -r
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m33[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m8C[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m8D[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m90[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m96[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m99[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m9D[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m9E[0m[37m[40m] Result Success.
+[1m[33m[40mShell> [0m[37m[40mmap -r
+[1m[33m[40mMapping table[0m[37m[40m
+[1m[33m[40m      FS0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a1:;BLK1:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,29A79563-5185-42C4-9134-50CFD94E1526,0x28,0x64000)
+[1m[33m[40m      FS1:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0b65535a1:;BLK4:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)/HD(1,MBR,0xBE1AFDFA,0x3F,0xFBFC1)
+[1m[33m[40m     BLK0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)
+[1m[33m[40m     BLK3:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)
+[1m[33m[40m     BLK2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)
+[1m[33m[40mShell> [0m[37m[40mecho --- map after load ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mmap
+[1m[33m[40mMapping table[0m[37m[40m
+[1m[33m[40m      FS0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a1:;BLK1:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,29A79563-5185-42C4-9134-50CFD94E1526,0x28,0x64000)
+[1m[33m[40m      FS1:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0b65535a1:;BLK4:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)/HD(1,MBR,0xBE1AFDFA,0x3F,0xFBFC1)
+[1m[33m[40m     BLK0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)
+[1m[33m[40m     BLK3:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)
+[1m[33m[40m     BLK2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)
+[1m[33m[40mShell> [0m[37m[40mecho --- fs0 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs0:\
+[31;01HDirectory of: [1m[37m[40mfs0:\[0m[37m[40m
+          0 File(s)           0 bytes
+          0 Dir(s)
+[1m[33m[40mShell> [0m[37m[40mecho --- fs1 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs1:\
+[31;01HDirectory of: [1m[37m[40mfs1:\[0m[37m[40m
+08/14/2026  20:49             713,784  [1m[32m[40mapfs.efi[0m[37m[40m
+08/14/2026  20:49                 433  [1m[32m[40mstartup.nsh[0m[37m[40m
+          2 File(s)     714,217 bytes
+          0 Dir(s)
+[1m[33m[40mShell> [0m[37m[40mecho --- fs2 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs2:\
+[1m[37m[40mls[0m[37m[40m: File Not Found - '[1m[37m[40mfs2:\[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mecho --- fs3 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs3:\
+[1m[37m[40mls[0m[37m[40m: File Not Found - '[1m[37m[40mfs3:\[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mecho --- fs4 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs4:\
+[1m[37m[40mls[0m[37m[40m: File Not Found - '[1m[37m[40mfs4:\[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mecho --- fs5 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs5:\
+[1m[37m[40mls[0m[37m[40m: File Not Found - '[1m[37m[40mfs5:\[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mecho NSH-MARK-END
+NSH-MARK-END
+[31;01H[1m[33m[40mShell> [0m[37m[40m

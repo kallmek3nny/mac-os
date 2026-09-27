@@ -1,0 +1,54 @@
+trace          : mmio-boot.log
+lines          : 357,495 (25,867 unparsed)
+BAR0 base      : 0x81000000  (MAP record with a 16 MiB length)
+symbols loaded : 48 absolute, 23 falcon-relative
+
+accesses       : 331,548  (300,875 reads, 30,673 writes)
+time span      : 14.611 s
+
+Accesses by engine region:
+
+  region         total    writes   what it is
+  --------------------------------------------------------------------
+  pgsp         206,293       658   GSP falcon -- Phase 4 lives here
+  ?            115,044    20,735   unmapped in this tool's region table
+  pramin         9,262     9,253   instance memory window
+  gc6              517         0   GC6 island scratch -- GFW_BOOT, FB size
+  pcfg             355         4   PCI config mirror
+  pbus              42        18   bus interface
+  pmc               26         0   master control / chip identity (BOOT_0, BOOT_42)
+  pfb                6         3   framebuffer / memory controller
+  ptimer             3         2   timer
+
+Registers the kext already understands:
+
+  0x000000    19 hits  NV_PMC_BOOT_0
+              values: 0xB77000A1
+  0x000A00     3 hits  NV_PMC_BOOT_42
+              values: 0x177A1000
+  0x118234     1 hits  GFW_BOOT (scratch 05[0])
+              values: 0x000003FF
+  0x1183A4     3 hits  NV_USABLE_FB_SIZE_IN_MB
+              values: 0x00001000
+
+Those values are the ground truth to compare your kext's log against.
+If the kext reads something different from the same offset, the kext
+is wrong -- the Linux driver is known-working on this hardware.
+
+Most-touched registers:
+
+  0x110094  167,391  [pgsp] NV_PGSP_FALCON_DEBUGINFO  (+0x094)
+  0x110100   37,601  [pgsp] NV_PGSP_FALCON_CPUCTL  (+0x100)
+  0x840100   24,425  [?] 
+  0x1180F8      512  [gc6] NV_PGC6_BSI_SECURE_SCRATCH_14
+  0xBB0084      398  [?] 
+  0x110118      354  [pgsp] NV_PGSP_FALCON_DMATRFCMD  (+0x118)
+  0x840118      258  [?] 
+  0xBB0080      200  [?] 
+  0x110114      175  [pgsp] NV_PGSP_FALCON_DMATRFMOFFS  (+0x114)
+  0x11011C      174  [pgsp] NV_PGSP_FALCON_DMATRFFBOFFS  (+0x11C)
+  0x110040      167  [pgsp] NV_PGSP_FALCON_MAILBOX0
+  0xB830B0      147  [?] 
+  0x607FFEA000      131  [?] 
+  0x840114      127  [?] 
+  0x84011C      127  [?] 

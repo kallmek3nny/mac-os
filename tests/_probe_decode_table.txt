@@ -1,0 +1,32 @@
+FIELD TABLE (parsed from NVDecode.hpp)
+  nvBoot0MinorRevision       shift  0  mask 0xF     width 4  bits 3:0  aboveBit 4
+  nvBoot0MajorRevision       shift  4  mask 0xF     width 4  bits 7:4  aboveBit 8
+  nvBoot0Implementation      shift 20  mask 0xF     width 4  bits 23:20  aboveBit 24
+  nvBoot0Architecture0       shift 24  mask 0x1F    width 5  bits 28:24  aboveBit 29
+  nvBoot0Architecture1       shift  8  mask 0x1     width 1  bits 8:8  aboveBit 9
+  nvBoot42MinorExtRevision   shift  8  mask 0xF     width 4  bits 11:8  aboveBit 12
+  nvBoot42MinorRevision      shift 12  mask 0xF     width 4  bits 15:12  aboveBit 16
+  nvBoot42MajorRevision      shift 16  mask 0xF     width 4  bits 19:16  aboveBit 20
+  nvBoot42Implementation     shift 20  mask 0xF     width 4  bits 23:20  aboveBit 24
+  nvBoot42Architecture       shift 24  mask 0x3F    width 6  bits 29:24  aboveBit 30
+  nvBoot42ChipId             shift 20  mask 0x3FF   width 10  bits 29:20  aboveBit 30
+
+mutants 73  killed 56  SURVIVING 17
+
+  nvBoot0MinorRevision       mask widened 0xF->0x1F       | 0x00000010 bit  4 -> correct 0x0 mutant 0x10
+  nvBoot0MinorRevision       mask narrowed 0xF->0x7       | 0x00000008 bit  3 -> correct 0x8 mutant 0x0
+  nvBoot0Implementation      mask narrowed 0xF->0x7       | 0x00800000 bit 23 -> correct 0x8 mutant 0x0
+  nvBoot0Architecture0       mask widened 0x1F->0x3F      | 0x20000000 bit 29 -> correct 0x0 mutant 0x20
+  nvBoot0Architecture1       mask widened 0x1->0x3        | 0x00000200 bit  9 -> correct 0x0 mutant 0x2
+  nvBoot42MinorExtRevision   mask narrowed 0xF->0x7       | 0x00000800 bit 11 -> correct 0x8 mutant 0x0
+  nvBoot42MinorRevision      shift dropped                | 0x00000001 bit  0 -> correct 0x0 mutant 0x1
+  nvBoot42MinorRevision      mask widened 0xF->0x1F       | 0x00010000 bit 16 -> correct 0x0 mutant 0x10
+  nvBoot42MinorRevision      mask narrowed 0xF->0x7       | 0x00008000 bit 15 -> correct 0x8 mutant 0x0
+  nvBoot42MajorRevision      shift-2                      | 0x00004000 bit 14 -> correct 0x0 mutant 0x1
+  nvBoot42MajorRevision      shift-1                      | 0x00008000 bit 15 -> correct 0x0 mutant 0x1
+  nvBoot42MajorRevision      mask narrowed 0xF->0x7       | 0x00080000 bit 19 -> correct 0x8 mutant 0x0
+  nvBoot42Implementation     mask narrowed 0xF->0x7       | 0x00800000 bit 23 -> correct 0x8 mutant 0x0
+  nvBoot42Architecture       mask widened 0x3F->0x7F      | 0x40000000 bit 30 -> correct 0x0 mutant 0x40
+  nvBoot42Architecture       mask narrowed 0x3F->0x1F     | 0x20000000 bit 29 -> correct 0x20 mutant 0x0
+  nvBoot42ChipId             mask widened 0x3FF->0x7FF    | 0x40000000 bit 30 -> correct 0x0 mutant 0x400
+  nvBoot42ChipId             mask narrowed 0x3FF->0x1FF   | 0x20000000 bit 29 -> correct 0x200 mutant 0x0

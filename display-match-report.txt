@@ -1,0 +1,817 @@
+macOS PCI DISPLAY MATCH REPORT
+==========================================================================
+
+source image : C:\Users\Kentl\macos-vm\sonoma\BaseSystem.img
+               3221110784 bytes
+bytes read   : 3221110784
+
+scan reach   : 122 match keys read, 99 distinct personalities,
+               203 distinct device ids
+
+This listing is UNFILTERED. Every personality below carrying an
+IOPCIPrimaryMatch / IOPCIMatch / IOPCISecondaryMatch key is shown, and
+the reach line above equals the number of rows in the body. Do not
+reintroduce a filter: an absence measured against an excerpt is not an
+absence, and this tree has already published one by accident.
+
+--------------------------------------------------------------------------
+CORROBORATION -- is a zero below an absence, or a blind parse?
+--------------------------------------------------------------------------
+
+  [ok] at least one personality was parsed
+  [ok] at least one IOPCIClassMatch was recovered
+  [ok] every parsed row names a provider class
+  [ok] control id 0x3E9B8086 present -- Coffee Lake GT2 (AppleIntelCFLGraphicsFramebuffer)
+  [ok] control id 0x8A528086 present -- Ice Lake-LP GT2 (AppleIntelICLLPGraphicsFramebuffer)
+
+  VERDICT: parse REACHES the match dictionaries, so an id absent
+           from the body below is genuinely not bound by any
+           driver in this image.
+
+--------------------------------------------------------------------------
+THE QUESTION THIS TREE IS ASKING
+--------------------------------------------------------------------------
+
+  target id : 0x9A688086 -- Tiger Lake GT2 (the laptop's iGPU, device 0x9a68)
+  RESULT    : ABSENT from all 203 distinct device ids.
+
+  No shipping personality names this part, so no framebuffer
+  driver will ever attach to it. Note WHY this is stronger than
+  the kext-name absence already in PLAN.md condition B: it is not
+  merely that no kext is called Tiger Lake, it is that the
+  allow-lists inside the kexts that DO ship exclude this silicon
+  by number.
+
+  Matching is BOTH-of when both keys are present: IOPCIClassMatch
+  0x03000000&0xff000000 accepts any display controller, and
+  IOPCIPrimaryMatch then narrows it to the explicit list. A part
+  outside the list fails the personality regardless of class.
+
+--------------------------------------------------------------------------
+PERSONALITIES (99, unfiltered)
+--------------------------------------------------------------------------
+
+  publisher    : (none nearby)
+  IOClass      : AppleAHCI
+  provider     : IOPCIDevice
+  class match  : 0x01060100&0xffffff00
+  IOPCIPrimaryMatch : 0x3a228086
+
+  publisher    : (none nearby)
+  IOClass      : AppleAHCI
+  provider     : IOPCIDevice
+  class match  : 0x01060100&0xffffff00
+  IOPCIPrimaryMatch : 0x26818086
+
+  publisher    : (none nearby)
+  IOClass      : AppleAHCI
+  provider     : IOPCIDevice
+  class match  : 0x01060100&0xffffff00
+  IOPCIPrimaryMatch : 0x27c58086
+
+  publisher    : (none nearby)
+  IOClass      : AppleAMDUSBXHCIPCI
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x73a41002 0x73a61002
+
+  publisher    : (none nearby)
+  IOClass      : AppleAMDUSBXHCIPCI
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x73a41002 0x73a61002
+
+  publisher    : (none nearby)
+  IOClass      : AppleASMedia1042USBXHCI
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x11421b21
+
+  publisher    : (none nearby)
+  IOClass      : AppleASMedia1042USBXHCI
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x11421b21
+
+  publisher    : (none nearby)
+  IOClass      : AppleASMediaUSBXHCI
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x00001b21&0x0000ffff
+
+  publisher    : (none nearby)
+  IOClass      : AppleBCMWLANBusInterfacePCIe
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x000014e4&0x0000ffff
+
+  publisher    : (none nearby)
+  IOClass      : AppleBochVGAFB
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x11111234&0xFFFFFFFF
+
+  publisher    : (none nearby)
+  IOClass      : AppleCirrusGD5446FB
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x00001013&0x0000FFFF
+
+  publisher    : (none nearby)
+  IOClass      : AppleConvergedPCI
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x5fa014e4 0x5f6914e4 0x5f3114e4 0x5f7114e4 0x5f7214e4 0x5f8314e4
+
+  publisher    : (none nearby)
+  IOClass      : AppleEmbeddedNVMeController
+  provider     : IOPCIDevice
+  class match  : 0x01800200&0xffffff00
+  IOPCIMatch   : 0x2002106b
+
+  publisher    : (none nearby)
+  IOClass      : AppleIntelCNLUSBXHCI
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x9ded8086 0xa36d8086 0x06ed8086
+
+  publisher    : (none nearby)
+  IOClass      : AppleIntelICLUSBXHCI
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x38ed8086 0x8a138086
+
+  publisher    : (none nearby)
+  IOClass      : AppleIntelLpssDmac
+  provider     : IOPCIDevice
+  class match  : 08010200&0xfffffff00
+  IOPCIMatch   : 0x00008086&0x000fffff
+
+  publisher    : (none nearby)
+  IOClass      : AppleIntelLpssGspi
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x80208086&0xc230ffff
+
+  publisher    : (none nearby)
+  IOClass      : AppleIntelLpssI2C
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x80608086&0xc278ffff
+
+  publisher    : (none nearby)
+  IOClass      : AppleIntelLpssUARTv0
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x9c638086 0x9c648086 0x9ce38086 0x9ce48086
+
+  publisher    : (none nearby)
+  IOClass      : AppleMCP89RootPortPM
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x0D9810de&0xFFFCFFFF
+
+  publisher    : (none nearby)
+  IOClass      : AppleS3ELabController
+  provider     : IOPCIDevice
+  class match  : 0x01800200&0xffffff00
+  IOPCIMatch   : 0x2002106b
+
+  publisher    : (none nearby)
+  IOClass      : AppleSATAExpress
+  provider     : IOPCIDevice
+  class match  : 0x01018500&0xffffff00
+  IOPCIPrimaryMatch : 0xa801144d
+
+  publisher    : (none nearby)
+  IOClass      : AppleThunderboltHAL
+  provider     : IOPCIDevice
+  class match  : 0x08800000&0xffff0000
+  IOPCIMatch   : 0x15008086&0xff00ffff
+
+  publisher    : (none nearby)
+  IOClass      : AppleThunderboltHALType4
+  provider     : IOPCIDevice
+  class match  : 0x08800000&0xffff0000
+  IOPCIMatch   : 0x8A008086&0xff00ffff
+
+  publisher    : (none nearby)
+  IOClass      : AppleUSBEHCIPI7C9X440SL
+  provider     : IOPCIDevice
+  class match  : 0x0c032000
+  IOPCIPrimaryMatch : 0x400f12d8
+
+  publisher    : (none nearby)
+  IOClass      : AppleUSBXHCIAR
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x15b68086 0x15c18086 0x15db8086 0x15d48086
+
+  publisher    : (none nearby)
+  IOClass      : AppleUSBXHCIFL1100
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x11001b73
+
+  publisher    : (none nearby)
+  IOClass      : AppleUSBXHCILPT
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x9c318086
+
+  publisher    : (none nearby)
+  IOClass      : AppleUSBXHCILPTH
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x8c318086
+
+  publisher    : (none nearby)
+  IOClass      : AppleUSBXHCILPTHB
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x8cb18086
+
+  publisher    : (none nearby)
+  IOClass      : AppleUSBXHCIPPT
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x1e318086
+
+  publisher    : (none nearby)
+  IOClass      : AppleUSBXHCISPT
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0xa12f8086 0xa2af8086 0xa1af8086
+
+  publisher    : (none nearby)
+  IOClass      : AppleUSBXHCISPTLP
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x9d2f8086
+
+  publisher    : (none nearby)
+  IOClass      : AppleUSBXHCITR
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x15e98086 0x15ec8086 0x15f08086 0x0b278086
+
+  publisher    : (none nearby)
+  IOClass      : AppleUSBXHCIWPT
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x9cb18086
+
+  publisher    : (none nearby)
+  IOClass      : AppleVMXNETController
+  provider     : IOPCIDevice
+  class match  : 0x02000000&0xffff0000
+  IOPCIPrimaryMatch : 0x07b015ad&0xffffffff
+
+  publisher    : (none nearby)
+  IOClass      : AppleVirtIOPCITransport
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x00001af4&0x0000FFFF
+
+  publisher    : (none nearby)
+  IOClass      : ArcMSR
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x112017D3 0x122017D3 0x128017D3 0x168017D3 0x120117D3 0x120317D3 0x188017D3 0x121417D3 0x120317D3 0x188417D3 0x188917D3 0x188A17D3
+
+  publisher    : (none nearby)
+  IOClass      : IOBufferCopyController
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x1801106b
+
+  publisher    : (none nearby)
+  IOClass      : IONVMeController
+  provider     : IOPCIDevice
+  class match  : 0x01800200&0xffffff00
+  IOPCIMatch   : 0xa804144d 0xa806144d
+
+  publisher    : (none nearby)
+  IOClass      : IOPCI2PCIBridge
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x00261011
+
+  publisher    : (none nearby)
+  IOClass      : IOUserService
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x000014e4&0x000044ff
+
+  publisher    : (none nearby)
+  IOClass      : PromiseSTEX
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x8760105a 0x8870105a 0x8871105a
+
+  publisher    : com.Areca.ArcMSR
+  IOClass      : ArcMSR
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x112017D3 0x122017D3 0x128017D3 0x168017D3 0x120117D3 0x120317D3 0x188017D3 0x121417D3 0x120317D3 0x188417D3 0x188917D3 0x188A17D3
+
+  publisher    : com.apple.driver.AppleAHCIPort
+  IOClass      : AppleSATAExpress
+  provider     : IOPCIDevice
+  class match  : 0x01018500&0xffffff00
+  IOPCIPrimaryMatch : 0xa801144d
+
+  publisher    : com.apple.driver.AppleAHCIPort
+  IOClass      : AppleAHCI
+  provider     : IOPCIDevice
+  class match  : 0x01060100&0xffffff00
+  IOPCIPrimaryMatch : 0x3a228086
+
+  publisher    : com.apple.driver.AppleAHCIPort
+  IOClass      : AppleAHCI
+  provider     : IOPCIDevice
+  class match  : 0x01060100&0xffffff00
+  IOPCIPrimaryMatch : 0x26818086
+
+  publisher    : com.apple.driver.AppleAHCIPort
+  IOClass      : AppleAHCI
+  provider     : IOPCIDevice
+  class match  : 0x01060100&0xffffff00
+  IOPCIPrimaryMatch : 0x27c58086
+
+  publisher    : com.apple.driver.AppleConvergedPCI
+  IOClass      : AppleConvergedPCI
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x5fa014e4 0x5f6914e4 0x5f3114e4 0x5f7114e4 0x5f7214e4 0x5f8314e4
+
+  publisher    : com.apple.driver.AppleIntelCFLGraphicsFramebuffer
+  IOClass      : AppleIntelFramebufferController
+  provider     : IOPCIDevice
+  class match  : 0x03000000&0xff000000
+  IOPCIPrimaryMatch : 0x3E9B8086 0x3EA58086 0x3EA68086 0x3E928086 0x3E918086 0x3E988086 0x9BC88086 0x9BC58086 0x9BC48086
+
+  publisher    : com.apple.driver.AppleIntelICLLPGraphicsFramebuffer
+  IOClass      : AppleIntelFramebufferController
+  provider     : IOPCIDevice
+  class match  : 0x03000000&0xff000000
+  IOPCIPrimaryMatch : 0xff058086 0x8A708086 0x8A718086 0x8A518086 0x8A5C8086 0x8A5D8086 0x8A528086 0x8A538086 0x8A5A8086 0x8A5B8086
+
+  publisher    : com.apple.driver.AppleIntelKBLGraphicsFramebuffer
+  IOClass      : AppleIntelFramebufferController
+  provider     : IOPCIDevice
+  class match  : 0x03000000&0xff000000
+  IOPCIPrimaryMatch : 0x59128086 0x59168086 0x591B8086 0x591C8086 0x591E8086 0x59268086 0x59278086 0x59238086 0x87C08086
+
+  publisher    : com.apple.driver.AppleIntelLpssDmac
+  IOClass      : AppleIntelLpssDmac
+  provider     : IOPCIDevice
+  class match  : 08010200&0xfffffff00
+  IOPCIMatch   : 0x00008086&0x000fffff
+
+  publisher    : com.apple.driver.AppleIntelLpssGspi
+  IOClass      : AppleIntelLpssGspi
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x80208086&0xc230ffff
+
+  publisher    : com.apple.driver.AppleIntelLpssI2C
+  IOClass      : AppleIntelLpssI2C
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x80608086&0xc278ffff
+
+  publisher    : com.apple.driver.AppleIntelLpssUARTv0
+  IOClass      : AppleIntelLpssUARTv0
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x9c638086 0x9c648086 0x9ce38086 0x9ce48086
+
+  publisher    : com.apple.driver.AppleMCP89RootPortPM
+  IOClass      : AppleMCP89RootPortPM
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x0D9810de&0xFFFCFFFF
+
+  publisher    : com.apple.driver.AppleThunderboltNHI
+  IOClass      : AppleThunderboltHAL
+  provider     : IOPCIDevice
+  class match  : 0x08800000&0xffff0000
+  IOPCIMatch   : 0x15008086&0xff00ffff
+
+  publisher    : com.apple.driver.AppleThunderboltNHI
+  IOClass      : AppleThunderboltHALType4
+  provider     : IOPCIDevice
+  class match  : 0x08800000&0xffff0000
+  IOPCIMatch   : 0x8A008086&0xff00ffff
+
+  publisher    : com.apple.driver.AppleVirtIO
+  IOClass      : AppleVirtIOPCITransport
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x00001af4&0x0000FFFF
+
+  publisher    : com.apple.driver.AppleVirtualGraphics
+  IOClass      : AppleBochVGAFB
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x11111234&0xFFFFFFFF
+
+  publisher    : com.apple.driver.AppleVirtualGraphics
+  IOClass      : AppleCirrusGD5446FB
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x00001013&0x0000FFFF
+
+  publisher    : com.apple.driver.AppleVmxnet3Ethernet
+  IOClass      : AppleVMXNETController
+  provider     : IOPCIDevice
+  class match  : 0x02000000&0xffff0000
+  IOPCIPrimaryMatch : 0x07b015ad&0xffffffff
+
+  publisher    : com.apple.driver.usb.AppleUSBEHCIPCI
+  IOClass      : AppleUSBEHCIPI7C9X440SL
+  provider     : IOPCIDevice
+  class match  : 0x0c032000
+  IOPCIPrimaryMatch : 0x400f12d8
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleAMDUSBXHCIPCI
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x73a41002 0x73a61002
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleASMedia1042USBXHCI
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x11421b21
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleASMediaUSBXHCI
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x00001b21&0x0000ffff
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleIntelCNLUSBXHCI
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x9ded8086 0xa36d8086 0x06ed8086
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleIntelICLUSBXHCI
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x38ed8086 0x8a138086
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleUSBXHCIAR
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x15b68086 0x15c18086 0x15db8086 0x15d48086
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleUSBXHCIFL1100
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x11001b73
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleUSBXHCILPT
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x9c318086
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleUSBXHCILPTH
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x8c318086
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleUSBXHCILPTHB
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x8cb18086
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleUSBXHCIPPT
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x1e318086
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleUSBXHCISPT
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0xa12f8086 0xa2af8086 0xa1af8086
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleUSBXHCISPTLP
+  provider     : IOPCIDevice
+  class match  : 0x0c033000
+  IOPCIPrimaryMatch : 0x9d2f8086
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleUSBXHCITR
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x15e98086 0x15ec8086 0x15f08086 0x0b278086
+
+  publisher    : com.apple.driver.usb.AppleUSBXHCIPCI
+  IOClass      : AppleUSBXHCIWPT
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x9cb18086
+
+  publisher    : com.apple.iokit.IOBufferCopyController
+  IOClass      : IOBufferCopyController
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x1801106b
+
+  publisher    : com.apple.iokit.IONVMeFamily
+  IOClass      : AppleS3ELabController
+  provider     : IOPCIDevice
+  class match  : 0x01800200&0xffffff00
+  IOPCIMatch   : 0x2002106b
+
+  publisher    : com.apple.iokit.IONVMeFamily
+  IOClass      : IONVMeController
+  provider     : IOPCIDevice
+  class match  : 0x01800200&0xffffff00
+  IOPCIMatch   : 0xa804144d 0xa806144d
+
+  publisher    : com.apple.iokit.IOPCIFamily
+  IOClass      : IOPCI2PCIBridge
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x00261011
+
+  publisher    : com.apple.kext.AMD10000Controller
+  IOClass      : AMD10000ControllerWrangler
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x68601002 0x68611002 0x68621002 0x68631002 0x68641002 0x68671002 0x68681002 0x68691002 0x686A1002 0x686B1002  0x686C1002 0x686D1002 0x686E1002 0x687F1002 0x69A01002 0x69A11002 0x69A21002 0x69A31002 0x69AF1002  0x66A01002 0x66A11002 0x66A21002 0x66A31002 0x66A71002 0x66AF1002
+
+  publisher    : com.apple.kext.AMD10000Controller
+  IOClass      : AMD10000Controller
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x68601002 0x68611002 0x68621002 0x68631002 0x68641002 0x68671002 0x68681002 0x68691002 0x686A1002 0x686B1002  0x686C1002 0x686D1002 0x686E1002 0x687F1002 0x69A01002 0x69A11002 0x69A21002 0x69A31002 0x69AF1002  0x66A01002 0x66A11002 0x66A21002 0x66A31002 0x66A71002 0x66AF1002
+
+  publisher    : com.apple.kext.AMD9500Controller
+  IOClass      : AMD9500ControllerWrangler
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x67E01002 0x67E31002 0x67E81002 0x67EB1002 0x67EF1002 0x67FF1002 0x67E11002 0x67E71002 0x67E91002 0x67C01002 0x67C11002 0x67C21002 0x67C41002 0x67C71002 0x67DF1002 0x67D01002 0x67C81002 0x67C91002 0x67CA1002 0x67CC1002 0x67CF1002
+
+  publisher    : com.apple.kext.AMD9500Controller
+  IOClass      : AMD9500Controller
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x67E01002 0x67E31002 0x67E81002 0x67EB1002 0x67EF1002 0x67FF1002 0x67E11002 0x67E71002 0x67E91002 0x67C01002 0x67C11002 0x67C21002 0x67C41002 0x67C71002 0x67DF1002 0x67D01002 0x67C81002 0x67C91002 0x67CA1002 0x67CC1002 0x67CF1002
+
+  publisher    : com.apple.kext.AMDRadeonX6000Framebuffer
+  IOClass      : AMDRadeonX6000_AmdGpuWrangler
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x73101002 0x73121002 0x73181002 0x73191002 0x731A1002 0x731B1002 0x731F1002 0x73BF1002 0x73601002 0x73621002 0x73401002 0x73411002 0x73431002 0x73471002 0x734F1002 0x73A01002 0x73A21002 0x73A31002 0x73AB1002 0x73AE1002 0x73AF1002 0x73BF1002 0x73E01002 0x73E31002 0x73FF1002
+
+  publisher    : com.apple.kext.AMDRadeonX6000Framebuffer
+  IOClass      : AMDRadeonX6000_AmdRadeonControllerNavi10
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x73101002 0x73121002 0x73181002 0x73191002 0x731A1002 0x731B1002 0x731F1002 0x73BF1002
+
+  publisher    : com.apple.kext.AMDRadeonX6000Framebuffer
+  IOClass      : AMDRadeonX6000_AmdRadeonControllerNavi12
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x73601002 0x73621002
+
+  publisher    : com.apple.kext.AMDRadeonX6000Framebuffer
+  IOClass      : AMDRadeonX6000_AmdRadeonControllerNavi14
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x73401002 0x73411002 0x73431002 0x73471002 0x734F1002
+
+  publisher    : com.apple.kext.AMDRadeonX6000Framebuffer
+  IOClass      : AMDRadeonX6000_AmdRadeonControllerNavi21
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x73A01002 0x73A21002 0x73A31002 0x73AB1002 0x73AE1002 0x73AF1002 0x73BF1002
+
+  publisher    : com.apple.kext.AMDRadeonX6000Framebuffer
+  IOClass      : AMDRadeonX6000_AmdRadeonControllerNavi23
+  provider     : IOPCIDevice
+  IOPCIMatch   : 0x73E01002 0x73E31002 0x73FF1002
+
+  publisher    : com.apple.kext.AMDSupport
+  IOClass      : AMDSupport
+  provider     : IOPCIDevice
+  class match  : 0x03000000&0xFF000000
+  IOPCIMatch   : 0x00001002&0x0000FFFF
+
+  publisher    : com.highpoint-tech.kext.HighPointIOP
+  IOClass      : HPTMV9580IOPController
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x45201103 0x45211103 0x45221103 0x63281103 0x63341103
+
+  publisher    : com.highpoint-tech.kext.HighPointIOP
+  IOClass      : HPTMV9580IOPController
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x36221103 0x36401103 0x36201103
+
+  publisher    : com.highpoint-tech.kext.HighPointRR
+  IOClass      : HPTRRController
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x27101103 0x27111103 0x27201103 0x27211103 0x27221103 0x37201103 0x37221103 0x37401103 0x37421103 0x37441103 0x28201103 0x28221103 0x28401103 0x28421103 0x28441103 0x71101103
+
+  publisher    : com.highpoint-tech.kext.HighPointRR
+  IOClass      : HPTRRController
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x6451103 0x6411103 0x6461103 0x6421103 0x8201103 0x8221103 0x8401103 0x8421103 0x8441103
+
+  publisher    : com.promise.driver.stex
+  IOClass      : PromiseSTEX
+  provider     : IOPCIDevice
+  IOPCIPrimaryMatch : 0x8760105a 0x8870105a 0x8871105a
+
+--------------------------------------------------------------------------
+EVERY DEVICE ID (203, unfiltered, sorted)
+--------------------------------------------------------------------------
+
+  0X00001002  com.apple.kext.AMDSupport
+  0X00001013  AppleCirrusGD5446FB, com.apple.driver.AppleVirtualGraphics
+  0X000014E4  AppleBCMWLANBusInterfacePCIe, IOUserService
+  0X00001AF4  AppleVirtIOPCITransport, com.apple.driver.AppleVirtIO
+  0X00001B21  AppleASMediaUSBXHCI, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X000044FF  IOUserService
+  0X00008086  AppleIntelLpssDmac, com.apple.driver.AppleIntelLpssDmac
+  0X0000FFFF  AppleASMediaUSBXHCI, AppleBCMWLANBusInterfacePCIe, AppleCirrusGD5446FB, AppleVirtIOPCITransport, com.apple.driver.AppleVirtIO, com.apple.driver.AppleVirtualGraphics, com.apple.driver.usb.AppleUSBXHCIPCI, com.apple.kext.AMDSupport
+  0X000FFFFF  AppleIntelLpssDmac, com.apple.driver.AppleIntelLpssDmac
+  0X00261011  IOPCI2PCIBridge, com.apple.iokit.IOPCIFamily
+  0X06ED8086  AppleIntelCNLUSBXHCI, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X07B015AD  AppleVMXNETController, com.apple.driver.AppleVmxnet3Ethernet
+  0X0B278086  AppleUSBXHCITR, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X0D9810DE  AppleMCP89RootPortPM, com.apple.driver.AppleMCP89RootPortPM
+  0X11001B73  AppleUSBXHCIFL1100, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X11111234  AppleBochVGAFB, com.apple.driver.AppleVirtualGraphics
+  0X112017D3  ArcMSR, com.Areca.ArcMSR
+  0X11421B21  AppleASMedia1042USBXHCI, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X120117D3  ArcMSR, com.Areca.ArcMSR
+  0X120317D3  ArcMSR, com.Areca.ArcMSR
+  0X121417D3  ArcMSR, com.Areca.ArcMSR
+  0X122017D3  ArcMSR, com.Areca.ArcMSR
+  0X128017D3  ArcMSR, com.Areca.ArcMSR
+  0X15008086  AppleThunderboltHAL, com.apple.driver.AppleThunderboltNHI
+  0X15B68086  AppleUSBXHCIAR, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X15C18086  AppleUSBXHCIAR, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X15D48086  AppleUSBXHCIAR, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X15DB8086  AppleUSBXHCIAR, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X15E98086  AppleUSBXHCITR, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X15EC8086  AppleUSBXHCITR, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X15F08086  AppleUSBXHCITR, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X168017D3  ArcMSR, com.Areca.ArcMSR
+  0X1801106B  IOBufferCopyController, com.apple.iokit.IOBufferCopyController
+  0X188017D3  ArcMSR, com.Areca.ArcMSR
+  0X188417D3  ArcMSR, com.Areca.ArcMSR
+  0X188917D3  ArcMSR, com.Areca.ArcMSR
+  0X188A17D3  ArcMSR, com.Areca.ArcMSR
+  0X1E318086  AppleUSBXHCIPPT, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X2002106B  AppleEmbeddedNVMeController, AppleS3ELabController, com.apple.iokit.IONVMeFamily
+  0X26818086  AppleAHCI, com.apple.driver.AppleAHCIPort
+  0X27101103  com.highpoint-tech.kext.HighPointRR
+  0X27111103  com.highpoint-tech.kext.HighPointRR
+  0X27201103  com.highpoint-tech.kext.HighPointRR
+  0X27211103  com.highpoint-tech.kext.HighPointRR
+  0X27221103  com.highpoint-tech.kext.HighPointRR
+  0X27C58086  AppleAHCI, com.apple.driver.AppleAHCIPort
+  0X28201103  com.highpoint-tech.kext.HighPointRR
+  0X28221103  com.highpoint-tech.kext.HighPointRR
+  0X28401103  com.highpoint-tech.kext.HighPointRR
+  0X28421103  com.highpoint-tech.kext.HighPointRR
+  0X28441103  com.highpoint-tech.kext.HighPointRR
+  0X36201103  com.highpoint-tech.kext.HighPointIOP
+  0X36221103  com.highpoint-tech.kext.HighPointIOP
+  0X36401103  com.highpoint-tech.kext.HighPointIOP
+  0X37201103  com.highpoint-tech.kext.HighPointRR
+  0X37221103  com.highpoint-tech.kext.HighPointRR
+  0X37401103  com.highpoint-tech.kext.HighPointRR
+  0X37421103  com.highpoint-tech.kext.HighPointRR
+  0X37441103  com.highpoint-tech.kext.HighPointRR
+  0X38ED8086  AppleIntelICLUSBXHCI, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X3A228086  AppleAHCI, com.apple.driver.AppleAHCIPort
+  0X3E918086  com.apple.driver.AppleIntelCFLGraphicsFramebuffer
+  0X3E928086  com.apple.driver.AppleIntelCFLGraphicsFramebuffer
+  0X3E988086  com.apple.driver.AppleIntelCFLGraphicsFramebuffer
+  0X3E9B8086  com.apple.driver.AppleIntelCFLGraphicsFramebuffer
+  0X3EA58086  com.apple.driver.AppleIntelCFLGraphicsFramebuffer
+  0X3EA68086  com.apple.driver.AppleIntelCFLGraphicsFramebuffer
+  0X400F12D8  AppleUSBEHCIPI7C9X440SL, com.apple.driver.usb.AppleUSBEHCIPCI
+  0X45201103  com.highpoint-tech.kext.HighPointIOP
+  0X45211103  com.highpoint-tech.kext.HighPointIOP
+  0X45221103  com.highpoint-tech.kext.HighPointIOP
+  0X59128086  com.apple.driver.AppleIntelKBLGraphicsFramebuffer
+  0X59168086  com.apple.driver.AppleIntelKBLGraphicsFramebuffer
+  0X591B8086  com.apple.driver.AppleIntelKBLGraphicsFramebuffer
+  0X591C8086  com.apple.driver.AppleIntelKBLGraphicsFramebuffer
+  0X591E8086  com.apple.driver.AppleIntelKBLGraphicsFramebuffer
+  0X59238086  com.apple.driver.AppleIntelKBLGraphicsFramebuffer
+  0X59268086  com.apple.driver.AppleIntelKBLGraphicsFramebuffer
+  0X59278086  com.apple.driver.AppleIntelKBLGraphicsFramebuffer
+  0X5F3114E4  AppleConvergedPCI, com.apple.driver.AppleConvergedPCI
+  0X5F6914E4  AppleConvergedPCI, com.apple.driver.AppleConvergedPCI
+  0X5F7114E4  AppleConvergedPCI, com.apple.driver.AppleConvergedPCI
+  0X5F7214E4  AppleConvergedPCI, com.apple.driver.AppleConvergedPCI
+  0X5F8314E4  AppleConvergedPCI, com.apple.driver.AppleConvergedPCI
+  0X5FA014E4  AppleConvergedPCI, com.apple.driver.AppleConvergedPCI
+  0X63281103  com.highpoint-tech.kext.HighPointIOP
+  0X63341103  com.highpoint-tech.kext.HighPointIOP
+  0X66A01002  com.apple.kext.AMD10000Controller
+  0X66A11002  com.apple.kext.AMD10000Controller
+  0X66A21002  com.apple.kext.AMD10000Controller
+  0X66A31002  com.apple.kext.AMD10000Controller
+  0X66A71002  com.apple.kext.AMD10000Controller
+  0X66AF1002  com.apple.kext.AMD10000Controller
+  0X67C01002  com.apple.kext.AMD9500Controller
+  0X67C11002  com.apple.kext.AMD9500Controller
+  0X67C21002  com.apple.kext.AMD9500Controller
+  0X67C41002  com.apple.kext.AMD9500Controller
+  0X67C71002  com.apple.kext.AMD9500Controller
+  0X67C81002  com.apple.kext.AMD9500Controller
+  0X67C91002  com.apple.kext.AMD9500Controller
+  0X67CA1002  com.apple.kext.AMD9500Controller
+  0X67CC1002  com.apple.kext.AMD9500Controller
+  0X67CF1002  com.apple.kext.AMD9500Controller
+  0X67D01002  com.apple.kext.AMD9500Controller
+  0X67DF1002  com.apple.kext.AMD9500Controller
+  0X67E01002  com.apple.kext.AMD9500Controller
+  0X67E11002  com.apple.kext.AMD9500Controller
+  0X67E31002  com.apple.kext.AMD9500Controller
+  0X67E71002  com.apple.kext.AMD9500Controller
+  0X67E81002  com.apple.kext.AMD9500Controller
+  0X67E91002  com.apple.kext.AMD9500Controller
+  0X67EB1002  com.apple.kext.AMD9500Controller
+  0X67EF1002  com.apple.kext.AMD9500Controller
+  0X67FF1002  com.apple.kext.AMD9500Controller
+  0X68601002  com.apple.kext.AMD10000Controller
+  0X68611002  com.apple.kext.AMD10000Controller
+  0X68621002  com.apple.kext.AMD10000Controller
+  0X68631002  com.apple.kext.AMD10000Controller
+  0X68641002  com.apple.kext.AMD10000Controller
+  0X68671002  com.apple.kext.AMD10000Controller
+  0X68681002  com.apple.kext.AMD10000Controller
+  0X68691002  com.apple.kext.AMD10000Controller
+  0X686A1002  com.apple.kext.AMD10000Controller
+  0X686B1002  com.apple.kext.AMD10000Controller
+  0X686C1002  com.apple.kext.AMD10000Controller
+  0X686D1002  com.apple.kext.AMD10000Controller
+  0X686E1002  com.apple.kext.AMD10000Controller
+  0X687F1002  com.apple.kext.AMD10000Controller
+  0X69A01002  com.apple.kext.AMD10000Controller
+  0X69A11002  com.apple.kext.AMD10000Controller
+  0X69A21002  com.apple.kext.AMD10000Controller
+  0X69A31002  com.apple.kext.AMD10000Controller
+  0X69AF1002  com.apple.kext.AMD10000Controller
+  0X71101103  com.highpoint-tech.kext.HighPointRR
+  0X73101002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73121002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73181002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73191002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X731A1002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X731B1002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X731F1002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73401002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73411002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73431002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73471002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X734F1002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73601002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73621002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73A01002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73A21002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73A31002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73A41002  AppleAMDUSBXHCIPCI, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X73A61002  AppleAMDUSBXHCIPCI, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X73AB1002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73AE1002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73AF1002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73BF1002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73E01002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73E31002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X73FF1002  com.apple.kext.AMDRadeonX6000Framebuffer
+  0X80208086  AppleIntelLpssGspi, com.apple.driver.AppleIntelLpssGspi
+  0X80608086  AppleIntelLpssI2C, com.apple.driver.AppleIntelLpssI2C
+  0X8760105A  PromiseSTEX, com.promise.driver.stex
+  0X87C08086  com.apple.driver.AppleIntelKBLGraphicsFramebuffer
+  0X8870105A  PromiseSTEX, com.promise.driver.stex
+  0X8871105A  PromiseSTEX, com.promise.driver.stex
+  0X8A008086  AppleThunderboltHALType4, com.apple.driver.AppleThunderboltNHI
+  0X8A138086  AppleIntelICLUSBXHCI, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X8A518086  com.apple.driver.AppleIntelICLLPGraphicsFramebuffer
+  0X8A528086  com.apple.driver.AppleIntelICLLPGraphicsFramebuffer
+  0X8A538086  com.apple.driver.AppleIntelICLLPGraphicsFramebuffer
+  0X8A5A8086  com.apple.driver.AppleIntelICLLPGraphicsFramebuffer
+  0X8A5B8086  com.apple.driver.AppleIntelICLLPGraphicsFramebuffer
+  0X8A5C8086  com.apple.driver.AppleIntelICLLPGraphicsFramebuffer
+  0X8A5D8086  com.apple.driver.AppleIntelICLLPGraphicsFramebuffer
+  0X8A708086  com.apple.driver.AppleIntelICLLPGraphicsFramebuffer
+  0X8A718086  com.apple.driver.AppleIntelICLLPGraphicsFramebuffer
+  0X8C318086  AppleUSBXHCILPTH, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X8CB18086  AppleUSBXHCILPTHB, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X9BC48086  com.apple.driver.AppleIntelCFLGraphicsFramebuffer
+  0X9BC58086  com.apple.driver.AppleIntelCFLGraphicsFramebuffer
+  0X9BC88086  com.apple.driver.AppleIntelCFLGraphicsFramebuffer
+  0X9C318086  AppleUSBXHCILPT, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X9C638086  AppleIntelLpssUARTv0, com.apple.driver.AppleIntelLpssUARTv0
+  0X9C648086  AppleIntelLpssUARTv0, com.apple.driver.AppleIntelLpssUARTv0
+  0X9CB18086  AppleUSBXHCIWPT, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X9CE38086  AppleIntelLpssUARTv0, com.apple.driver.AppleIntelLpssUARTv0
+  0X9CE48086  AppleIntelLpssUARTv0, com.apple.driver.AppleIntelLpssUARTv0
+  0X9D2F8086  AppleUSBXHCISPTLP, com.apple.driver.usb.AppleUSBXHCIPCI
+  0X9DED8086  AppleIntelCNLUSBXHCI, com.apple.driver.usb.AppleUSBXHCIPCI
+  0XA12F8086  AppleUSBXHCISPT, com.apple.driver.usb.AppleUSBXHCIPCI
+  0XA1AF8086  AppleUSBXHCISPT, com.apple.driver.usb.AppleUSBXHCIPCI
+  0XA2AF8086  AppleUSBXHCISPT, com.apple.driver.usb.AppleUSBXHCIPCI
+  0XA36D8086  AppleIntelCNLUSBXHCI, com.apple.driver.usb.AppleUSBXHCIPCI
+  0XA801144D  AppleSATAExpress, com.apple.driver.AppleAHCIPort
+  0XA804144D  IONVMeController, com.apple.iokit.IONVMeFamily
+  0XA806144D  IONVMeController, com.apple.iokit.IONVMeFamily
+  0XC230FFFF  AppleIntelLpssGspi, com.apple.driver.AppleIntelLpssGspi
+  0XC278FFFF  AppleIntelLpssI2C, com.apple.driver.AppleIntelLpssI2C
+  0XFF00FFFF  AppleThunderboltHAL, AppleThunderboltHALType4, com.apple.driver.AppleThunderboltNHI
+  0XFF058086  com.apple.driver.AppleIntelICLLPGraphicsFramebuffer
+  0XFFFCFFFF  AppleMCP89RootPortPM, com.apple.driver.AppleMCP89RootPortPM
+  0XFFFFFFFF  AppleBochVGAFB, AppleVMXNETController, com.apple.driver.AppleVirtualGraphics, com.apple.driver.AppleVmxnet3Ethernet
+
+--------------------------------------------------------------------------
+WHAT THIS DOES NOT ESTABLISH
+--------------------------------------------------------------------------
+
+1. This is the RECOVERY image, a trimmed subset of a full install.
+   Strong evidence about the installed system volume, not proof.
+2. An id absent here could still be reached by injecting a fake
+   device id at the PCI level, which is what the Hackintosh
+   community does. That makes a driver ATTACH; it does not make the
+   driver correct. Gen11 and Gen12 are different display engines,
+   so an Ice Lake driver driving Tiger Lake registers programs the
+   wrong block -- the failure mode this tree already measured for
+   PLANE_SIZE versus PIPESRC, where a plausible wrong picture is the
+   dangerous outcome rather than a blank screen.
+3. Nothing here is a hardware measurement. It is a read of Apple's
+   shipped match dictionaries.

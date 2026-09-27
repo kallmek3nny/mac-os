@@ -1,0 +1,1103 @@
+test_default_app_is_sequoia_not_ventura (test_build_installassistant_iso.ArgumentTests.test_default_app_is_sequoia_not_ventura) ... ok
+test_flags_default_off (test_build_installassistant_iso.ArgumentTests.test_flags_default_off) ... ok
+test_pkg_and_out_are_optional_so_self_test_can_run_alone (test_build_installassistant_iso.ArgumentTests.test_pkg_and_out_are_optional_so_self_test_can_run_alone) ... ok
+test_custom_vol_ident_is_written_verbatim (test_build_installassistant_iso.BuildAndReadBackTests.test_custom_vol_ident_is_written_verbatim)
+The tool warns rather than refuses, so prove it does what it says. ... ok
+test_no_script_leaves_only_the_package (test_build_installassistant_iso.BuildAndReadBackTests.test_no_script_leaves_only_the_package) ... ok
+test_package_size_survives_the_round_trip (test_build_installassistant_iso.BuildAndReadBackTests.test_package_size_survives_the_round_trip) ... ok
+test_read_back_omits_the_dot_entries (test_build_installassistant_iso.BuildAndReadBackTests.test_read_back_omits_the_dot_entries)
+'.' and '..' are directory records, not files. They appeared in the ... ok
+test_round_trip_carries_both_files_with_readable_names (test_build_installassistant_iso.BuildAndReadBackTests.test_round_trip_carries_both_files_with_readable_names) ... ok
+test_self_test_passes_and_cleans_up (test_build_installassistant_iso.BuildAndReadBackTests.test_self_test_passes_and_cleans_up) ... ok
+test_verify_accepts_a_correct_image (test_build_installassistant_iso.BuildAndReadBackTests.test_verify_accepts_a_correct_image) ... ok
+test_verify_rejects_a_wrong_volume_ident (test_build_installassistant_iso.BuildAndReadBackTests.test_verify_rejects_a_wrong_volume_ident) ... error: volume identifier is 'WRONGNAME'; run_offline.sh mounts /Volumes/InstallAssistant and will fail
+ok
+test_a_different_app_name_is_honoured (test_build_installassistant_iso.RenderScriptTests.test_a_different_app_name_is_honoured) ... ok
+test_app_name_appears_twice (test_build_installassistant_iso.RenderScriptTests.test_app_name_appears_twice)
+Upstream copies the .app then cds into it -- both paths matter. ... ok
+test_mounts_the_required_volume_path (test_build_installassistant_iso.RenderScriptTests.test_mounts_the_required_volume_path) ... ok
+test_package_is_renamed_to_sharedsupport_dmg (test_build_installassistant_iso.RenderScriptTests.test_package_is_renamed_to_sharedsupport_dmg)
+The mechanism is a rename, not an extraction. If this line drifts ... ok
+test_runs_the_springboard_directly (test_build_installassistant_iso.RenderScriptTests.test_runs_the_springboard_directly) ... ok
+test_ventura_is_gone (test_build_installassistant_iso.RenderScriptTests.test_ventura_is_gone) ... ok
+test_missing_package_is_rejected (test_build_installassistant_iso.SizeGuardTests.test_missing_package_is_rejected) ... error: no such file: C:\Users\Kentl\AppData\Local\Temp\iasize-1zbpxd20\nope.pkg
+ok
+test_out_without_pkg_is_rejected (test_build_installassistant_iso.SizeGuardTests.test_out_without_pkg_is_rejected) ... error: give both a package and --out (or use --self-test)
+ok
+test_small_package_is_rejected (test_build_installassistant_iso.SizeGuardTests.test_small_package_is_rejected) ... error: C:\Users\Kentl\AppData\Local\Temp\iasize-ls0j78pu\InstallAssistant.pkg is 0.00 GiB. A real InstallAssistant.pkg is ~13-15 GiB, so this is a placeholder or a truncated download. Discovering that inside the guest costs a reboot -- pass --allow-small-pkg if you meant it.
+ok
+test_threshold_is_in_the_right_ballpark (test_build_installassistant_iso.SizeGuardTests.test_threshold_is_in_the_right_ballpark)
+8 GiB: below any real payload, above any plausible placeholder. ... ok
+test_default_matches_required (test_build_installassistant_iso.VolumeIdentTests.test_default_matches_required) ... ok
+test_required_ident_is_the_string_run_offline_mounts (test_build_installassistant_iso.VolumeIdentTests.test_required_ident_is_the_string_run_offline_mounts) ... ok
+test_it_does_not_touch_the_real_payload_directory (test_build_step7_payload.EndToEndTests.test_it_does_not_touch_the_real_payload_directory) ... ok
+test_it_exits_zero (test_build_step7_payload.EndToEndTests.test_it_exits_zero) ... ok
+test_it_produces_all_three_artifacts (test_build_step7_payload.EndToEndTests.test_it_produces_all_three_artifacts) ... ok
+test_member_ownership_is_neutralised (test_build_step7_payload.EndToEndTests.test_member_ownership_is_neutralised) ... ok
+test_skip_gate_says_so_rather_than_running_it_silently (test_build_step7_payload.EndToEndTests.test_skip_gate_says_so_rather_than_running_it_silently) ... ok
+test_the_archive_carries_no_pax_extension_members (test_build_step7_payload.EndToEndTests.test_the_archive_carries_no_pax_extension_members) ... ok
+test_the_iso_is_larger_than_what_it_contains (test_build_step7_payload.EndToEndTests.test_the_iso_is_larger_than_what_it_contains) ... ok
+test_the_staged_script_is_byte_identical_to_tools (test_build_step7_payload.EndToEndTests.test_the_staged_script_is_byte_identical_to_tools) ... ok
+test_the_staged_script_is_still_lf_only (test_build_step7_payload.EndToEndTests.test_the_staged_script_is_still_lf_only) ... ok
+test_the_tar_carries_every_tree_file_byte_for_byte (test_build_step7_payload.EndToEndTests.test_the_tar_carries_every_tree_file_byte_for_byte) ... ok
+test_it_declines_to_run_the_gate_against_a_different_artifact (test_build_step7_payload.GateTargetingTests.test_it_declines_to_run_the_gate_against_a_different_artifact) ... ok
+test_it_did_not_actually_run_the_gate (test_build_step7_payload.GateTargetingTests.test_it_did_not_actually_run_the_gate) ... ok
+test_it_still_built_and_verified_the_payload (test_build_step7_payload.GateTargetingTests.test_it_still_built_and_verified_the_payload) ... ok
+test_it_still_succeeds (test_build_step7_payload.GateTargetingTests.test_it_still_succeeds) ... ok
+test_the_docstring_strip_removed_prose_and_kept_code (test_build_step7_payload.ShapeTests.test_the_docstring_strip_removed_prose_and_kept_code) ... ok
+test_the_excluded_directory_is_the_host_build_output (test_build_step7_payload.ShapeTests.test_the_excluded_directory_is_the_host_build_output) ... ok
+test_the_file_list_is_walked_not_hardcoded (test_build_step7_payload.ShapeTests.test_the_file_list_is_walked_not_hardcoded) ... ok
+test_the_staging_directory_is_outside_the_repo (test_build_step7_payload.ShapeTests.test_the_staging_directory_is_outside_the_repo) ... ok
+test_the_tar_is_written_by_tarfile_not_by_shelling_out (test_build_step7_payload.ShapeTests.test_the_tar_is_written_by_tarfile_not_by_shelling_out) ... ok
+test_the_vmx_is_never_edited (test_build_step7_payload.ShapeTests.test_the_vmx_is_never_edited) ... ok
+test_the_volume_ident_matches_what_the_operator_card_says (test_build_step7_payload.ShapeTests.test_the_volume_ident_matches_what_the_operator_card_says) ... ok
+test_every_member_is_rooted_at_the_depth_the_guest_expects (test_build_step7_payload.TreeMembersTests.test_every_member_is_rooted_at_the_depth_the_guest_expects) ... ok
+test_it_finds_the_real_kext_sources (test_build_step7_payload.TreeMembersTests.test_it_finds_the_real_kext_sources) ... ok
+test_the_host_build_directory_is_excluded (test_build_step7_payload.TreeMembersTests.test_the_host_build_directory_is_excluded) ... ok
+test_the_list_is_sorted_so_two_rebuilds_are_comparable (test_build_step7_payload.TreeMembersTests.test_the_list_is_sorted_so_two_rebuilds_are_comparable) ... ok
+test_a_crlf_staged_script_is_caught (test_build_step7_payload.VerifyRefusalTests.test_a_crlf_staged_script_is_caught) ... ok
+test_a_file_the_tree_no_longer_has_is_caught (test_build_step7_payload.VerifyRefusalTests.test_a_file_the_tree_no_longer_has_is_caught) ... ok
+test_a_missing_source_file_is_caught (test_build_step7_payload.VerifyRefusalTests.test_a_missing_source_file_is_caught) ... ok
+test_a_shipped_build_directory_is_caught (test_build_step7_payload.VerifyRefusalTests.test_a_shipped_build_directory_is_caught) ... ok
+test_a_single_flipped_byte_at_unchanged_length_is_caught (test_build_step7_payload.VerifyRefusalTests.test_a_single_flipped_byte_at_unchanged_length_is_caught) ... ok
+test_a_staged_script_that_drifted_from_tools_is_caught (test_build_step7_payload.VerifyRefusalTests.test_a_staged_script_that_drifted_from_tools_is_caught) ... ok
+test_a_truncated_file_is_caught (test_build_step7_payload.VerifyRefusalTests.test_a_truncated_file_is_caught) ... ok
+test_an_honest_payload_produces_no_problems (test_build_step7_payload.VerifyRefusalTests.test_an_honest_payload_produces_no_problems) ... ok
+test_an_iso_smaller_than_its_inputs_is_caught (test_build_step7_payload.VerifyRefusalTests.test_an_iso_smaller_than_its_inputs_is_caught) ... ok
+test_each_built_suite_reports_at_least_its_floor (test_check_count_floor.BinariesReportRealCounts.test_each_built_suite_reports_at_least_its_floor) ... ok
+test_no_binary_is_older_than_its_source (test_check_count_floor.BinariesReportRealCounts.test_no_binary_is_older_than_its_source)
+A stale binary's count describes code that is no longer there. ... ok
+test_no_listed_suite_is_missing_from_an_existing_build (test_check_count_floor.BinariesReportRealCounts.test_no_listed_suite_is_missing_from_an_existing_build)
+A built tree missing a binary is a failure, not an absence of news. ... ok
+test_a_zeroed_checks_line_parses_as_zero (test_check_count_floor.ParserNegativeControl.test_a_zeroed_checks_line_parses_as_zero) ... ok
+test_a_zeroed_count_would_fail_the_floor (test_check_count_floor.ParserNegativeControl.test_a_zeroed_count_would_fail_the_floor)
+Ties the parser to the assertion, so neither can drift alone. ... ok
+test_a_zeroed_passed_line_parses_as_zero (test_check_count_floor.ParserNegativeControl.test_a_zeroed_passed_line_parses_as_zero) ... ok
+test_both_real_formats_parse (test_check_count_floor.ParserNegativeControl.test_both_real_formats_parse) ... ok
+test_prose_is_not_a_count (test_check_count_floor.ParserNegativeControl.test_prose_is_not_a_count) ... ok
+test_each_suite_calls_check_helpers_many_times (test_check_count_floor.SourcesStillCallChecks.test_each_suite_calls_check_helpers_many_times) ... ok
+test_every_recorded_count_and_derived_floor_is_positive (test_check_count_floor.TableMatchesTheTree.test_every_recorded_count_and_derived_floor_is_positive)
+A zero floor is a floor that cannot fail, which is the whole defect. ... ok
+test_every_suite_on_disk_has_a_recorded_count (test_check_count_floor.TableMatchesTheTree.test_every_suite_on_disk_has_a_recorded_count) ... ok
+test_no_recorded_count_names_a_suite_that_is_gone (test_check_count_floor.TableMatchesTheTree.test_no_recorded_count_names_a_suite_that_is_gone) ... ok
+test_checks_failures_format_is_used (test_check_count_last_line.BothFormatsStillInUseTests.test_checks_failures_format_is_used) ... ok
+test_every_suite_uses_exactly_one_known_format (test_check_count_last_line.BothFormatsStillInUseTests.test_every_suite_uses_exactly_one_known_format) ... ok
+test_passed_failed_format_is_used (test_check_count_last_line.BothFormatsStillInUseTests.test_passed_failed_format_is_used) ... ok
+test_caveat_prose_precedes_the_count (test_check_count_last_line.CountIsLastPrintfTests.test_caveat_prose_precedes_the_count)
+The specific 2026-08-10 regression, pinned by its own text. ... ok
+test_count_printf_is_the_last_printf_in_main (test_check_count_last_line.CountIsLastPrintfTests.test_count_printf_is_the_last_printf_in_main) ... ok
+test_every_main_contains_exactly_one_count_format (test_check_count_last_line.CountIsLastPrintfTests.test_every_main_contains_exactly_one_count_format) ... ok
+test_every_suite_has_a_main (test_check_count_last_line.CountIsLastPrintfTests.test_every_suite_has_a_main) ... ok
+test_a_helper_call_after_the_count_is_detected (test_check_count_last_line.NegativeControlTests.test_a_helper_call_after_the_count_is_detected)
+The tail check must reject anything but the return statement. ... ok
+test_a_missing_count_format_is_detected (test_check_count_last_line.NegativeControlTests.test_a_missing_count_format_is_detected)
+A suite that stopped printing a count at all. ... ok
+test_a_printf_after_the_count_is_detected (test_check_count_last_line.NegativeControlTests.test_a_printf_after_the_count_is_detected)
+The exact 2026-08-10 regression: a caveat printed last. ... ok
+test_a_second_function_after_main_is_detected (test_check_count_last_line.NegativeControlTests.test_a_second_function_after_main_is_detected)
+_main_body slices to EOF, so a trailing function breaks its premise. ... ok
+test_an_iostream_write_is_detected (test_check_count_last_line.NegativeControlTests.test_an_iostream_write_is_detected)
+printf-only matching is defeated by any other output channel. ... ok
+test_the_synthetic_good_body_actually_passes (test_check_count_last_line.NegativeControlTests.test_the_synthetic_good_body_actually_passes)
+Anchors the mutants below. ... ok
+test_main_is_the_last_function (test_check_count_last_line.NoOtherOutputChannelTests.test_main_is_the_last_function)
+_main_body slices to end-of-file, which is only valid if this holds. ... ok
+test_no_iostream_output_in_main (test_check_count_last_line.NoOtherOutputChannelTests.test_no_iostream_output_in_main) ... ok
+test_nothing_is_called_after_the_count (test_check_count_last_line.NoOtherOutputChannelTests.test_nothing_is_called_after_the_count)
+Only the return statement may follow the count printf. ... ok
+test_all_five_named_suites_are_present (test_check_count_last_line.SuitesExistTests.test_all_five_named_suites_are_present) ... ok
+test_no_unlisted_suite_in_tests_dir (test_check_count_last_line.SuitesExistTests.test_no_unlisted_suite_in_tests_dir) ... ok
+test_negation_across_a_comma_does_not_grant_absence (test_check_documented_paths.AbsenceClaims.test_negation_across_a_comma_does_not_grant_absence)
+``A virtual CD does not, so `tools/x.sh` ...`` negates the CD. ... ok
+test_negation_in_a_neighbouring_clause_does_not_grant_absence (test_check_documented_paths.AbsenceClaims.test_negation_in_a_neighbouring_clause_does_not_grant_absence)
+The wrong-GREEN regression, and the reason this module exists. ... ok
+test_neighbouring_clause_still_fails_when_the_path_is_dead (test_check_documented_paths.AbsenceClaims.test_neighbouring_clause_still_fails_when_the_path_is_dead)
+The same sentence, with the file removed, must go red. ... ok
+test_satisfied_absence_passes (test_check_documented_paths.AbsenceClaims.test_satisfied_absence_passes) ... ok
+test_violated_absence_fails (test_check_documented_paths.AbsenceClaims.test_violated_absence_fails)
+The file appearing is what falsifies this sentence, not it missing. ... ok
+test_absence_claim_inside_one_cell_is_still_read (test_check_documented_paths.AbsenceInTables.test_absence_claim_inside_one_cell_is_still_read)
+The real case from OPERATOR-ACTION-step7-build.md must keep working. ... ok
+test_negation_in_a_previous_cell_does_not_grant_absence (test_check_documented_paths.AbsenceInTables.test_negation_in_a_previous_cell_does_not_grant_absence) ... ok
+test_negation_in_a_previous_row_does_not_grant_absence (test_check_documented_paths.AbsenceInTables.test_negation_in_a_previous_row_does_not_grant_absence) ... ok
+test_previous_cell_still_fails_when_the_path_is_dead (test_check_documented_paths.AbsenceInTables.test_previous_cell_still_fails_when_the_path_is_dead)
+Without this the test above proves nothing -- see the clause pair. ... ok
+test_previous_row_still_fails_when_the_path_is_dead (test_check_documented_paths.AbsenceInTables.test_previous_row_still_fails_when_the_path_is_dead) ... ok
+test_ambiguous_basename_fails (test_check_documented_paths.BareBasenames.test_ambiguous_basename_fails)
+Two files sharing a name make a bare mention a coin flip, not a link. ... ok
+test_unique_basename_resolves (test_check_documented_paths.BareBasenames.test_unique_basename_resolves) ... ok
+test_vendored_tree_cannot_create_ambiguity (test_check_documented_paths.BareBasenames.test_vendored_tree_cannot_create_ambiguity)
+A basename collision inside reference/ is NVIDIA's, not this repo's. ... ok
+test_missing_documented_directory_fails (test_check_documented_paths.BrokenPaths.test_missing_documented_directory_fails)
+A layout-table directory is a path even though it has no extension. ... ok
+test_missing_file_fails (test_check_documented_paths.BrokenPaths.test_missing_file_fails) ... ok
+test_present_documented_directory_passes (test_check_documented_paths.BrokenPaths.test_present_documented_directory_passes) ... ok
+test_present_file_passes (test_check_documented_paths.BrokenPaths.test_present_file_passes) ... ok
+test_cmake_build_dir_is_not_excused_by_the_makefile (test_check_documented_paths.BuildProducts.test_cmake_build_dir_is_not_excused_by_the_makefile)
+``tests/build`` must be justified by CMake, not by the Makefile. ... ok
+test_kext_product_fails_when_the_makefile_stops_making_a_bundle (test_check_documented_paths.BuildProducts.test_kext_product_fails_when_the_makefile_stops_making_a_bundle) ... ok
+test_kext_product_passes_when_the_makefile_declares_it (test_check_documented_paths.BuildProducts.test_kext_product_passes_when_the_makefile_declares_it) ... ok
+test_test_binary_fails_when_cmake_stops_registering_it (test_check_documented_paths.BuildProducts.test_test_binary_fails_when_cmake_stops_registering_it) ... ok
+test_test_binary_passes_when_cmake_registers_it (test_check_documented_paths.BuildProducts.test_test_binary_passes_when_cmake_registers_it) ... ok
+test_a_broken_path_in_the_root_document_still_fails (test_check_documented_paths.DocumentScope.test_a_broken_path_in_the_root_document_still_fails)
+The negative control for the test above. Without it, exit 0 proves ... ok
+test_a_claude_md_below_the_root_is_refused (test_check_documented_paths.DocumentScope.test_a_claude_md_below_the_root_is_refused)
+Right filename, wrong base -- the case that reads as harmless. ... ok
+test_a_document_that_is_not_claude_md_is_refused (test_check_documented_paths.DocumentScope.test_a_document_that_is_not_claude_md_is_refused) ... ok
+test_only_the_root_document_is_read (test_check_documented_paths.DocumentScope.test_only_the_root_document_is_read)
+A path broken in tests/README.md must not appear in the output. ... ok
+test_the_default_invocation_still_reads_the_root_document (test_check_documented_paths.DocumentScope.test_the_default_invocation_still_reads_the_root_document)
+The gate passes no second argument; the guard must not disturb it. ... ok
+test_the_refusal_names_the_multi_doc_alternative (test_check_documented_paths.DocumentScope.test_the_refusal_names_the_multi_doc_alternative)
+A refusal that does not say where to go instead gets worked around. ... ok
+test_the_root_document_named_explicitly_is_accepted (test_check_documented_paths.DocumentScope.test_the_root_document_named_explicitly_is_accepted)
+The paired positive. ... ok
+test_missing_document_fails (test_check_documented_paths.Extraction.test_missing_document_fails) ... ok
+test_no_tokens_at_all_fails (test_check_documented_paths.Extraction.test_no_tokens_at_all_fails)
+Silence is the failure mode this whole family of gates exists for. ... ok
+test_relative_prefix_is_not_turned_into_an_absolute_path (test_check_documented_paths.Extraction.test_relative_prefix_is_not_turned_into_an_absolute_path)
+``./test_gsp_boot.exe`` must not be read as ``/test_gsp_boot.exe``. ... ok
+test_moved_command_fails_despite_a_copy_elsewhere (test_check_documented_paths.GateCommands.test_moved_command_fails_despite_a_copy_elsewhere)
+``python tools/check-registers.py`` fails if the file moved, even ... ok
+test_real_command_passes (test_check_documented_paths.GateCommands.test_real_command_passes) ... ok
+test_guest_absolute_path_is_not_a_repo_path (test_check_documented_paths.OutOfRepositoryPaths.test_guest_absolute_path_is_not_a_repo_path) ... ok
+test_site_packages_path_is_not_a_repo_path (test_check_documented_paths.OutOfRepositoryPaths.test_site_packages_path_is_not_a_repo_path) ... ok
+test_matching_pattern_passes (test_check_documented_paths.Patterns.test_matching_pattern_passes) ... ok
+test_pattern_matching_nothing_fails (test_check_documented_paths.Patterns.test_pattern_matching_nothing_fails) ... ok
+test_live_document_paths_all_resolve (test_check_documented_paths.RealRepository.test_live_document_paths_all_resolve) ... ok
+test_live_document_yields_a_substantial_number_of_paths (test_check_documented_paths.RealRepository.test_live_document_yields_a_substantial_number_of_paths)
+Pin the SHAPE, not the magnitude. ... ok
+test_a_missing_gate_file_is_a_clean_failure (test_check_header_coverage.BadInputIsReportedNotCrashed.test_a_missing_gate_file_is_a_clean_failure) ... ok
+test_a_dependent_header_parsed_standalone_is_rejected (test_check_header_coverage.ExemptionIsDerivedNotAssumed.test_a_dependent_header_parsed_standalone_is_rejected)
+%HDRFLAGS% has no shim on its include path, so this cannot work. ... ok
+test_an_exempt_header_covered_by_nothing_is_rejected (test_check_header_coverage.ExemptionIsDerivedNotAssumed.test_an_exempt_header_covered_by_nothing_is_rejected)
+Skipping standalone is only legitimate if a compiled source pulls it in. ... ok
+test_an_empty_gate_fails_rather_than_reporting_zero_of_zero (test_check_header_coverage.MissingLineIsCaught.test_an_empty_gate_fails_rather_than_reporting_zero_of_zero)
+A gate with no clang lines is the maximal version of the bug. ... ok
+test_every_self_contained_header_is_individually_required (test_check_header_coverage.MissingLineIsCaught.test_every_self_contained_header_is_individually_required)
+Drop one header's line at a time; each omission must be caught. ... ok
+test_a_synthetic_correct_gate_also_passes (test_check_header_coverage.RealGatePasses.test_a_synthetic_correct_gate_also_passes)
+Proves the fixtures themselves are well-formed, not accidentally bad. ... ok
+test_the_checked_in_gate_is_currently_correct (test_check_header_coverage.RealGatePasses.test_the_checked_in_gate_is_currently_correct)
+The real gate must pass -- otherwise every negative below is moot. ... ok
+test_a_line_naming_a_deleted_header_is_reported (test_check_header_coverage.StaleLineIsCaught.test_a_line_naming_a_deleted_header_is_reported)
+The reverse direction: the gate claims coverage it does not have. ... ok
+test_a_syntactically_invalid_identifier_is_caught (test_check_kext_bundle.BundleIdentifier.test_a_syntactically_invalid_identifier_is_caught)
+Separating input: the Makefile agrees, so only the shape check fires. ... ok
+test_drift_from_the_makefile_bundle_id_is_caught (test_check_kext_bundle.BundleIdentifier.test_drift_from_the_makefile_bundle_id_is_caught) ... ok
+test_the_makefile_variable_is_expanded_before_comparing (test_check_kext_bundle.BundleIdentifier.test_the_makefile_variable_is_expanded_before_comparing)
+BUNDLE_ID is ``local.nv3050.$(KEXT_NAME)``. ... ok
+test_a_library_requirement_is_read_from_the_sources_not_a_fixed_list (test_check_kext_bundle.BundleLibraries.test_a_library_requirement_is_read_from_the_sources_not_a_fixed_list)
+Sources that never mention IOPCIDevice must not demand IOPCIFamily. ... ok
+test_a_library_that_is_not_an_apple_kpi_is_caught (test_check_kext_bundle.BundleLibraries.test_a_library_that_is_not_an_apple_kpi_is_caught) ... ok
+test_a_malformed_library_version_is_caught (test_check_kext_bundle.BundleLibraries.test_a_malformed_library_version_is_caught) ... ok
+test_an_empty_library_dict_is_caught (test_check_kext_bundle.BundleLibraries.test_an_empty_library_dict_is_caught) ... ok
+test_dropping_iopcifamily_while_the_sources_use_it_is_caught (test_check_kext_bundle.BundleLibraries.test_dropping_iopcifamily_while_the_sources_use_it_is_caught)
+The load-time undefined-symbol case, and the reason for the scan. ... ok
+test_dropping_libkern_while_the_sources_use_osmetaclass_is_caught (test_check_kext_bundle.BundleLibraries.test_dropping_libkern_while_the_sources_use_osmetaclass_is_caught) ... ok
+test_iopcifamily_does_not_count_toward_the_kpi_version_set (test_check_kext_bundle.BundleLibraries.test_iopcifamily_does_not_count_toward_the_kpi_version_set)
+IOPCIFamily is a kext, versioned on its own -- 2.9 next to 19.0 is fine. ... ok
+test_mixed_kpi_versions_are_caught (test_check_kext_bundle.BundleLibraries.test_mixed_kpi_versions_are_caught) ... ok
+test_a_missing_executable_key_is_caught (test_check_kext_bundle.ExecutableName.test_a_missing_executable_key_is_caught) ... ok
+test_an_executable_that_is_not_what_the_makefile_builds_is_caught (test_check_kext_bundle.ExecutableName.test_an_executable_that_is_not_what_the_makefile_builds_is_caught) ... ok
+test_renaming_the_makefile_target_alone_is_caught (test_check_kext_bundle.ExecutableName.test_renaming_the_makefile_target_alone_is_caught)
+Drift in the other direction. The plist is untouched here. ... ok
+test_the_unmutated_fixture_is_accepted (test_check_kext_bundle.GoodTreePasses.test_the_unmutated_fixture_is_accepted) ... ok
+test_the_verdict_reports_a_positive_check_count (test_check_kext_bundle.GoodTreePasses.test_the_verdict_reports_a_positive_check_count)
+``OK -- 0 checks`` is the failure mode a bare exit 0 produces. ... ok
+test_append_is_not_treated_as_a_definition (test_check_kext_bundle.HelperUnits.test_append_is_not_treated_as_a_definition)
+``CXXFLAGS += -fapple-kext`` must not overwrite the ``:=`` value. ... ok
+test_comments_are_not_parsed_as_assignments (test_check_kext_bundle.HelperUnits.test_comments_are_not_parsed_as_assignments) ... ok
+test_defined_and_declared_are_distinguished (test_check_kext_bundle.HelperUnits.test_defined_and_declared_are_distinguished) ... ok
+test_expand_leaves_an_unknown_reference_visible (test_check_kext_bundle.HelperUnits.test_expand_leaves_an_unknown_reference_visible)
+An unresolved $(FOO) must survive, not silently become ''. ... ok
+test_expand_resolves_a_reference (test_check_kext_bundle.HelperUnits.test_expand_resolves_a_reference) ... ok
+test_expand_terminates_on_a_self_reference (test_check_kext_bundle.HelperUnits.test_expand_terminates_on_a_self_reference) ... ok
+test_a_non_kext_package_type_is_caught (test_check_kext_bundle.PackageTypeAndVersions.test_a_non_kext_package_type_is_caught) ... ok
+test_a_non_numeric_bundle_version_is_caught (test_check_kext_bundle.PackageTypeAndVersions.test_a_non_numeric_bundle_version_is_caught) ... ok
+test_a_non_numeric_short_version_is_caught (test_check_kext_bundle.PackageTypeAndVersions.test_a_non_numeric_short_version_is_caught) ... ok
+test_a_personality_owned_by_a_different_bundle_is_caught (test_check_kext_bundle.Personalities.test_a_personality_owned_by_a_different_bundle_is_caught) ... ok
+test_a_personality_that_is_not_a_dictionary_is_caught (test_check_kext_bundle.Personalities.test_a_personality_that_is_not_a_dictionary_is_caught) ... ok
+test_an_ioclass_no_source_defines_is_caught (test_check_kext_bundle.Personalities.test_an_ioclass_no_source_defines_is_caught) ... ok
+test_declared_but_never_defined_is_reported_distinctly (test_check_kext_bundle.Personalities.test_declared_but_never_defined_is_reported_distinctly)
+OSDeclareDefaultStructors alone registers nothing with the runtime. ... ok
+test_no_personalities_at_all_is_caught (test_check_kext_bundle.Personalities.test_no_personalities_at_all_is_caught) ... ok
+test_the_checker_exists_and_is_executable_by_python (test_check_kext_bundle.RealTree.test_the_checker_exists_and_is_executable_by_python) ... ok
+test_the_real_phase0_kext_is_accepted (test_check_kext_bundle.RealTree.test_the_real_phase0_kext_is_accepted) ... ok
+test_a_makefile_with_no_bundle_id_is_a_failure (test_check_kext_bundle.RefusalPaths.test_a_makefile_with_no_bundle_id_is_a_failure) ... ok
+test_a_makefile_with_no_kext_name_is_a_failure (test_check_kext_bundle.RefusalPaths.test_a_makefile_with_no_kext_name_is_a_failure) ... ok
+test_a_missing_makefile_is_a_failure (test_check_kext_bundle.RefusalPaths.test_a_missing_makefile_is_a_failure) ... ok
+test_a_missing_plist_is_a_failure_not_a_pass (test_check_kext_bundle.RefusalPaths.test_a_missing_plist_is_a_failure_not_a_pass) ... ok
+test_a_tree_with_no_sources_is_a_failure (test_check_kext_bundle.RefusalPaths.test_a_tree_with_no_sources_is_a_failure) ... ok
+test_an_unparseable_plist_is_a_failure (test_check_kext_bundle.RefusalPaths.test_an_unparseable_plist_is_a_failure) ... ok
+test_an_uppercase_match_string_is_accepted (test_check_kext_personalities.CorrectPlistPasses.test_an_uppercase_match_string_is_accepted)
+Hex case is not a defect, and rejecting it would be noise. ... ok
+test_any_other_ga107_id_in_the_table_is_also_accepted (test_check_kext_personalities.CorrectPlistPasses.test_any_other_ga107_id_in_the_table_is_also_accepted)
+The accept set is the table's GA107 row, not one hardcoded value. ... ok
+test_the_target_device_id_is_accepted (test_check_kext_personalities.CorrectPlistPasses.test_the_target_device_id_is_accepted) ... ok
+test_a_claude_md_that_no_longer_names_the_target_die_is_a_failure (test_check_kext_personalities.DerivationIsNotHardcoded.test_a_claude_md_that_no_longer_names_the_target_die_is_a_failure)
+If the project re-targets, this checker must go red rather than keep ... ok
+test_a_missing_device_ids_document_is_a_failure (test_check_kext_personalities.DerivationIsNotHardcoded.test_a_missing_device_ids_document_is_a_failure) ... ok
+test_a_table_that_yields_too_few_ids_is_a_failure (test_check_kext_personalities.DerivationIsNotHardcoded.test_a_table_that_yields_too_few_ids_is_a_failure)
+A broken table parse would otherwise reject a CORRECT plist and send ... ok
+test_a_double_hyphen_in_a_comment_is_diagnosed_by_name (test_check_kext_personalities.MalformedInputIsReportedNotCrashed.test_a_double_hyphen_in_a_comment_is_diagnosed_by_name)
+XML forbids ``--`` inside a comment and rejects the WHOLE file with a ... ok
+test_a_missing_plist_is_a_clean_failure (test_check_kext_personalities.MalformedInputIsReportedNotCrashed.test_a_missing_plist_is_a_clean_failure) ... ok
+test_a_non_hex_match_string_is_a_clean_failure (test_check_kext_personalities.MalformedInputIsReportedNotCrashed.test_a_non_hex_match_string_is_a_clean_failure) ... ok
+test_a_plist_with_no_personalities_is_rejected (test_check_kext_personalities.MalformedInputIsReportedNotCrashed.test_a_plist_with_no_personalities_is_rejected) ... ok
+test_a_missing_ioclass_is_rejected (test_check_kext_personalities.PersonalityShapeIsChecked.test_a_missing_ioclass_is_rejected) ... ok
+test_a_non_pci_provider_class_is_rejected (test_check_kext_personalities.PersonalityShapeIsChecked.test_a_non_pci_provider_class_is_rejected)
+IOPCIMatch is only consulted for a PCI provider. ... ok
+test_a_personality_with_no_match_key_is_rejected (test_check_kext_personalities.PersonalityShapeIsChecked.test_a_personality_with_no_match_key_is_rejected) ... ok
+test_ioppci_primary_match_is_also_read (test_check_kext_personalities.PersonalityShapeIsChecked.test_ioppci_primary_match_is_also_read)
+IOPCIPrimaryMatch is legitimate; if it were ignored, a wrong device ... ok
+test_the_live_plist_passes (test_check_kext_personalities.RealRepository.test_the_live_plist_passes) ... ok
+test_the_live_run_examined_at_least_one_match_token (test_check_kext_personalities.RealRepository.test_the_live_run_examined_at_least_one_match_token)
+Exit 0 having checked nothing is the vacuous pass this whole family of ... ok
+test_a_non_nvidia_vendor_is_rejected (test_check_kext_personalities.SwappedPairIsCaught.test_a_non_nvidia_vendor_is_rejected) ... ok
+test_vendor_and_device_written_the_wrong_way_round (test_check_kext_personalities.SwappedPairIsCaught.test_vendor_and_device_written_the_wrong_way_round)
+0x10de25a2 is a valid 32-bit number that matches nothing. ... ok
+test_a_mask_that_constrains_both_halves_is_accepted (test_check_kext_personalities.WildcardIsCaught.test_a_mask_that_constrains_both_halves_is_accepted)
+The paired positive: a mask is not itself the defect. ... ok
+test_a_mask_that_frees_the_device_half_is_rejected (test_check_kext_personalities.WildcardIsCaught.test_a_mask_that_frees_the_device_half_is_rejected)
+``&0x0000ffff`` constrains only the vendor, so the exact-looking ... ok
+test_a_vendor_wide_wildcard_is_rejected (test_check_kext_personalities.WildcardIsCaught.test_a_vendor_wide_wildcard_is_rejected) ... ok
+test_a_ga106_rtx_3050_ti_id_is_rejected (test_check_kext_personalities.WrongDieIsCaught.test_a_ga106_rtx_3050_ti_id_is_rejected) ... ok
+test_an_id_absent_from_the_table_is_rejected_differently (test_check_kext_personalities.WrongDieIsCaught.test_an_id_absent_from_the_table_is_rejected_differently)
+A device nowhere in NVIDIA's table is a distinct diagnosis from one ... ok
+test_the_message_names_the_die_it_found_not_just_a_mismatch (test_check_kext_personalities.WrongDieIsCaught.test_the_message_names_the_die_it_found_not_just_a_mismatch)
+'does not match' sends the reader to the plist; naming GA106 sends ... ok
+test_finds_guarded_blocks (test_check_negative_controls.DefinedMacros.test_finds_guarded_blocks) ... ok
+test_ifdef_spelling_is_not_accepted (test_check_negative_controls.DefinedMacros.test_ifdef_spelling_is_not_accepted)
+Documents a DELIBERATE limit rather than an accident. The file uses ... ok
+test_ignores_macro_names_in_comments (test_check_negative_controls.DefinedMacros.test_ignores_macro_names_in_comments)
+negative-control.cpp discusses NVNEG_MISSING_STRUCTORS in prose on ... ok
+test_tolerates_whitespace_variants (test_check_negative_controls.DefinedMacros.test_tolerates_whitespace_variants) ... ok
+test_does_not_match_an_unrelated_for_loop (test_check_negative_controls.EnumeratedMacros.test_does_not_match_an_unrelated_for_loop)
+check-kext-syntax.bat contains other for-loops. Matching one of them ... ok
+test_missing_loop_returns_none_not_empty (test_check_negative_controls.EnumeratedMacros.test_missing_loop_returns_none_not_empty)
+None and set() must stay distinguishable. An empty set compares as ... ok
+test_reads_the_loop_list (test_check_negative_controls.EnumeratedMacros.test_reads_the_loop_list) ... ok
+test_gate_invokes_the_checker_and_asserts_the_verdict_word (test_check_negative_controls.GateWiring.test_gate_invokes_the_checker_and_asserts_the_verdict_word)
+A checker no gate runs is documentation. Assert both that the gate ... ok
+test_both_directions_reported_together (test_check_negative_controls.Mutations.test_both_directions_reported_together) ... ok
+test_defined_but_not_enumerated_fails (test_check_negative_controls.Mutations.test_defined_but_not_enumerated_fails) ... ok
+test_empty_both_sides_is_a_fail_not_a_vacuous_pass (test_check_negative_controls.Mutations.test_empty_both_sides_is_a_fail_not_a_vacuous_pass)
+Both sets empty compares equal. Without the vacuity guard that would ... ok
+test_enumerated_but_not_defined_fails (test_check_negative_controls.Mutations.test_enumerated_but_not_defined_fails)
+The damaging direction: clang compiles the bare baseline, exits 0, ... ok
+test_matching_nonempty_sets_pass (test_check_negative_controls.Mutations.test_matching_nonempty_sets_pass)
+Positive control for this class: the mutations above must fail for ... ok
+test_missing_loop_fails_rather_than_passing (test_check_negative_controls.Mutations.test_missing_loop_fails_rather_than_passing) ... ok
+test_bmd_controls_are_present (test_check_negative_controls.RealTree.test_bmd_controls_are_present)
+IOBufferMemoryDescriptor had zero controls until 2026-08-14. Pin the ... ok
+test_real_tree_passes (test_check_negative_controls.RealTree.test_real_tree_passes) ... ok
+test_the_two_files_agree_on_a_nonempty_set (test_check_negative_controls.RealTree.test_the_two_files_agree_on_a_nonempty_set) ... ok
+test_a_flag_that_is_never_initialised_in_init_is_caught (test_check_prepare_balance.FlagLifetime.test_a_flag_that_is_never_initialised_in_init_is_caught)
+free() can run on an instance whose start() never staged anything. ... ok
+test_a_flag_that_is_not_a_member_is_caught (test_check_prepare_balance.FlagLifetime.test_a_flag_that_is_not_a_member_is_caught)
+A local resets to garbage and never survives to the teardown. ... ok
+test_no_flag_at_all_after_prepare_is_caught (test_check_prepare_balance.FlagLifetime.test_no_flag_at_all_after_prepare_is_caught) ... ok
+test_a_commented_out_unguarded_complete_is_not_parsed (test_check_prepare_balance.GoodTreePasses.test_a_commented_out_unguarded_complete_is_not_parsed)
+The silent-false-pass direction of comment handling. ... ok
+test_the_unmutated_fixture_is_accepted (test_check_prepare_balance.GoodTreePasses.test_the_unmutated_fixture_is_accepted) ... ok
+test_the_verdict_reports_a_positive_check_count (test_check_prepare_balance.GoodTreePasses.test_the_verdict_reports_a_positive_check_count)
+``OK -- 0 checks`` is what a checker that examined nothing prints. ... ok
+test_a_slash_slash_inside_a_string_does_not_start_a_comment (test_check_prepare_balance.HelperUnits.test_a_slash_slash_inside_a_string_does_not_start_a_comment)
+An NVLOG format string must not swallow the rest of its line. ... ok
+test_block_close_finds_the_matching_brace_not_the_first_one (test_check_prepare_balance.HelperUnits.test_block_close_finds_the_matching_brace_not_the_first_one) ... ok
+test_block_close_returns_none_when_no_block_opens (test_check_prepare_balance.HelperUnits.test_block_close_returns_none_when_no_block_opens)
+This is the refusal path's trigger; it has to be reachable. ... ok
+test_enclosing_openers_excludes_the_line_that_opens_the_block (test_check_prepare_balance.HelperUnits.test_enclosing_openers_excludes_the_line_that_opens_the_block) ... ok
+test_strip_comments_preserves_line_numbering (test_check_prepare_balance.HelperUnits.test_strip_comments_preserves_line_numbering)
+Line numbers are what the operator opens the file at. ... ok
+test_strip_comments_removes_a_line_comment_but_keeps_code (test_check_prepare_balance.HelperUnits.test_strip_comments_removes_a_line_comment_but_keeps_code) ... ok
+test_prepare_for_dma_is_not_read_as_a_bare_prepare (test_check_prepare_balance.PairsAreDistinguished.test_prepare_for_dma_is_not_read_as_a_bare_prepare) ... ok
+test_the_real_phase0_kext_is_accepted (test_check_prepare_balance.RealTree.test_the_real_phase0_kext_is_accepted) ... ok
+test_the_real_run_examined_something (test_check_prepare_balance.RealTree.test_the_real_run_examined_something)
+Guards against the whole gate passing over a file it never matched. ... ok
+test_a_prepare_outside_a_failure_check_is_a_refusal (test_check_prepare_balance.RefusalPaths.test_a_prepare_outside_a_failure_check_is_a_refusal)
+With no `if (...) { }` around it there is no anchor for the flag. ... ok
+test_a_tree_with_no_sources_is_a_failure (test_check_prepare_balance.RefusalPaths.test_a_tree_with_no_sources_is_a_failure) ... ok
+test_a_tree_with_no_wiring_at_all_is_reported_not_passed (test_check_prepare_balance.RefusalPaths.test_a_tree_with_no_wiring_at_all_is_reported_not_passed)
+Legitimate state, but indistinguishable from a dead regex from here. ... ok
+test_a_buffer_never_released_after_completing_is_caught (test_check_prepare_balance.ReleaseOrdering.test_a_buffer_never_released_after_completing_is_caught) ... ok
+test_a_prepare_with_no_complete_anywhere_is_caught (test_check_prepare_balance.ReleaseOrdering.test_a_prepare_with_no_complete_anywhere_is_caught)
+The leak in its rawest form -- an increment with no decrement. ... ok
+test_a_complete_with_no_prepare_anywhere_is_caught (test_check_prepare_balance.TheDefectThatWasReal.test_a_complete_with_no_prepare_anywhere_is_caught)
+The rawest form: a decrement with no increment in the whole file. ... ok
+test_an_unguarded_complete_is_caught (test_check_prepare_balance.TheDefectThatWasReal.test_an_unguarded_complete_is_caught) ... ok
+test_a_bail_out_before_the_flag_is_caught (test_check_prepare_balance.TheSecondPairKind.test_a_bail_out_before_the_flag_is_caught)
+The leak direction for this pair: a descriptor held by nothing. ... ok
+test_an_unguarded_clear_is_caught (test_check_prepare_balance.TheSecondPairKind.test_an_unguarded_clear_is_caught)
+The defect as it actually was in NV3050Probe.cpp before 2026-08-13. ... ok
+test_clearing_the_flag_after_the_call_is_caught (test_check_prepare_balance.TheSecondPairKind.test_clearing_the_flag_after_the_call_is_caught) ... ok
+test_guarding_on_the_object_instead_of_the_flag_is_caught (test_check_prepare_balance.TheSecondPairKind.test_guarding_on_the_object_instead_of_the_flag_is_caught)
+The exact wrong guard the driver had: `if (fDma)`. ... ok
+test_the_failure_names_what_the_guard_would_assert (test_check_prepare_balance.TheSecondPairKind.test_the_failure_names_what_the_guard_would_assert)
+"Add a guard" is not actionable without saying what it asserts. ... ok
+test_the_unmutated_second_pair_fixture_is_accepted (test_check_prepare_balance.TheSecondPairKind.test_the_unmutated_second_pair_fixture_is_accepted)
+Asserted first: otherwise every mutation below could be red for an ... ok
+test_a_bail_out_between_prepare_and_the_flag_is_caught (test_check_prepare_balance.TheTwoOppositeErrors.test_a_bail_out_between_prepare_and_the_flag_is_caught)
+The LEAK direction. Pages are wired with nothing recording it. ... ok
+test_clearing_the_flag_after_the_complete_is_caught (test_check_prepare_balance.TheTwoOppositeErrors.test_clearing_the_flag_after_the_complete_is_caught)
+The DOUBLE-COMPLETE direction. A re-entrant teardown sees it true. ... ok
+test_osdeclareabstractstructors_is_also_required_to_pair (test_check_structors.AbstractStructorsAreRecognised.test_osdeclareabstractstructors_is_also_required_to_pair)
+The DECLARE regex accepts Default and Abstract; prove Abstract is real. ... ok
+test_a_missing_directory_is_a_clean_failure (test_check_structors.BadInputIsReportedNotCrashed.test_a_missing_directory_is_a_clean_failure) ... ok
+test_an_empty_directory_fails_rather_than_reporting_zero_of_zero (test_check_structors.BadInputIsReportedNotCrashed.test_an_empty_directory_fails_rather_than_reporting_zero_of_zero)
+An empty tree must not read as success. ... ok
+test_declared_twice_in_two_files (test_check_structors.DuplicatesAreCaught.test_declared_twice_in_two_files)
+Two declarations of one class -- the header included twice, copy-pasted. ... ok
+test_defined_twice_in_two_files (test_check_structors.DuplicatesAreCaught.test_defined_twice_in_two_files)
+Duplicate metaclass registration -- distinct from a duplicate declaration. ... ok
+test_defined_but_never_declared (test_check_structors.MissingDeclarationIsCaught.test_defined_but_never_declared)
+The reverse direction -- a registration with no class-body declaration. ... ok
+test_declared_but_never_defined (test_check_structors.MissingDefinitionIsCaught.test_declared_but_never_defined)
+The defect the checker exists for: builds and loads, never instantiates. ... ok
+test_a_synthetic_correct_tree_also_passes (test_check_structors.RealKextPasses.test_a_synthetic_correct_tree_also_passes)
+Proves the fixtures are well-formed, not accidentally broken. ... ok
+test_the_real_kext_is_currently_correct (test_check_structors.RealKextPasses.test_the_real_kext_is_currently_correct)
+If the real tree fails, every negative below is moot. ... ok
+test_metaclass_names_a_different_superclass (test_check_structors.SuperclassMismatchIsCaught.test_metaclass_names_a_different_superclass)
+The cross-check that a pairing count alone would miss. ... ok
+test_a_missing_tests_directory_is_a_clean_failure (test_check_tool_coverage.BadInputIsReportedNotCrashed.test_a_missing_tests_directory_is_a_clean_failure) ... ok
+test_a_missing_tools_directory_is_a_clean_failure (test_check_tool_coverage.BadInputIsReportedNotCrashed.test_a_missing_tools_directory_is_a_clean_failure) ... ok
+test_a_backslash_path_is_recognised (test_check_tool_coverage.BothInvocationFormsAreRead.test_a_backslash_path_is_recognised)
+Gate scripts are cmd.exe; a backslash invocation is legitimate. ... ok
+test_claude_md_counts_as_a_gate_source (test_check_tool_coverage.BothInvocationFormsAreRead.test_claude_md_counts_as_a_gate_source)
+Two of the four real gates are documented in CLAUDE.md, not a .bat. ... ok
+test_a_tool_no_gate_invokes_does_not_require_tests (test_check_tool_coverage.ExemptionIsDeliberateNotAccidental.test_a_tool_no_gate_invokes_does_not_require_tests)
+The probes and one-shot explorers must not be demanded. ... ok
+test_a_gate_invoking_a_nonexistent_tool_is_rejected (test_check_tool_coverage.MissingToolIsCaught.test_a_gate_invoking_a_nonexistent_tool_is_rejected)
+A gate line naming a deleted tool would fail at run time. ... ok
+test_a_code_literal_in_the_same_file_does_count (test_check_tool_coverage.ProseIsNotCoverage.test_a_code_literal_in_the_same_file_does_count)
+The paired positive -- otherwise the two above could pass because the ... ok
+test_a_comment_mentioning_the_tool_is_not_coverage (test_check_tool_coverage.ProseIsNotCoverage.test_a_comment_mentioning_the_tool_is_not_coverage) ... ok
+test_a_docstring_mentioning_the_tool_is_not_coverage (test_check_tool_coverage.ProseIsNotCoverage.test_a_docstring_mentioning_the_tool_is_not_coverage) ... ok
+test_a_synthetic_correct_root_also_passes (test_check_tool_coverage.RealTreePasses.test_a_synthetic_correct_root_also_passes)
+Proves the fixtures are well-formed, not accidentally broken. ... ok
+test_the_real_project_is_currently_covered (test_check_tool_coverage.RealTreePasses.test_the_real_project_is_currently_covered)
+If the real tree fails, every negative below is moot. ... ok
+test_a_test_module_that_will_not_parse_is_a_failure (test_check_tool_coverage.UnparseableTestModuleIsReported.test_a_test_module_that_will_not_parse_is_a_failure)
+It cannot count as coverage and will not run under discovery either. ... ok
+test_a_gate_invoked_tool_with_no_test_module_is_rejected (test_check_tool_coverage.UntestedGateToolIsCaught.test_a_gate_invoked_tool_with_no_test_module_is_rejected)
+The defect this checker exists for -- the check-structors.py case. ... ok
+test_a_test_module_not_named_test_prefixed_does_not_count (test_check_tool_coverage.UntestedGateToolIsCaught.test_a_test_module_not_named_test_prefixed_does_not_count)
+Discovery only collects test_*.py, so only those can count as coverage. ... ok
+test_gates_that_invoke_no_tool_is_a_failure (test_check_tool_coverage.VacuousPassIsRefused.test_gates_that_invoke_no_tool_is_a_failure)
+Gate scripts present but matching nothing -- a broken regex looks like this. ... ok
+test_no_gate_scripts_at_all_is_a_failure (test_check_tool_coverage.VacuousPassIsRefused.test_no_gate_scripts_at_all_is_a_failure)
+With nothing to read, a naive implementation reports success. ... ok
+test_count_gate_list_matches_cmake_registration (test_cmake_registration.CrossGateAgreementTests.test_count_gate_list_matches_cmake_registration) ... ok
+test_count_gate_list_matches_the_directory (test_cmake_registration.CrossGateAgreementTests.test_count_gate_list_matches_the_directory) ... ok
+test_enable_testing_is_called (test_cmake_registration.CtestPlumbingTests.test_enable_testing_is_called) ... ok
+test_helper_calls_add_executable (test_cmake_registration.CtestPlumbingTests.test_helper_calls_add_executable) ... ok
+test_helper_calls_add_test (test_cmake_registration.CtestPlumbingTests.test_helper_calls_add_test) ... ok
+test_kext_headers_are_on_the_include_path (test_cmake_registration.CtestPlumbingTests.test_kext_headers_are_on_the_include_path)
+The whole point is compiling the SAME headers the kext compiles. ... ok
+test_target_name_is_the_source_stem (test_cmake_registration.NameMatchesSourceTests.test_target_name_is_the_source_stem) ... ok
+test_at_least_one_cpp_source_is_found (test_cmake_registration.PremiseTests.test_at_least_one_cpp_source_is_found) ... ok
+test_at_least_one_registration_is_found (test_cmake_registration.PremiseTests.test_at_least_one_registration_is_found)
+A regex that matches nothing would make every later test vacuous. ... ok
+test_cmakelists_exists (test_cmake_registration.PremiseTests.test_cmakelists_exists) ... ok
+test_no_quoted_hash_in_cmakelists (test_cmake_registration.PremiseTests.test_no_quoted_hash_in_cmakelists)
+_strip_comments treats every '#' as a comment; this pins that. ... ok
+test_every_cpp_source_is_registered (test_cmake_registration.RegistrationCompleteTests.test_every_cpp_source_is_registered) ... ok
+test_every_registered_source_exists (test_cmake_registration.RegistrationCompleteTests.test_every_registered_source_exists) ... ok
+test_no_source_is_registered_twice (test_cmake_registration.RegistrationCompleteTests.test_no_source_is_registered_twice) ... ok
+test_no_target_name_is_reused (test_cmake_registration.RegistrationCompleteTests.test_no_target_name_is_reused) ... ok
+test_a_clean_file_reports_nothing (test_control_bytes.StrayControlBytesItself.test_a_clean_file_reports_nothing) ... ok
+test_a_del_byte_is_detected (test_control_bytes.StrayControlBytesItself.test_a_del_byte_is_detected) ... ok
+test_a_form_feed_is_detected (test_control_bytes.StrayControlBytesItself.test_a_form_feed_is_detected) ... ok
+test_a_lone_cr_is_left_to_the_line_endings_gate (test_control_bytes.StrayControlBytesItself.test_a_lone_cr_is_left_to_the_line_endings_gate) ... ok
+test_a_nul_byte_is_detected (test_control_bytes.StrayControlBytesItself.test_a_nul_byte_is_detected) ... ok
+test_an_empty_file_reports_nothing (test_control_bytes.StrayControlBytesItself.test_an_empty_file_reports_nothing) ... ok
+test_an_escape_byte_is_detected (test_control_bytes.StrayControlBytesItself.test_an_escape_byte_is_detected) ... ok
+test_every_disallowed_c0_byte_is_detected_not_just_the_sampled_ones (test_control_bytes.StrayControlBytesItself.test_every_disallowed_c0_byte_is_detected_not_just_the_sampled_ones) ... ok
+test_multiple_offenders_in_one_file_are_all_reported (test_control_bytes.StrayControlBytesItself.test_multiple_offenders_in_one_file_are_all_reported) ... ok
+test_tab_and_newline_do_not_trip_it (test_control_bytes.StrayControlBytesItself.test_tab_and_newline_do_not_trip_it) ... ok
+test_the_exact_backspace_from_handoff8_is_detected (test_control_bytes.StrayControlBytesItself.test_the_exact_backspace_from_handoff8_is_detected) ... ok
+test_the_offset_and_context_are_reported_not_just_the_count (test_control_bytes.StrayControlBytesItself.test_the_offset_and_context_are_reported_not_just_the_count) ... ok
+test_at_least_one_text_file_is_discovered (test_control_bytes.TextFilesHaveNoStrayControlBytes.test_at_least_one_text_file_is_discovered) ... ok
+test_no_text_file_carries_a_stray_control_byte (test_control_bytes.TextFilesHaveNoStrayControlBytes.test_no_text_file_carries_a_stray_control_byte) ... ok
+test_the_walk_reaches_the_files_this_gate_exists_for (test_control_bytes.TextFilesHaveNoStrayControlBytes.test_the_walk_reaches_the_files_this_gate_exists_for) ... ok
+test_guest_sees_long_names_not_mangled_ones (test_deliver_via_cd.BuildAndReadBackTests.test_guest_sees_long_names_not_mangled_ones) ... ok
+test_overlong_volume_identifier_is_refused (test_deliver_via_cd.BuildAndReadBackTests.test_overlong_volume_identifier_is_refused) ... ok
+test_sizes_survive_the_round_trip (test_deliver_via_cd.BuildAndReadBackTests.test_sizes_survive_the_round_trip) ... ok
+test_volume_identifier_round_trips (test_deliver_via_cd.BuildAndReadBackTests.test_volume_identifier_round_trips) ... ok
+test_cdrom_image_passes (test_deliver_via_cd.CheckDeviceUsableTests.test_cdrom_image_passes) ... ok
+test_disk_is_refused (test_deliver_via_cd.CheckDeviceUsableTests.test_disk_is_refused) ... ok
+test_missing_filename_line_is_refused (test_deliver_via_cd.CheckDeviceUsableTests.test_missing_filename_line_is_refused) ... ok
+test_undeclared_device_is_refused (test_deliver_via_cd.CheckDeviceUsableTests.test_undeclared_device_is_refused) ... ok
+test_all_four_suffixes_located (test_deliver_via_cd.FindDeviceTests.test_all_four_suffixes_located) ... ok
+test_devices_do_not_bleed_into_each_other (test_deliver_via_cd.FindDeviceTests.test_devices_do_not_bleed_into_each_other) ... ok
+test_undeclared_device_is_empty_not_blank (test_deliver_via_cd.FindDeviceTests.test_undeclared_device_is_empty_not_blank) ... ok
+test_every_iso_name_carries_a_version_suffix (test_deliver_via_cd.IsoNamesTests.test_every_iso_name_carries_a_version_suffix) ... ok
+test_extensionless_name_keeps_version_suffix (test_deliver_via_cd.IsoNamesTests.test_extensionless_name_keeps_version_suffix) ... ok
+test_host_directory_prefix_is_stripped (test_deliver_via_cd.IsoNamesTests.test_host_directory_prefix_is_stripped) ... ok
+test_illegal_characters_become_underscores (test_deliver_via_cd.IsoNamesTests.test_illegal_characters_become_underscores) ... ok
+test_iso9660_mangles_to_eight_three (test_deliver_via_cd.IsoNamesTests.test_iso9660_mangles_to_eight_three) ... ok
+test_joliet_keeps_the_real_name (test_deliver_via_cd.IsoNamesTests.test_joliet_keeps_the_real_name) ... ok
+test_all_keys_found (test_deliver_via_cd.ParseVmxTests.test_all_keys_found) ... ok
+test_comment_mentioning_a_key_is_not_a_key (test_deliver_via_cd.ParseVmxTests.test_comment_mentioning_a_key_is_not_a_key) ... ok
+test_digit_bearing_keys_are_not_dropped (test_deliver_via_cd.ParseVmxTests.test_digit_bearing_keys_are_not_dropped) ... ok
+test_every_line_round_trips (test_deliver_via_cd.ParseVmxTests.test_every_line_round_trips) ... ok
+test_values_are_unquoted (test_deliver_via_cd.ParseVmxTests.test_values_are_unquoted) ... ok
+test_directory_is_refused (test_deliver_via_cd.PlanEntriesTests.test_directory_is_refused) ... ok
+test_eight_three_collision_names_both_offenders (test_deliver_via_cd.PlanEntriesTests.test_eight_three_collision_names_both_offenders) ... ok
+test_empty_list_is_refused (test_deliver_via_cd.PlanEntriesTests.test_empty_list_is_refused) ... ok
+test_missing_file_is_refused (test_deliver_via_cd.PlanEntriesTests.test_missing_file_is_refused) ... ok
+test_sizes_come_from_the_filesystem (test_deliver_via_cd.PlanEntriesTests.test_sizes_come_from_the_filesystem) ... ok
+test_backslashes_are_escaped_for_vmx (test_deliver_via_cd.RepointVmxTests.test_backslashes_are_escaped_for_vmx) ... ok
+test_comments_survive (test_deliver_via_cd.RepointVmxTests.test_comments_survive) ... ok
+test_edit_is_in_place_not_appended (test_deliver_via_cd.RepointVmxTests.test_edit_is_in_place_not_appended) ... ok
+test_edit_stays_in_the_authored_region (test_deliver_via_cd.RepointVmxTests.test_edit_stays_in_the_authored_region) ... ok
+test_new_filename_replaces_the_old (test_deliver_via_cd.RepointVmxTests.test_new_filename_replaces_the_old) ... ok
+test_old_filename_is_reported_back (test_deliver_via_cd.RepointVmxTests.test_old_filename_is_reported_back) ... ok
+test_output_is_crlf_with_no_bare_lf (test_deliver_via_cd.RepointVmxTests.test_output_is_crlf_with_no_bare_lf) ... ok
+test_repointing_a_disk_raises_before_writing (test_deliver_via_cd.RepointVmxTests.test_repointing_a_disk_raises_before_writing) ... ok
+test_start_connected_false_is_forced_true (test_deliver_via_cd.RepointVmxTests.test_start_connected_false_is_forced_true) ... ok
+test_the_disks_are_untouched (test_deliver_via_cd.RepointVmxTests.test_the_disks_are_untouched) ... ok
+test_self_test_passes (test_deliver_via_cd.SelfTestTests.test_self_test_passes) ... ok
+test_all_four_measured_artifacts_are_found (test_deliver_via_cd.UuidNamedArtifactTests.test_all_four_measured_artifacts_are_found) ... ok
+test_no_artifact_shares_the_vmx_stem (test_deliver_via_cd.UuidNamedArtifactTests.test_no_artifact_shares_the_vmx_stem)
+Guards the premise of this whole class, not the code under test. ... ok
+test_suffix_match_is_case_insensitive (test_deliver_via_cd.UuidNamedArtifactTests.test_suffix_match_is_case_insensitive) ... ok
+test_uuid_named_lock_directory_is_reported (test_deliver_via_cd.UuidNamedArtifactTests.test_uuid_named_lock_directory_is_reported) ... ok
+test_uuid_named_vmem_is_reported (test_deliver_via_cd.UuidNamedArtifactTests.test_uuid_named_vmem_is_reported) ... ok
+test_vmdk_locks_are_reported (test_deliver_via_cd.UuidNamedArtifactTests.test_vmdk_locks_are_reported) ... ok
+test_a_different_iso_does_not_verify (test_deliver_via_cd.VerifyRepointTests.test_a_different_iso_does_not_verify) ... ok
+test_device_with_no_filename_reports_false_not_true (test_deliver_via_cd.VerifyRepointTests.test_device_with_no_filename_reports_false_not_true) ... ok
+test_doubled_backslashes_are_normalised_before_comparing (test_deliver_via_cd.VerifyRepointTests.test_doubled_backslashes_are_normalised_before_comparing) ... ok
+test_equivalent_path_spelled_differently_still_verifies (test_deliver_via_cd.VerifyRepointTests.test_equivalent_path_spelled_differently_still_verifies) ... ok
+test_rewritten_vmx_reports_true (test_deliver_via_cd.VerifyRepointTests.test_rewritten_vmx_reports_true) ... ok
+test_untouched_vmx_reports_false (test_deliver_via_cd.VerifyRepointTests.test_untouched_vmx_reports_false) ... ok
+test_untouched_vmx_reports_what_it_actually_found (test_deliver_via_cd.VerifyRepointTests.test_untouched_vmx_reports_what_it_actually_found) ... ok
+test_wrong_device_is_checked_not_the_default (test_deliver_via_cd.VerifyRepointTests.test_wrong_device_is_checked_not_the_default) ... ok
+test_bare_vmx_reports_nothing (test_deliver_via_cd.VmRunningHeuristicTests.test_bare_vmx_reports_nothing) ... ok
+test_lock_directory_is_reported (test_deliver_via_cd.VmRunningHeuristicTests.test_lock_directory_is_reported) ... ok
+test_vmem_is_reported (test_deliver_via_cd.VmRunningHeuristicTests.test_vmem_is_reported) ... ok
+test_decoded_size_mismatch_is_caught (test_dmg2raw.ConvertRoundTrip.test_decoded_size_mismatch_is_caught) ... ok
+test_raw_zlib_and_zero_chunks_land_at_correct_offsets (test_dmg2raw.ConvertRoundTrip.test_raw_zlib_and_zero_chunks_land_at_correct_offsets) ... ok
+test_chunk_array_starts_at_204 (test_dmg2raw.MishHeaderOffsets.test_chunk_array_starts_at_204) ... ok
+test_chunk_count_is_at_offset_200 (test_dmg2raw.MishHeaderOffsets.test_chunk_count_is_at_offset_200) ... ok
+test_chunk_stride_is_40_bytes (test_dmg2raw.MishHeaderOffsets.test_chunk_stride_is_40_bytes) ... ok
+test_header_fields_are_distinct_sentinels (test_dmg2raw.MishHeaderOffsets.test_header_fields_are_distinct_sentinels) ... ok
+test_in_off_is_data_start_plus_relative (test_dmg2raw.MishInputOffsetIsAbsolute.test_in_off_is_data_start_plus_relative) ... ok
+test_zero_data_start_leaves_in_off_unchanged (test_dmg2raw.MishInputOffsetIsAbsolute.test_zero_data_start_leaves_in_off_unchanged) ... ok
+test_count_larger_than_blob_is_rejected (test_dmg2raw.MishTruncationGuard.test_count_larger_than_blob_is_rejected) ... ok
+test_exactly_sized_blob_is_accepted (test_dmg2raw.MishTruncationGuard.test_exactly_sized_blob_is_accepted) ... ok
+test_non_mish_magic_is_rejected (test_dmg2raw.MishTruncationGuard.test_non_mish_magic_is_rejected) ... ok
+test_one_byte_short_is_rejected (test_dmg2raw.MishTruncationGuard.test_one_byte_short_is_rejected) ... ok
+test_a_bogus_token_fails_under_every_resolution_base (test_documented_paths.DocumentedPathsTest.test_a_bogus_token_fails_under_every_resolution_base)
+DOCREL/DIRECT/PARENT are three chances; none may be a free pass. ... ok
+test_a_climb_that_stays_in_the_repo_resolves_normally (test_documented_paths.DocumentedPathsTest.test_a_climb_that_stays_in_the_repo_resolves_normally)
+`../STEPS.md` in tests/README.md is correct, not an escape. ... ok
+test_a_join_that_leaves_the_repo_is_reported_as_escaping (test_documented_paths.DocumentedPathsTest.test_a_join_that_leaves_the_repo_is_reported_as_escaping)
+An out-of-tree join gets its own verdict, not a bare MISSING. ... ok
+test_absent_directory_declarations_are_still_written (test_documented_paths.DocumentedPathsTest.test_absent_directory_declarations_are_still_written)
+The directory counterpart of the check above. ... ok
+test_allowlist_entries_are_still_referenced (test_documented_paths.DocumentedPathsTest.test_allowlist_entries_are_still_referenced)
+A stale exemption is how the next blind spot gets built. ... ok
+test_backslash_paths_normalise (test_documented_paths.DocumentedPathsTest.test_backslash_paths_normalise) ... ok
+test_direct_match_wins_for_a_qualified_path (test_documented_paths.DocumentedPathsTest.test_direct_match_wins_for_a_qualified_path) ... ok
+test_directories_documented_as_absent_are_still_absent (test_documented_paths.DocumentedPathsTest.test_directories_documented_as_absent_are_still_absent)
+The suppression is only correct while the directory really is gone. ... ok
+test_doc_relative_beats_root_relative_on_a_real_collision (test_documented_paths.DocumentedPathsTest.test_doc_relative_beats_root_relative_on_a_real_collision)
+DOCREL is tried before DIRECT, and that ordering is a CHOICE. ... ok
+test_docrel_resolves_a_sibling_of_the_doc (test_documented_paths.DocumentedPathsTest.test_docrel_resolves_a_sibling_of_the_doc)
+tools/README.md says `identify-gpu.py`, meaning tools/identify-gpu.py. ... ok
+test_docs_covers_every_root_md (test_documented_paths.DocumentedPathsTest.test_docs_covers_every_root_md)
+DOCS is hand-typed, and its failure mode is silent in one direction: ... ok
+test_documented_absences_are_still_absent (test_documented_paths.DocumentedPathsTest.test_documented_absences_are_still_absent) ... ok
+test_elision_reports_ambiguous_rather_than_picking_one (test_documented_paths.DocumentedPathsTest.test_elision_reports_ambiguous_rather_than_picking_one)
+`tests/.../README.md` matches more than one file; that must fail. ... ok
+test_elision_reports_missing_when_nothing_matches (test_documented_paths.DocumentedPathsTest.test_elision_reports_missing_when_nothing_matches) ... ok
+test_elision_resolves_when_exactly_one_thing_matches (test_documented_paths.DocumentedPathsTest.test_elision_resolves_when_exactly_one_thing_matches) ... ok
+test_every_doc_has_a_floor (test_documented_paths.DocumentedPathsTest.test_every_doc_has_a_floor)
+A doc in DOCS with no FLOORS entry is scanned but not guarded: if ... ok
+test_every_doc_is_readable_and_nonempty (test_documented_paths.DocumentedPathsTest.test_every_doc_is_readable_and_nonempty) ... ok
+test_every_documented_command_names_a_real_script (test_documented_paths.DocumentedPathsTest.test_every_documented_command_names_a_real_script)
+Across EVERY fence language, not just ```sh. ... ok
+test_every_documented_directory_exists (test_documented_paths.DocumentedPathsTest.test_every_documented_directory_exists) ... ok
+test_every_documented_file_path_resolves (test_documented_paths.DocumentedPathsTest.test_every_documented_file_path_resolves) ... ok
+test_extractors_clear_their_floors (test_documented_paths.DocumentedPathsTest.test_extractors_clear_their_floors) ... ok
+test_fence_parser_reads_every_language_and_ignores_prose (test_documented_paths.DocumentedPathsTest.test_fence_parser_reads_every_language_and_ignores_prose) ... ok
+test_index_covers_the_tree (test_documented_paths.DocumentedPathsTest.test_index_covers_the_tree) ... ok
+test_pair_expansion_splits_and_leaves_others_alone (test_documented_paths.DocumentedPathsTest.test_pair_expansion_splits_and_leaves_others_alone) ... ok
+test_pair_shorthand_names_two_real_files (test_documented_paths.DocumentedPathsTest.test_pair_shorthand_names_two_real_files)
+Both halves of every `X.hpp/.cpp` must exist, not just one. ... ok
+test_parent_resolves_the_docs_own_directory (test_documented_paths.DocumentedPathsTest.test_parent_resolves_the_docs_own_directory)
+`kextshim/` inside tests/kextshim/README.md is self-referential. ... ok
+test_payload_stage_is_excluded_from_the_index (test_documented_paths.DocumentedPathsTest.test_payload_stage_is_excluded_from_the_index)
+The staging copy must stay out of the index. ... ok
+test_resolver_reports_missing_for_a_bare_name_that_is_not_there (test_documented_paths.DocumentedPathsTest.test_resolver_reports_missing_for_a_bare_name_that_is_not_there) ... ok
+test_resolver_reports_missing_for_a_path_that_is_not_there (test_documented_paths.DocumentedPathsTest.test_resolver_reports_missing_for_a_path_that_is_not_there) ... ok
+test_tail_match_accepts_a_bare_basename_that_is_real (test_documented_paths.DocumentedPathsTest.test_tail_match_accepts_a_bare_basename_that_is_real) ... ok
+test_tail_match_is_anchored_at_a_separator (test_documented_paths.DocumentedPathsTest.test_tail_match_is_anchored_at_a_separator)
+`kext/NVDecode.hpp` must not resolve to `phase0-kext/NVDecode.hpp`. ... ok
+test_tail_match_reports_ambiguous_when_two_files_share_a_basename (test_documented_paths.DocumentedPathsTest.test_tail_match_reports_ambiguous_when_two_files_share_a_basename)
+A basename naming two files must fail, not silently pick one. ... ok
+test_the_four_gates_are_all_documented_and_real (test_documented_paths.DocumentedPathsTest.test_the_four_gates_are_all_documented_and_real)
+The gate list is the load-bearing part of CLAUDE.md; name it directly. ... ok
+test_a_flag_with_no_value_is_refused (test_guest_build_kext.ArgumentParsingTests.test_a_flag_with_no_value_is_refused)
+``--payload-root`` last on the line would otherwise shift past the end ... ok
+test_an_empty_value_is_refused (test_guest_build_kext.ArgumentParsingTests.test_an_empty_value_is_refused)
+``--payload-root=''`` would glob the filesystem root, and an empty ... ok
+test_an_unknown_argument_is_refused_not_ignored (test_guest_build_kext.ArgumentParsingTests.test_an_unknown_argument_is_refused_not_ignored)
+The whole point. A warning would scroll off the guest console above ... ok
+test_every_flag_the_parser_accepts_appears_in_its_own_usage (test_guest_build_kext.ArgumentParsingTests.test_every_flag_the_parser_accepts_appears_in_its_own_usage)
+Derived from the script, not listed here. ... ok
+test_help_exits_zero_and_describes_both_flags (test_guest_build_kext.ArgumentParsingTests.test_help_exits_zero_and_describes_both_flags) ... ok
+test_payload_root_flag_changes_where_the_script_looks (test_guest_build_kext.ArgumentParsingTests.test_payload_root_flag_changes_where_the_script_looks)
+The load-bearing test. Env points at the empty root, flag at the full ... ok
+test_the_environment_variable_still_works_on_its_own (test_guest_build_kext.ArgumentParsingTests.test_the_environment_variable_still_works_on_its_own)
+The other direction. Every other execution class in this module drives ... ok
+test_the_equals_form_is_accepted (test_guest_build_kext.ArgumentParsingTests.test_the_equals_form_is_accepted)
+``--payload-root=DIR`` is one token, so it needs its own case arm. ... ok
+test_the_flag_beats_the_environment_variable (test_guest_build_kext.ArgumentParsingTests.test_the_flag_beats_the_environment_variable)
+Precedence, measured in the direction that can fail silently. ... ok
+test_usage_errors_exit_2_and_payload_errors_exit_1 (test_guest_build_kext.ArgumentParsingTests.test_usage_errors_exit_2_and_payload_errors_exit_1)
+Two codes, because they are two different facts. ... ok
+test_work_dir_flag_decides_where_the_unpack_lands (test_guest_build_kext.ArgumentParsingTests.test_work_dir_flag_decides_where_the_unpack_lands)
+``--work-dir`` is only observable by looking at the filesystem. ... ok
+test_a_different_failure_code_is_carried_verbatim (test_guest_build_kext.MakeStatusTests.test_a_different_failure_code_is_carried_verbatim)
+Two distinct non-zero codes separate 'carried' from 'clamped to 1'. ... ok
+test_a_failing_make_is_reported_as_failing (test_guest_build_kext.MakeStatusTests.test_a_failing_make_is_reported_as_failing)
+The bug: tee's success masked make's failure. Exit code and log. ... ok
+test_a_succeeding_make_is_still_reported_as_succeeding (test_guest_build_kext.MakeStatusTests.test_a_succeeding_make_is_still_reported_as_succeeding)
+The other direction: the fix must not turn success into failure. ... ok
+test_the_build_output_still_reaches_the_console (test_guest_build_kext.MakeStatusTests.test_the_build_output_still_reaches_the_console)
+Carrying the status out of the subshell must not cost the tee. ... ok
+test_the_shim_is_the_make_that_runs (test_guest_build_kext.MakeStatusTests.test_the_shim_is_the_make_that_runs)
+Without this, every test below could be measuring 127. ... ok
+test_the_status_file_is_not_left_behind (test_guest_build_kext.MakeStatusTests.test_the_status_file_is_not_left_behind)
+The scratch file lives in the work dir the operator keeps. ... ok
+test_every_shipped_file_is_byte_identical_to_the_tree (test_guest_build_kext.PayloadFreshnessTests.test_every_shipped_file_is_byte_identical_to_the_tree)
+The load-bearing one. Names matching is not contents matching. ... ok
+test_every_source_file_is_in_the_payload (test_guest_build_kext.PayloadFreshnessTests.test_every_source_file_is_in_the_payload)
+A file added to phase0-kext/ after the tar was built is missing. ... ok
+test_the_iso_carries_the_same_two_files (test_guest_build_kext.PayloadFreshnessTests.test_the_iso_carries_the_same_two_files)
+And the ISO is a THIRD copy, one level further from the source. ... ok
+test_the_payload_carries_nothing_the_tree_does_not (test_guest_build_kext.PayloadFreshnessTests.test_the_payload_carries_nothing_the_tree_does_not)
+The other direction: a file deleted from the tree but still shipped. ... ok
+test_the_shipped_script_matches_tools (test_guest_build_kext.PayloadFreshnessTests.test_the_shipped_script_matches_tools)
+build-payload/guest-build-kext.sh is a COPY and drifted once already. ... ok
+test_the_shipped_tar_carries_every_header_the_kext_includes (test_guest_build_kext.RealPayloadTests.test_the_shipped_tar_carries_every_header_the_kext_includes)
+A missing header is a guest-side compile error, not a delivery error. ... ok
+test_the_shipped_tar_contains_the_makefile_where_the_script_looks (test_guest_build_kext.RealPayloadTests.test_the_shipped_tar_contains_the_makefile_where_the_script_looks) ... ok
+test_the_shipped_tar_excludes_the_build_directory (test_guest_build_kext.RealPayloadTests.test_the_shipped_tar_excludes_the_build_directory)
+A stale host build/ would be unpacked over the guest's own output. ... ok
+test_a_corrupt_tar_is_reported_as_a_tar_failure (test_guest_build_kext.RefusalPathTests.test_a_corrupt_tar_is_reported_as_a_tar_failure)
+Not as a missing payload, and not as a missing Makefile. ... ok
+test_a_tar_without_the_kext_tree_is_refused (test_guest_build_kext.RefusalPathTests.test_a_tar_without_the_kext_tree_is_refused)
+A well-formed archive of the WRONG thing. ... ok
+test_a_volume_under_any_name_is_found (test_guest_build_kext.RefusalPathTests.test_a_volume_under_any_name_is_found)
+macOS appends a suffix when a stale PAYLOAD volume is still mounted. ... ok
+test_a_volume_without_the_tar_is_still_refused (test_guest_build_kext.RefusalPathTests.test_a_volume_without_the_tar_is_still_refused)
+An empty mount point must not read as a payload. ... ok
+test_no_payload_at_all_is_refused (test_guest_build_kext.RefusalPathTests.test_no_payload_at_all_is_refused) ... ok
+test_the_refusal_names_the_root_it_actually_searched (test_guest_build_kext.RefusalPathTests.test_the_refusal_names_the_root_it_actually_searched)
+A message naming /Volumes while searching elsewhere misleads twice. ... ok
+test_it_is_posix_sh_not_bash (test_guest_build_kext.ScriptShapeTests.test_it_is_posix_sh_not_bash)
+The guest's login shell is zsh; /bin/sh is the guaranteed one. ... ok
+test_line_endings_are_lf_only (test_guest_build_kext.ScriptShapeTests.test_line_endings_are_lf_only)
+CRLF would break this the way bare LF breaks a .bat. ... ok
+test_payload_discovery_uses_the_overridable_root (test_guest_build_kext.ScriptShapeTests.test_payload_discovery_uses_the_overridable_root)
+The dead-override defect, pinned. ... ok
+test_the_default_root_is_still_the_real_guest_path (test_guest_build_kext.ScriptShapeTests.test_the_default_root_is_still_the_real_guest_path)
+The override must not change behaviour when it is unset. ... ok
+test_the_script_exists (test_guest_build_kext.ScriptShapeTests.test_the_script_exists) ... ok
+test_the_toolchain_is_recorded_before_make_runs (test_guest_build_kext.ScriptShapeTests.test_the_toolchain_is_recorded_before_make_runs)
+A build log that does not name its clang cannot be acted on remotely. ... ok
+test_the_work_dir_default_is_the_home_directory (test_guest_build_kext.ScriptShapeTests.test_the_work_dir_default_is_the_home_directory)
+Unpacking onto the mounted ISO would fail: the medium is read-only. ... ok
+test_sh_n_accepts_the_script (test_guest_build_kext.SyntaxTests.test_sh_n_accepts_the_script)
+The `}` instead of `fi` defect. Two of these were really in it. ... ok
+test_all_sentinels_are_distinct (test_hfs_catalog_walk.BTreeHeaderOffsetTests.test_all_sentinels_are_distinct)
+Guards the guard: duplicate sentinels would let a wrong offset pass. ... ok
+test_every_remaining_header_field_reads_its_own_sentinel (test_hfs_catalog_walk.BTreeHeaderOffsetTests.test_every_remaining_header_field_reads_its_own_sentinel) ... ok
+test_free_nodes_is_still_read_correctly_at_plus_40 (test_hfs_catalog_walk.BTreeHeaderOffsetTests.test_free_nodes_is_still_read_correctly_at_plus_40)
+Fixing totalNodes must not move freeNodes off its real offset. ... ok
+test_header_node_kind_is_identified (test_hfs_catalog_walk.BTreeHeaderOffsetTests.test_header_node_kind_is_identified) ... ok
+test_max_key_length_sits_between_node_size_and_total_nodes (test_hfs_catalog_walk.BTreeHeaderOffsetTests.test_max_key_length_sits_between_node_size_and_total_nodes)
+maxKeyLength at +34 is the field a 4-byte drift would swallow. ... ok
+test_node_size_offset (test_hfs_catalog_walk.BTreeHeaderOffsetTests.test_node_size_offset) ... ok
+test_total_nodes_is_not_read_from_the_free_nodes_offset (test_hfs_catalog_walk.BTreeHeaderOffsetTests.test_total_nodes_is_not_read_from_the_free_nodes_offset)
+The negative control -- this is the entire reason the file exists. ... ok
+test_total_nodes_matches_the_arithmetic_check (test_hfs_catalog_walk.BTreeHeaderOffsetTests.test_total_nodes_matches_the_arithmetic_check)
+logicalSize / nodeSize must equal totalNodes. ... ok
+test_exit_zero_when_names_are_recovered (test_hfs_catalog_walk.EndToEndTests.test_exit_zero_when_names_are_recovered) ... ok
+test_missing_file_exits_two (test_hfs_catalog_walk.EndToEndTests.test_missing_file_exits_two) ... error: no such image: C:\Users\Kentl\AppData\Local\Temp\tmp0b9u2aib.iso.nope
+ok
+test_non_apm_image_exits_two (test_hfs_catalog_walk.EndToEndTests.test_non_apm_image_exits_two) ... error: block 0 is not an APM driver descriptor ('ER')
+ok
+test_a_header_node_yields_no_names (test_hfs_catalog_walk.LeafNameTests.test_a_header_node_yields_no_names)
+Only leaves carry names. Reading a header or index node as a leaf ... ok
+test_files_and_folders_are_returned (test_hfs_catalog_walk.LeafNameTests.test_files_and_folders_are_returned) ... ok
+test_parent_id_distinguishes_root_from_nested_entries (test_hfs_catalog_walk.LeafNameTests.test_parent_id_distinguishes_root_from_nested_entries) ... ok
+test_record_count_excludes_the_thread_record (test_hfs_catalog_walk.LeafNameTests.test_record_count_excludes_the_thread_record) ... ok
+test_record_types_are_preserved (test_hfs_catalog_walk.LeafNameTests.test_record_types_are_preserved) ... ok
+test_thread_records_are_excluded_so_names_are_not_doubled (test_hfs_catalog_walk.LeafNameTests.test_thread_records_are_excluded_so_names_are_not_doubled) ... ok
+test_fragmented_fork_crosses_into_the_second_extent (test_hfs_catalog_walk.NodeOffsetTests.test_fragmented_fork_crosses_into_the_second_extent)
+Two extents of 12 blocks each: node 12 must land at the start of the ... ok
+test_last_node_is_inside_the_fork (test_hfs_catalog_walk.NodeOffsetTests.test_last_node_is_inside_the_fork) ... ok
+test_node_one_is_one_node_size_further (test_hfs_catalog_walk.NodeOffsetTests.test_node_one_is_one_node_size_further) ... ok
+test_node_zero_is_the_first_extent_start (test_hfs_catalog_walk.NodeOffsetTests.test_node_zero_is_the_first_extent_start) ... ok
+test_past_the_end_returns_none_rather_than_a_wrong_offset (test_hfs_catalog_walk.NodeOffsetTests.test_past_the_end_returns_none_rather_than_a_wrong_offset) ... ok
+test_both_entries_are_found (test_hfs_catalog_walk.PartitionMapTests.test_both_entries_are_found) ... ok
+test_entry_count_comes_from_the_map_not_a_guess (test_hfs_catalog_walk.PartitionMapTests.test_entry_count_comes_from_the_map_not_a_guess)
+Entry 1 states how many entries exist. If the walker guessed, a map ... ok
+test_entry_fields_are_parsed (test_hfs_catalog_walk.PartitionMapTests.test_entry_fields_are_parsed) ... ok
+test_non_apm_image_is_rejected_not_misparsed (test_hfs_catalog_walk.PartitionMapTests.test_non_apm_image_is_rejected_not_misparsed)
+An ISO9660 image must raise, not produce a plausible empty map -- ... ok
+test_partition_bytes_match_the_volume_size (test_hfs_catalog_walk.PartitionMapTests.test_partition_bytes_match_the_volume_size)
+6548 * 512 == 1637 * 2048. Two units for the same span agreeing is ... ok
+test_block_size_and_total_blocks_are_not_transposed (test_hfs_catalog_walk.VolumeHeaderTests.test_block_size_and_total_blocks_are_not_transposed) ... ok
+test_catalog_fork_fields (test_hfs_catalog_walk.VolumeHeaderTests.test_catalog_fork_fields) ... ok
+test_free_blocks_is_read_from_its_own_offset (test_hfs_catalog_walk.VolumeHeaderTests.test_free_blocks_is_read_from_its_own_offset) ... ok
+test_hfsx_signature_is_accepted (test_hfs_catalog_walk.VolumeHeaderTests.test_hfsx_signature_is_accepted) ... ok
+test_missing_volume_header_raises (test_hfs_catalog_walk.VolumeHeaderTests.test_missing_volume_header_raises) ... ok
+test_only_used_extents_are_returned (test_hfs_catalog_walk.VolumeHeaderTests.test_only_used_extents_are_returned)
+Eight extent descriptors always exist; the seven with count 0 are ... ok
+test_signature_and_version (test_hfs_catalog_walk.VolumeHeaderTests.test_signature_and_version) ... ok
+test_volume_base_is_the_partition_start (test_hfs_catalog_walk.VolumeHeaderTests.test_volume_base_is_the_partition_start) ... ok
+test_a_missing_assignment_raises_rather_than_returning_empty (test_kext_makefile.AssignmentParserTests.test_a_missing_assignment_raises_rather_than_returning_empty) ... ok
+test_it_drops_comment_lines_inside_a_continuation (test_kext_makefile.AssignmentParserTests.test_it_drops_comment_lines_inside_a_continuation) ... ok
+test_it_handles_plain_equals_and_append (test_kext_makefile.AssignmentParserTests.test_it_handles_plain_equals_and_append) ... ok
+test_it_joins_backslash_continuations (test_kext_makefile.AssignmentParserTests.test_it_joins_backslash_continuations) ... ok
+test_it_stops_at_the_end_of_the_assignment (test_kext_makefile.AssignmentParserTests.test_it_stops_at_the_end_of_the_assignment) ... ok
+test_it_keeps_recipe_lines_that_contain_a_hash (test_kext_makefile.CodeOnlyTests.test_it_keeps_recipe_lines_that_contain_a_hash) ... ok
+test_it_keeps_the_flags (test_kext_makefile.CodeOnlyTests.test_it_keeps_the_flags) ... ok
+test_it_removes_the_prose (test_kext_makefile.CodeOnlyTests.test_it_removes_the_prose) ... ok
+test_kernel_is_defined (test_kext_makefile.CompileFlagTests.test_kernel_is_defined) ... ok
+test_the_compiler_is_discovered_not_hardcoded (test_kext_makefile.CompileFlagTests.test_the_compiler_is_discovered_not_hardcoded) ... ok
+test_the_kernel_dialect_flags_are_present (test_kext_makefile.CompileFlagTests.test_the_kernel_dialect_flags_are_present) ... ok
+test_the_kernel_flags_reach_the_compile_line (test_kext_makefile.CompileFlagTests.test_the_kernel_flags_reach_the_compile_line) ... ok
+test_the_kernel_framework_headers_are_on_the_include_path (test_kext_makefile.CompileFlagTests.test_the_kernel_framework_headers_are_on_the_include_path) ... ok
+test_the_sdk_is_discovered_not_hardcoded (test_kext_makefile.CompileFlagTests.test_the_sdk_is_discovered_not_hardcoded) ... ok
+test_a_properly_paired_xlinker_value_is_accepted (test_kext_makefile.LinkFlagRuleTests.test_a_properly_paired_xlinker_value_is_accepted) ... ok
+test_a_single_xlinker_before_the_value_is_still_caught (test_kext_makefile.LinkFlagRuleTests.test_a_single_xlinker_before_the_value_is_still_caught) ... ok
+test_a_trailing_arg_taking_flag_is_caught (test_kext_makefile.LinkFlagRuleTests.test_a_trailing_arg_taking_flag_is_caught) ... ok
+test_every_listed_flag_is_actually_checked (test_kext_makefile.LinkFlagRuleTests.test_every_listed_flag_is_actually_checked) ... ok
+test_no_arg_flags_are_not_flagged (test_kext_makefile.LinkFlagRuleTests.test_no_arg_flags_are_not_flagged) ... ok
+test_the_fix_is_accepted (test_kext_makefile.LinkFlagRuleTests.test_the_fix_is_accepted) ... ok
+test_the_real_bug_is_caught (test_kext_makefile.LinkFlagRuleTests.test_the_real_bug_is_caught) ... ok
+test_two_bare_flags_are_both_reported (test_kext_makefile.LinkFlagRuleTests.test_two_bare_flags_are_both_reported) ... ok
+test_libcc_kext_is_linked (test_kext_makefile.LinkLineTests.test_libcc_kext_is_linked) ... ok
+test_libkmod_is_linked (test_kext_makefile.LinkLineTests.test_libkmod_is_linked) ... ok
+test_lto_is_not_requested_anywhere (test_kext_makefile.LinkLineTests.test_lto_is_not_requested_anywhere) ... ok
+test_no_argument_taking_flag_is_left_bare (test_kext_makefile.LinkLineTests.test_no_argument_taking_flag_is_left_bare) ... ok
+test_the_kext_link_mode_is_requested (test_kext_makefile.LinkLineTests.test_the_kext_link_mode_is_requested) ... ok
+test_the_standard_library_is_excluded (test_kext_makefile.LinkLineTests.test_the_standard_library_is_excluded) ... ok
+test_the_sysroot_is_passed_to_the_link_too (test_kext_makefile.LinkLineTests.test_the_sysroot_is_passed_to_the_link_too) ... ok
+test_every_cpp_in_the_kext_directory_is_named (test_kext_makefile.SourceListTests.test_every_cpp_in_the_kext_directory_is_named) ... ok
+test_every_named_source_exists (test_kext_makefile.SourceListTests.test_every_named_source_exists) ... ok
+test_only_the_iokit_shell_is_compiled (test_kext_makefile.SourceListTests.test_only_the_iokit_shell_is_compiled) ... ok
+test_at_least_one_batch_file_is_discovered (test_line_endings.BatchFilesUseCRLF.test_at_least_one_batch_file_is_discovered) ... ok
+test_every_batch_file_ends_with_a_newline (test_line_endings.BatchFilesUseCRLF.test_every_batch_file_ends_with_a_newline) ... ok
+test_no_batch_file_has_a_bare_cr (test_line_endings.BatchFilesUseCRLF.test_no_batch_file_has_a_bare_cr) ... ok
+test_no_batch_file_has_bare_lf_endings (test_line_endings.BatchFilesUseCRLF.test_no_batch_file_has_bare_lf_endings) ... ok
+test_bare_cr_is_detected (test_line_endings.EndingCountsItself.test_bare_cr_is_detected) ... ok
+test_empty_file_is_not_reported_as_an_offender (test_line_endings.EndingCountsItself.test_empty_file_is_not_reported_as_an_offender) ... ok
+test_mixed_endings_are_detected (test_line_endings.EndingCountsItself.test_mixed_endings_are_detected) ... ok
+test_pure_crlf_reports_no_bare_endings (test_line_endings.EndingCountsItself.test_pure_crlf_reports_no_bare_endings) ... ok
+test_pure_lf_is_detected (test_line_endings.EndingCountsItself.test_pure_lf_is_detected) ... ok
+test_a_computed_key_is_ignored_rather_than_guessed_at (test_no_duplicate_definitions.DetectorItself.test_a_computed_key_is_ignored_rather_than_guessed_at) ... ok
+test_a_conditional_fallback_definition_is_not_reported (test_no_duplicate_definitions.DetectorItself.test_a_conditional_fallback_definition_is_not_reported) ... ok
+test_a_dict_unpacking_slot_does_not_crash_the_scan (test_no_duplicate_definitions.DetectorItself.test_a_dict_unpacking_slot_does_not_crash_the_scan) ... ok
+test_a_nested_class_is_scanned_and_named (test_no_duplicate_definitions.DetectorItself.test_a_nested_class_is_scanned_and_named) ... ok
+test_a_nested_dict_is_scanned_too (test_no_duplicate_definitions.DetectorItself.test_a_nested_dict_is_scanned_too) ... ok
+test_a_property_setter_is_not_a_duplicate (test_no_duplicate_definitions.DetectorItself.test_a_property_setter_is_not_a_duplicate) ... ok
+test_a_repeated_dict_key_is_reported (test_no_duplicate_definitions.DetectorItself.test_a_repeated_dict_key_is_reported) ... ok
+test_a_repeated_tuple_key_is_reported (test_no_duplicate_definitions.DetectorItself.test_a_repeated_tuple_key_is_reported) ... ok
+test_a_setter_named_for_a_DIFFERENT_property_is_still_a_duplicate (test_no_duplicate_definitions.DetectorItself.test_a_setter_named_for_a_DIFFERENT_property_is_still_a_duplicate) ... ok
+test_distinct_names_produce_nothing (test_no_duplicate_definitions.DetectorItself.test_distinct_names_produce_nothing) ... ok
+test_distinct_tuple_keys_produce_nothing (test_no_duplicate_definitions.DetectorItself.test_distinct_tuple_keys_produce_nothing) ... ok
+test_the_same_name_in_two_different_classes_is_fine (test_no_duplicate_definitions.DetectorItself.test_the_same_name_in_two_different_classes_is_fine) ... ok
+test_two_methods_with_the_same_name_are_reported (test_no_duplicate_definitions.DetectorItself.test_two_methods_with_the_same_name_are_reported) ... ok
+test_two_module_level_classes_with_the_same_name_are_reported (test_no_duplicate_definitions.DetectorItself.test_two_module_level_classes_with_the_same_name_are_reported) ... ok
+test_typing_overload_is_not_a_duplicate (test_no_duplicate_definitions.DetectorItself.test_typing_overload_is_not_a_duplicate) ... ok
+test_no_dict_literal_repeats_a_key (test_no_duplicate_definitions.NoModuleShadowsItsOwnDefinitions.test_no_dict_literal_repeats_a_key) ... ok
+test_no_module_binds_a_name_twice_in_one_scope (test_no_duplicate_definitions.NoModuleShadowsItsOwnDefinitions.test_no_module_binds_a_name_twice_in_one_scope) ... ok
+test_the_walk_finds_this_module_and_a_tool (test_no_duplicate_definitions.NoModuleShadowsItsOwnDefinitions.test_the_walk_finds_this_module_and_a_tool) ... ok
+test_the_guest_command_names_the_real_script (test_operator_step7_doc.CommandTests.test_the_guest_command_names_the_real_script)
+``sh /Volumes/PAYLOAD/guest-build-kext.sh`` -- the basename must be ... ok
+test_the_guest_command_uses_sh_not_bash (test_operator_step7_doc.CommandTests.test_the_guest_command_uses_sh_not_bash)
+The script is ``#!/bin/sh`` and uses no bashisms deliberately. ... ok
+test_the_vmrun_path_exists_on_this_machine (test_operator_step7_doc.CommandTests.test_the_vmrun_path_exists_on_this_machine)
+A card naming a vmrun that is not installed is a dead end. ... ok
+test_the_vmx_path_the_card_names_exists (test_operator_step7_doc.CommandTests.test_the_vmx_path_the_card_names_exists) ... ok
+test_there_are_fenced_command_blocks (test_operator_step7_doc.CommandTests.test_there_are_fenced_command_blocks)
+Non-vacuity guard for every test below that greps the blocks. ... ok
+test_a_superseded_md5_is_marked_as_superseded (test_operator_step7_doc.DerivedValueTests.test_a_superseded_md5_is_marked_as_superseded)
+Quoting an old hash is fine; quoting it as current is not. ... ok
+test_every_md5_the_card_quotes_can_be_accounted_for (test_operator_step7_doc.DerivedValueTests.test_every_md5_the_card_quotes_can_be_accounted_for)
+The live ISO's md5 must be among the md5s the card prints. ... ok
+test_the_iso_the_card_references_is_the_one_the_builder_produces (test_operator_step7_doc.DerivedValueTests.test_the_iso_the_card_references_is_the_one_the_builder_produces)
+Path-level agreement between the card and tools/build-step7-payload.py. ... ok
+test_the_script_byte_size_the_card_quotes_is_current (test_operator_step7_doc.DerivedValueTests.test_the_script_byte_size_the_card_quotes_is_current) ... ok
+test_the_tar_byte_size_the_card_quotes_is_current (test_operator_step7_doc.DerivedValueTests.test_the_tar_byte_size_the_card_quotes_is_current) ... ok
+test_the_card_exists (test_operator_step7_doc.DocExistsTests.test_the_card_exists) ... ok
+test_the_card_is_not_empty (test_operator_step7_doc.DocExistsTests.test_the_card_is_not_empty) ... ok
+test_the_glob_the_card_describes_matches_the_script (test_operator_step7_doc.PayloadAgreementTests.test_the_glob_the_card_describes_matches_the_script)
+The card explains the script globs for the tar rather than assuming ... ok
+test_the_log_name_the_card_names_matches_the_script (test_operator_step7_doc.PayloadAgreementTests.test_the_log_name_the_card_names_matches_the_script) ... ok
+test_the_staged_script_is_the_one_the_card_describes (test_operator_step7_doc.PayloadAgreementTests.test_the_staged_script_is_the_one_the_card_describes)
+tools/ and build-payload/ copies must not have diverged. ... ok
+test_the_work_dir_the_card_names_is_the_scripts_default (test_operator_step7_doc.PayloadAgreementTests.test_the_work_dir_the_card_names_is_the_scripts_default)
+The card says the script unpacks to ``~/nv3050-step7``. ... ok
+test_each_quoted_count_matches_the_module (test_operator_step7_doc.QuotedTestCountTests.test_each_quoted_count_matches_the_module) ... ok
+test_the_modules_the_card_names_exist (test_operator_step7_doc.QuotedTestCountTests.test_the_modules_the_card_names_exist) ... ok
+test_it_does_not_both_forbid_and_require_the_power_cycle (test_operator_step7_doc.SelfConsistencyTests.test_it_does_not_both_forbid_and_require_the_power_cycle) ... ok
+test_it_tells_the_operator_the_guest_may_hold_a_stale_disc (test_operator_step7_doc.SelfConsistencyTests.test_it_tells_the_operator_the_guest_may_hold_a_stale_disc)
+The single fact that makes the difference between a real and a fake ... ok
+test_the_forbid_and_done_patterns_are_not_vacuous (test_operator_step7_doc.SelfConsistencyTests.test_the_forbid_and_done_patterns_are_not_vacuous)
+Both patterns above are greps, and a grep that matches nothing is a ... ok
+test_the_step_headings_do_not_claim_done_work_is_pending (test_operator_step7_doc.SelfConsistencyTests.test_the_step_headings_do_not_claim_done_work_is_pending)
+Heading text is what a skimming operator acts on. ... ok
+test_the_card_names_the_device_the_vmx_actually_uses (test_operator_step7_doc.VmxAgreementTests.test_the_card_names_the_device_the_vmx_actually_uses)
+The card tells the operator to repoint ``sata0:2``. ... ok
+test_the_card_quotes_the_vmx_path_it_tells_you_to_edit (test_operator_step7_doc.VmxAgreementTests.test_the_card_quotes_the_vmx_path_it_tells_you_to_edit) ... ok
+test_the_vmx_points_at_the_payload_iso_in_this_repo (test_operator_step7_doc.VmxAgreementTests.test_the_vmx_points_at_the_payload_iso_in_this_repo)
+Not merely 'an ISO named step7-payload.iso' -- THIS repo's copy. ... ok
+test_absent_bit_table_returns_none (test_parse_vbios.BitTableTests.test_absent_bit_table_returns_none) ... ok
+test_bare_bit_string_is_not_enough (test_parse_vbios.BitTableTests.test_bare_bit_string_is_not_enough)
+"BIT\0" alone must not be accepted -- the id word is part of it. ... ok
+test_bios_version_formatting (test_parse_vbios.BitTableTests.test_bios_version_formatting) ... ok
+test_corrupt_header_fails_checksum (test_parse_vbios.BitTableTests.test_corrupt_header_fails_checksum) ... ok
+test_header_found_and_checksum_valid (test_parse_vbios.BitTableTests.test_header_found_and_checksum_valid) ... ok
+test_string_table_dereferences_triples (test_parse_vbios.BitTableTests.test_string_table_dereferences_triples) ... ok
+test_token_table_truncated_at_buffer_end (test_parse_vbios.BitTableTests.test_token_table_truncated_at_buffer_end) ... ok
+test_tokens_decode_with_names_and_range_flags (test_parse_vbios.BitTableTests.test_tokens_decode_with_names_and_range_flags) ... ok
+test_agreeing_indicators_produce_no_conflict (test_parse_vbios.ChainWalkTests.test_agreeing_indicators_produce_no_conflict) ... ok
+test_bad_pcir_pointer_reported (test_parse_vbios.ChainWalkTests.test_bad_pcir_pointer_reported) ... ok
+test_conflicting_last_image_indicators_are_detected (test_parse_vbios.ChainWalkTests.test_conflicting_last_image_indicators_are_detected) ... ok
+test_declared_length_past_eof_is_flagged (test_parse_vbios.ChainWalkTests.test_declared_length_past_eof_is_flagged) ... ok
+test_missing_rom_signature_reported_not_crashed (test_parse_vbios.ChainWalkTests.test_missing_rom_signature_reported_not_crashed) ... ok
+test_scan_only_hits_are_not_images (test_parse_vbios.ChainWalkTests.test_scan_only_hits_are_not_images)
+A literal b"PCIR" in the payload must not become an image. ... ok
+test_single_image_walk (test_parse_vbios.ChainWalkTests.test_single_image_walk) ... ok
+test_two_image_chain_follows_declared_length (test_parse_vbios.ChainWalkTests.test_two_image_chain_follows_declared_length) ... ok
+test_zero_length_image_does_not_loop_forever (test_parse_vbios.ChainWalkTests.test_zero_length_image_does_not_loop_forever) ... ok
+test_in_range_pointer_decodes_the_table_header (test_parse_vbios.FalconStatusTests.test_in_range_pointer_decodes_the_table_header) ... ok
+test_malformed_when_payload_too_small (test_parse_vbios.FalconStatusTests.test_malformed_when_payload_too_small) ... ok
+test_no_token (test_parse_vbios.FalconStatusTests.test_no_token) ... ok
+test_null_pointer_means_the_rom_declares_no_table (test_parse_vbios.FalconStatusTests.test_null_pointer_means_the_rom_declares_no_table) ... ok
+test_off_file_pointer_reports_shortfall_not_absence (test_parse_vbios.FalconStatusTests.test_off_file_pointer_reports_shortfall_not_absence)
+The GA107 case: a well-formed pointer past the end of the dump. ... ok
+test_fields_decode (test_parse_vbios.NpdeLayoutTests.test_fields_decode) ... ok
+test_last_image_bit (test_parse_vbios.NpdeLayoutTests.test_last_image_bit) ... ok
+test_rejects_wrong_signature (test_parse_vbios.NpdeLayoutTests.test_rejects_wrong_signature) ... ok
+test_class_code_string_is_high_mid_low (test_parse_vbios.PcirLayoutTests.test_class_code_string_is_high_mid_low) ... ok
+test_ds_revision_is_one_byte_not_two (test_parse_vbios.PcirLayoutTests.test_ds_revision_is_one_byte_not_two)
+The exact regression: a u16 revision shifts everything after it. ... ok
+test_every_field_decodes_at_its_spec_offset (test_parse_vbios.PcirLayoutTests.test_every_field_decodes_at_its_spec_offset) ... ok
+test_last_image_bit_is_bit7_only (test_parse_vbios.PcirLayoutTests.test_last_image_bit_is_bit7_only) ... ok
+test_rejects_wrong_signature_and_truncation (test_parse_vbios.PcirLayoutTests.test_rejects_wrong_signature_and_truncation) ... ok
+test_all_seventeen_tokens_decode_in_order (test_parse_vbios.RealGa107RomTests.test_all_seventeen_tokens_decode_in_order) ... ok
+test_bios_version_matches_the_string_table (test_parse_vbios.RealGa107RomTests.test_bios_version_matches_the_string_table) ... ok
+test_bit_header (test_parse_vbios.RealGa107RomTests.test_bit_header) ... ok
+test_class_code_is_3d_controller_matching_hardware_md (test_parse_vbios.RealGa107RomTests.test_class_code_is_3d_controller_matching_hardware_md)
+030200 -- the muxless signature HARDWARE.md records from lspci. ... ok
+test_falcon_table_is_off_file_not_absent (test_parse_vbios.RealGa107RomTests.test_falcon_table_is_off_file_not_absent)
+The card's actual question, answered from the bytes. ... ok
+test_file_identity (test_parse_vbios.RealGa107RomTests.test_file_identity) ... ok
+test_head_strings_and_build_markers (test_parse_vbios.RealGa107RomTests.test_head_strings_and_build_markers) ... ok
+test_image_zero_ends_exactly_at_end_of_file (test_parse_vbios.RealGa107RomTests.test_image_zero_ends_exactly_at_end_of_file) ... ok
+test_image_zero_matches_the_target_die (test_parse_vbios.RealGa107RomTests.test_image_zero_matches_the_target_die) ... ok
+test_legacy_image_is_x86_and_marked_last (test_parse_vbios.RealGa107RomTests.test_legacy_image_is_x86_and_marked_last) ... ok
+test_no_self_describing_container_anywhere (test_parse_vbios.RealGa107RomTests.test_no_self_describing_container_anywhere) ... ok
+test_npde_contradicts_the_pcir_last_image_bit (test_parse_vbios.RealGa107RomTests.test_npde_contradicts_the_pcir_last_image_bit)
+The decisive fact: this dump is one image of a larger ROM. ... ok
+test_report_returns_zero_on_the_real_rom (test_parse_vbios.RealGa107RomTests.test_report_returns_zero_on_the_real_rom) ... ok
+test_string_table_slots (test_parse_vbios.RealGa107RomTests.test_string_table_slots) ... ok
+test_tail_signature_hits_are_x86_immediates_not_structures (test_parse_vbios.RealGa107RomTests.test_tail_signature_hits_are_x86_immediates_not_structures) ... ok
+test_token_pointers_and_lengths (test_parse_vbios.RealGa107RomTests.test_token_pointers_and_lengths) ... ok
+test_report_rejects_a_non_rom (test_parse_vbios.ReportTests.test_report_rejects_a_non_rom) ... ok
+test_report_rejects_a_rom_without_a_bit_table (test_parse_vbios.ReportTests.test_report_rejects_a_rom_without_a_bit_table) ... ok
+test_report_succeeds_on_a_synthetic_full_image (test_parse_vbios.ReportTests.test_report_succeeds_on_a_synthetic_full_image) ... ok
+test_container_magic_found_when_present (test_parse_vbios.StringAndMagicTests.test_container_magic_found_when_present) ... ok
+test_container_magics_absent_on_a_blank_buffer (test_parse_vbios.StringAndMagicTests.test_container_magics_absent_on_a_blank_buffer) ... ok
+test_extract_strings_catches_a_run_at_end_of_buffer (test_parse_vbios.StringAndMagicTests.test_extract_strings_catches_a_run_at_end_of_buffer) ... ok
+test_extract_strings_respects_min_length (test_parse_vbios.StringAndMagicTests.test_extract_strings_respects_min_length) ... ok
+test_exposes_a_line_parser (test_tools_parsing.CollapseModuleShape.test_exposes_a_line_parser) ... ok
+test_module_loaded (test_tools_parsing.CollapseModuleShape.test_module_loaded) ... ok
+test_a_parameterised_define_is_not_matched_as_plain (test_tools_parsing.DefineRegex.test_a_parameterised_define_is_not_matched_as_plain) ... ok
+test_block_comment_spanning_the_middle_is_stripped (test_tools_parsing.DefineRegex.test_block_comment_spanning_the_middle_is_stripped) ... ok
+test_line_comment_is_stripped (test_tools_parsing.DefineRegex.test_line_comment_is_stripped) ... ok
+test_non_define_lines_are_ignored (test_tools_parsing.DefineRegex.test_non_define_lines_are_ignored) ... ok
+test_parameterised_define_captures_name_arg_and_body (test_tools_parsing.DefineRegex.test_parameterised_define_captures_name_arg_and_body) ... ok
+test_plain_define (test_tools_parsing.DefineRegex.test_plain_define) ... ok
+test_trailing_block_comment_is_not_part_of_the_value (test_tools_parsing.DefineRegex.test_trailing_block_comment_is_not_part_of_the_value) ... ok
+test_bitrange_matches_hi_lo (test_tools_parsing.NumericAndBitrangeRegex.test_bitrange_matches_hi_lo) ... ok
+test_bitrange_tolerates_spaces (test_tools_parsing.NumericAndBitrangeRegex.test_bitrange_tolerates_spaces) ... ok
+test_numeric_accepts_hex_and_decimal (test_tools_parsing.NumericAndBitrangeRegex.test_numeric_accepts_hex_and_decimal) ... ok
+test_numeric_rejects_expressions_and_suffixes (test_tools_parsing.NumericAndBitrangeRegex.test_numeric_rejects_expressions_and_suffixes) ... ok
+test_missing_file_returns_empty_not_an_error (test_tools_parsing.ParseDefinesEndToEnd.test_missing_file_returns_empty_not_an_error) ... ok
+test_plain_and_param_are_separated (test_tools_parsing.ParseDefinesEndToEnd.test_plain_and_param_are_separated) ... ok
+test_valueless_define_is_dropped (test_tools_parsing.ParseDefinesEndToEnd.test_valueless_define_is_dropped) ... ok
+test_a_genuinely_unknown_symbol_still_returns_none (test_tools_parsing.Resolve.test_a_genuinely_unknown_symbol_still_returns_none) ... ok
+test_alias_chain (test_tools_parsing.Resolve.test_alias_chain) ... ok
+test_alias_cycle_terminates (test_tools_parsing.Resolve.test_alias_cycle_terminates) ... ok
+test_bare_hex_literal_is_not_read_as_a_symbol (test_tools_parsing.Resolve.test_bare_hex_literal_is_not_read_as_a_symbol) ... ok
+test_constant_arithmetic (test_tools_parsing.Resolve.test_constant_arithmetic) ... ok
+test_decimal (test_tools_parsing.Resolve.test_decimal) ... ok
+test_hex_literal_beside_a_symbol (test_tools_parsing.Resolve.test_hex_literal_beside_a_symbol) ... ok
+test_missing_name_is_none (test_tools_parsing.Resolve.test_missing_name_is_none) ... ok
+test_plain_hex (test_tools_parsing.Resolve.test_plain_hex) ... ok
+test_symbol_after_a_digit_run_is_still_substituted (test_tools_parsing.Resolve.test_symbol_after_a_digit_run_is_still_substituted) ... ok
+test_unparseable_body_is_none_not_an_exception (test_tools_parsing.Resolve.test_unparseable_body_is_none_not_an_exception) ... ok
+test_uppercase_hex_prefix_too (test_tools_parsing.Resolve.test_uppercase_hex_prefix_too) ... ok
+test_byte_at_offset (test_tools_parsing.ResolveBitrange.test_byte_at_offset) ... ok
+test_full_word (test_tools_parsing.ResolveBitrange.test_full_word) ... ok
+test_inverted_range_is_rejected (test_tools_parsing.ResolveBitrange.test_inverted_range_is_rejected) ... ok
+test_mask_is_pre_shift (test_tools_parsing.ResolveBitrange.test_mask_is_pre_shift) ... ok
+test_missing_name_is_none (test_tools_parsing.ResolveBitrange.test_missing_name_is_none) ... ok
+test_nibble (test_tools_parsing.ResolveBitrange.test_nibble) ... ok
+test_non_bitrange_body_is_none (test_tools_parsing.ResolveBitrange.test_non_bitrange_body_is_none) ... ok
+test_single_bit (test_tools_parsing.ResolveBitrange.test_single_bit) ... ok
+test_default_window_is_the_vmware_title (test_vm_screenshot.ArgumentTests.test_default_window_is_the_vmware_title) ... ok
+test_expect_defaults_to_empty_not_none (test_vm_screenshot.ArgumentTests.test_expect_defaults_to_empty_not_none) ... ok
+test_expect_is_repeatable_and_accumulates (test_vm_screenshot.ArgumentTests.test_expect_is_repeatable_and_accumulates) ... ok
+test_no_restore_defaults_off_and_is_settable (test_vm_screenshot.ArgumentTests.test_no_restore_defaults_off_and_is_settable) ... ok
+test_settle_is_numeric (test_vm_screenshot.ArgumentTests.test_settle_is_numeric) ... ok
+test_absent_phrase_is_reported_missing (test_vm_screenshot.CheckExpectedTests.test_absent_phrase_is_reported_missing) ... ok
+test_all_phrases_present (test_vm_screenshot.CheckExpectedTests.test_all_phrases_present) ... ok
+test_empty_ocr_fails_every_phrase (test_vm_screenshot.CheckExpectedTests.test_empty_ocr_fails_every_phrase)
+A black screen must never read as PASS -- that is the whole point. ... ok
+test_line_wrapped_phrase_still_matches (test_vm_screenshot.CheckExpectedTests.test_line_wrapped_phrase_still_matches)
+OCR breaks lines unpredictably; a phrase split across two lines ... ok
+test_matching_is_case_insensitive (test_vm_screenshot.CheckExpectedTests.test_matching_is_case_insensitive) ... ok
+test_no_phrases_means_nothing_missing (test_vm_screenshot.CheckExpectedTests.test_no_phrases_means_nothing_missing) ... ok
+test_runs_of_whitespace_collapse_on_both_sides (test_vm_screenshot.CheckExpectedTests.test_runs_of_whitespace_collapse_on_both_sides) ... ok
+test_crop_keeps_the_guest_pixels_not_the_chrome (test_vm_screenshot.CropChromeTests.test_crop_keeps_the_guest_pixels_not_the_chrome)
+Paint chrome and guest distinct colours and prove which survives. ... ok
+test_default_crop_removes_toolbar_and_status_bar (test_vm_screenshot.CropChromeTests.test_default_crop_removes_toolbar_and_status_bar) ... ok
+test_tiny_window_does_not_produce_an_inverted_box (test_vm_screenshot.CropChromeTests.test_tiny_window_does_not_produce_an_inverted_box)
+A window smaller than the chrome margins must not crash Pillow with ... ok
+test_compare_source_never_saves_to_the_named_argument (test_vm_screenshot.DerivedFramePathTests.test_compare_source_never_saves_to_the_named_argument)
+Read the implementation, not just the helper: the historical line was ... ok
+test_dots_in_directory_names_are_not_mistaken_for_an_extension (test_vm_screenshot.DerivedFramePathTests.test_dots_in_directory_names_are_not_mistaken_for_an_extension) ... ok
+test_extension_case_is_preserved (test_vm_screenshot.DerivedFramePathTests.test_extension_case_is_preserved) ... ok
+test_missing_extension_gains_png (test_vm_screenshot.DerivedFramePathTests.test_missing_extension_gains_png) ... ok
+test_neither_frame_path_equals_the_named_file (test_vm_screenshot.DerivedFramePathTests.test_neither_frame_path_equals_the_named_file)
+The whole defect in one assertion. ... ok
+test_tag_is_inserted_before_the_extension (test_vm_screenshot.DerivedFramePathTests.test_tag_is_inserted_before_the_extension) ... ok
+test_the_two_frames_do_not_collide_with_each_other (test_vm_screenshot.DerivedFramePathTests.test_the_two_frames_do_not_collide_with_each_other) ... ok
+test_chrome_only_change_is_invisible_to_the_guest_region (test_vm_screenshot.FrameDeltaTests.test_chrome_only_change_is_invisible_to_the_guest_region) ... ok
+test_guest_change_is_reported (test_vm_screenshot.FrameDeltaTests.test_guest_change_is_reported) ... ok
+test_identical_frames_are_zero (test_vm_screenshot.FrameDeltaTests.test_identical_frames_are_zero) ... ok
+test_resized_window_returns_none (test_vm_screenshot.FrameDeltaTests.test_resized_window_returns_none) ... ok
+test_minimized_window_is_restored_then_captured (test_vm_screenshot.MinimizedWindowTests.test_minimized_window_is_restored_then_captured) ... ok
+test_no_restore_refuses_a_minimized_window (test_vm_screenshot.MinimizedWindowTests.test_no_restore_refuses_a_minimized_window) ... ok
+test_normal_window_is_not_restored (test_vm_screenshot.MinimizedWindowTests.test_normal_window_is_not_restored) ... ok
+test_thumbnail_sized_window_is_refused (test_vm_screenshot.MinimizedWindowTests.test_thumbnail_sized_window_is_refused)
+The literal 160x28 frame from 2026-08-07 must not come back as a ... ok
+test_window_that_stays_minimized_raises (test_vm_screenshot.MinimizedWindowTests.test_window_that_stays_minimized_raises) ... ok
+test_zero_sized_window_is_refused (test_vm_screenshot.MinimizedWindowTests.test_zero_sized_window_is_refused) ... ok
+test_ambiguous_match_raises_rather_than_guessing (test_vm_screenshot.PickWindowTests.test_ambiguous_match_raises_rather_than_guessing) ... ok
+test_match_is_case_insensitive (test_vm_screenshot.PickWindowTests.test_match_is_case_insensitive) ... ok
+test_no_match_lists_the_vmware_windows_that_do_exist (test_vm_screenshot.PickWindowTests.test_no_match_lists_the_vmware_windows_that_do_exist) ... ok
+test_no_vmware_windows_at_all_says_so (test_vm_screenshot.PickWindowTests.test_no_vmware_windows_at_all_says_so) ... ok
+test_pattern_is_escaped_not_treated_as_regex (test_vm_screenshot.PickWindowTests.test_pattern_is_escaped_not_treated_as_regex)
+A title containing regex metacharacters must match literally. ... ok
+test_single_match_is_returned (test_vm_screenshot.PickWindowTests.test_single_match_is_returned) ... ok
+test_default_window_is_the_vmware_title (test_vm_type.ArgumentTests.test_default_window_is_the_vmware_title) ... ok
+test_dry_run_defaults_off_and_is_settable (test_vm_type.ArgumentTests.test_dry_run_defaults_off_and_is_settable) ... ok
+test_key_and_text_default_to_empty_not_none (test_vm_type.ArgumentTests.test_key_and_text_default_to_empty_not_none) ... ok
+test_key_is_repeatable_and_accumulates (test_vm_type.ArgumentTests.test_key_is_repeatable_and_accumulates) ... ok
+test_text_is_repeatable_and_accumulates (test_vm_type.ArgumentTests.test_text_is_repeatable_and_accumulates) ... ok
+test_every_ascii_letter_and_digit_is_typable (test_vm_type.CharToScanTests.test_every_ascii_letter_and_digit_is_typable)
+A gap here is only discovered when a command silently loses a ... ok
+test_every_uppercase_letter_is_shifted (test_vm_type.CharToScanTests.test_every_uppercase_letter_is_shifted) ... ok
+test_lowercase_letter (test_vm_type.CharToScanTests.test_lowercase_letter) ... ok
+test_non_ascii_raises (test_vm_type.CharToScanTests.test_non_ascii_raises) ... ok
+test_shifted_punctuation_shares_the_base_scancode (test_vm_type.CharToScanTests.test_shifted_punctuation_shares_the_base_scancode) ... ok
+test_space (test_vm_type.CharToScanTests.test_space) ... ok
+test_unshifted_punctuation (test_vm_type.CharToScanTests.test_unshifted_punctuation) ... ok
+test_uppercase_letter_needs_shift (test_vm_type.CharToScanTests.test_uppercase_letter_needs_shift) ... ok
+test_center_excludes_toolbar_and_status_bar (test_vm_type.GuestCenterTests.test_center_excludes_toolbar_and_status_bar) ... ok
+test_center_is_below_the_toolbar (test_vm_type.GuestCenterTests.test_center_is_below_the_toolbar)
+y must clear the 60px chrome strip, or the click hits a menu. ... ok
+test_center_is_inside_the_window (test_vm_type.GuestCenterTests.test_center_is_inside_the_window) ... ok
+test_key_text_key_keeps_cli_order (test_vm_type.OrderedActionsTests.test_key_text_key_keeps_cli_order) ... ok
+test_no_actions_is_empty_not_none (test_vm_type.OrderedActionsTests.test_no_actions_is_empty_not_none) ... ok
+test_repeated_texts_keep_their_relative_order (test_vm_type.OrderedActionsTests.test_repeated_texts_keep_their_relative_order) ... ok
+test_text_first_ordering_is_preserved (test_vm_type.OrderedActionsTests.test_text_first_ordering_is_preserved) ... ok
+test_unrelated_flags_do_not_appear_as_actions (test_vm_type.OrderedActionsTests.test_unrelated_flags_do_not_appear_as_actions) ... ok
+test_explicit_shift_is_not_duplicated_by_an_uppercase_face (test_vm_type.ParseKeyCaseTests.test_explicit_shift_is_not_duplicated_by_an_uppercase_face)
+``shift+Q`` must press shift once. Pressing it twice leaves an ... ok
+test_explicit_shift_not_duplicated_with_another_modifier (test_vm_type.ParseKeyCaseTests.test_explicit_shift_not_duplicated_with_another_modifier) ... ok
+test_lowercase_letter_has_no_modifier (test_vm_type.ParseKeyCaseTests.test_lowercase_letter_has_no_modifier) ... ok
+test_modifier_names_stay_case_insensitive (test_vm_type.ParseKeyCaseTests.test_modifier_names_stay_case_insensitive)
+The fix must not make modifiers case-sensitive as a side effect. ... ok
+test_named_keys_stay_case_insensitive (test_vm_type.ParseKeyCaseTests.test_named_keys_stay_case_insensitive) ... ok
+test_shifted_punctuation_gains_a_shift (test_vm_type.ParseKeyCaseTests.test_shifted_punctuation_gains_a_shift) ... ok
+test_unshifted_punctuation_does_not (test_vm_type.ParseKeyCaseTests.test_unshifted_punctuation_does_not) ... ok
+test_upper_and_lower_differ (test_vm_type.ParseKeyCaseTests.test_upper_and_lower_differ)
+The defect made these two identical; that is the observable symptom. ... ok
+test_uppercase_letter_gains_a_shift (test_vm_type.ParseKeyCaseTests.test_uppercase_letter_gains_a_shift) ... ok
+test_bare_named_key (test_vm_type.ParseKeyTests.test_bare_named_key) ... ok
+test_empty_spec_is_rejected (test_vm_type.ParseKeyTests.test_empty_spec_is_rejected) ... ok
+test_non_ascii_key_face_is_rejected_not_silently_dropped (test_vm_type.ParseKeyTests.test_non_ascii_key_face_is_rejected_not_silently_dropped)
+A US scancode keyboard cannot express these. Refusing is correct; ... ok
+test_single_modifier (test_vm_type.ParseKeyTests.test_single_modifier) ... ok
+test_surrounding_whitespace_is_tolerated (test_vm_type.ParseKeyTests.test_surrounding_whitespace_is_tolerated) ... ok
+test_two_modifiers_keep_their_order (test_vm_type.ParseKeyTests.test_two_modifiers_keep_their_order) ... ok
+test_unknown_modifier_is_rejected (test_vm_type.ParseKeyTests.test_unknown_modifier_is_rejected) ... ok
+test_unknown_multi_char_key_is_rejected (test_vm_type.ParseKeyTests.test_unknown_multi_char_key_is_rejected) ... ok
+test_empty_window_list_raises (test_vm_type.PickWindowTests.test_empty_window_list_raises) ... ok
+test_match_is_case_insensitive (test_vm_type.PickWindowTests.test_match_is_case_insensitive) ... ok
+test_no_match_raises (test_vm_type.PickWindowTests.test_no_match_raises) ... ok
+test_pattern_is_a_literal_not_a_regex (test_vm_type.PickWindowTests.test_pattern_is_a_literal_not_a_regex)
+The pattern is escaped before compiling. If it were not, a title ... ok
+test_two_matches_raise_rather_than_guess (test_vm_type.PickWindowTests.test_two_matches_raise_rather_than_guess)
+'VMware' matches both VMs. Picking either one is a coin flip with an ... ok
+test_unique_substring_matches_one_window (test_vm_type.PickWindowTests.test_unique_substring_matches_one_window) ... ok
+test_last_in_bounds_pixel_is_accepted (test_vm_type.ResolveClickAtTests.test_last_in_bounds_pixel_is_accepted) ... ok
+test_negative_coordinates_are_rejected (test_vm_type.ResolveClickAtTests.test_negative_coordinates_are_rejected) ... ok
+test_non_integer_fields_are_rejected (test_vm_type.ResolveClickAtTests.test_non_integer_fields_are_rejected)
+'1.5' must not be truncated to 1 -- a silently moved click is the ... ok
+test_offset_is_added_to_the_rect_origin (test_vm_type.ResolveClickAtTests.test_offset_is_added_to_the_rect_origin) ... ok
+test_origin_maps_to_the_guest_top_left (test_vm_type.ResolveClickAtTests.test_origin_maps_to_the_guest_top_left) ... ok
+test_out_of_bounds_message_names_the_surface_size (test_vm_type.ResolveClickAtTests.test_out_of_bounds_message_names_the_surface_size)
+The operator needs to know what the valid range *was*; a bare ... ok
+test_result_is_inside_the_rect_for_every_in_bounds_input (test_vm_type.ResolveClickAtTests.test_result_is_inside_the_rect_for_every_in_bounds_input) ... ok
+test_whitespace_around_the_fields_is_tolerated (test_vm_type.ResolveClickAtTests.test_whitespace_around_the_fields_is_tolerated) ... ok
+test_wrong_field_count_is_rejected (test_vm_type.ResolveClickAtTests.test_wrong_field_count_is_rejected) ... ok
+test_x_equal_to_width_is_rejected (test_vm_type.ResolveClickAtTests.test_x_equal_to_width_is_rejected)
+Bounds are half-open. Width 1000 means 999 is the last valid x. ... ok
+test_y_equal_to_height_is_rejected (test_vm_type.ResolveClickAtTests.test_y_equal_to_height_is_rejected) ... ok
+test_arrow_keys_are_extended (test_vm_type.ScancodeTableTests.test_arrow_keys_are_extended) ... ok
+test_every_shifted_face_maps_to_a_known_base (test_vm_type.ScancodeTableTests.test_every_shifted_face_maps_to_a_known_base) ... ok
+test_extended_codes_are_all_real_keys (test_vm_type.ScancodeTableTests.test_extended_codes_are_all_real_keys)
+``EXTENDED`` decides which keys get the E0 prefix. An entry that ... ok
+test_no_scancode_collisions_among_unshifted_faces (test_vm_type.ScancodeTableTests.test_no_scancode_collisions_among_unshifted_faces)
+Two characters sharing a scancode means one of them is untypable. ... ok
+
+----------------------------------------------------------------------
+Ran 744 tests in 28.768s
+
+OK
+built    : C:\Users\Kentl\AppData\Local\Temp\iatest-epmpj72w\InstallAssistant.iso (67584 bytes)
+vol ident: InstallAssistant
+  InstallAssistant.pkg     37 bytes
+  run_offline.sh           329 bytes
+result   : PASS (built and read back)
+vol ident: InstallAssistant
+  InstallAssistant.pkg     20 bytes
+  run_offline.sh           329 bytes
+result   : PASS
+vol ident: WRONGNAME
+  InstallAssistant.pkg     20 bytes
+  run_offline.sh           329 bytes
+iso_names
+  ok   long name keeps its Joliet form
+  ok   long name mangles to 8.3 for ISO-9660
+  ok   lowercase is upcased
+  ok   illegal chars become underscores
+  ok   extensionless name keeps the version suffix
+  ok   a host directory prefix is stripped
+parse_vmx
+  ok   every non-comment key is found (17 lines, 2 comments, 15 keys)
+  ok   the two comment lines are preserved as non-keys
+  ok   a comment mentioning cdrom-image is not a key
+  ok   values are unquoted
+find_device
+  ok   all four sata0:2 suffixes located
+  ok   sata0:2 does not pick up sata0:1 keys
+  ok   an undeclared device yields an empty dict
+check_device_usable
+  ok   the real cdrom-image device passes
+  ok   a disk device is refused
+  ok   an undeclared device is refused
+repoint_vmx
+  ok   the old filename is reported back
+  ok   the new filename is present
+  ok   the old filename is gone
+  ok   startConnected FALSE was forced to TRUE
+  ok   sata0:1 was not touched
+  ok   sata0:0 was not touched
+  ok   the comment block survived
+  ok   output is CRLF
+  ok   output has no bare LF
+  ok   line count is unchanged (in-place edit, no append)
+  ok   fileName stayed above uuid.bios (authored region)
+plan_entries
+  ok   two files planned
+  ok   sizes come from the filesystem
+  ok   a missing file is refused
+  ok   a directory is refused
+  ok   an empty list is refused
+  ok   an 8.3 collision names both offenders
+build_iso / read_back
+  ok   the ISO exists and is non-empty
+  ok   volume identifier round-trips
+  ok   the guest would see the long name, not the 8.3 name
+  ok   the second long name round-trips
+  ok   sizes survive the round trip
+  ok   the mangled name is not what Joliet reports
+  ok   an over-long volume identifier is refused
+vm_appears_running
+  ok   no lock artifacts beside a bare VMX
+  ok   a .vmem beside the VMX is reported
+  ok   a UUID-named .vmem is reported even though it shares no stem
+  ok   a UUID-named .vmem.lck directory is reported
+  ok   a .vmdk.lck is reported (no Sonoma.vmx.lck exists here)
+  ok   the stem-relative reading would have found none of them
+verify_repoint
+  ok   an un-rewritten VMX reports False
+  ok   and reports the filename it actually found
+  ok   a rewritten VMX reports True
+  ok   the doubled backslashes are normalised before comparing
+  ok   an equivalent path spelled differently still verifies
+  ok   a device with no fileName reports False, not True
+  ok   and reports None rather than an empty string
+
+53 checks, 0 failures
+  done  synthetic
+
+wrote C:\Users\Kentl\AppData\Local\Temp\tmpkrd5a5sn\synthetic.img
+  image size    : 4608 bytes (0.00 GiB)
+  bytes decoded : 1536
+image : C:\Users\Kentl\AppData\Local\Temp\tmpvcz0_e1f.iso
+bytes : 3385344 (6612 sectors)
+
+partition map (2 entries)
+  1. Apple                    Apple_partition_map          start=1        sectors=63       (32256 bytes)
+  2. DiscRecording 9.0.3d5    Apple_HFS                    start=64       sectors=6548     (3352576 bytes)
+
+HFS+ volume in partition 'DiscRecording 9.0.3d5' (Apple_HFS)
+  signature        : b'H+' version 4
+  allocation block : 2048 bytes
+  totalBlocks      : 1637 -> 3352576 bytes
+  freeBlocks       : 0
+  partition bytes  : 3352576
+  volume fits      : True
+  catalog size     : 49152 bytes, 24 blocks, extents [(1, 24)]
+
+catalog B-tree header at 0x8800
+  node kind        : 1 (1 == header node)
+  nodeSize         : 4096
+  totalNodes       : 12   (expected 12 from 49152/4096)
+  freeNodes        : 0   <- the value the old +40 read returned
+  treeDepth        : 2577
+  rootNode         : 2850
+  leafRecords      : 3123
+  firstLeaf/last   : 3396 / 3669
+
+nodes scanned      : 12 of 12
+catalog records    : 4 file/folder entries
+
+top-level entries (parentID 2 == volume root): 3
+  Install VMware Tools.app
+  VMware Tools.pkg
+  a folder
+
+installer payloads found (2):
+  Install VMware Tools.app
+  VMware Tools.pkg
+image : C:\Users\Kentl\AppData\Local\Temp\tmpk_8pf6e4.iso
+bytes : 3385344 (6612 sectors)

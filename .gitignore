@@ -1,0 +1,10 @@
+downloads/
+reference/open-gpu-kernel-modules/
+tests/build/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+*.ilk
+*.pdb
+*.obj

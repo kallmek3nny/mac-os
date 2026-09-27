@@ -1,0 +1,41 @@
+file size : 65024 bytes (0xfe00)
+
+=== every PCIR in the file, decoded with the CORRECTED layout ===
+PCIR @0x000170  (512-aligned=False)
+  raw 24 bytes   : 50 43 49 52 de 10 a2 25 00 00 18 00 00 00 02 03 7f 00 01 00 00 80 00 00
+  field offsets  : 00-03 sig | 04 ven | 06 dev | 08 dlp | 0a plen | 0c rev | 0d-0f class | 10 ilen | 12 crev | 14 ctype | 15 indic
+  vendor:device  : 0x10de:0x25a2
+  device list ptr: 0x0000
+  pci_ds_length  : 24
+  pci_ds_revision: 0
+  class code     : 030200 (base 0x03 sub 0x02 prog 0x00)
+  image length   : 127 blocks = 65024 bytes (0xfe00)
+  code revision  : 0x0001
+  code type      : 0 (x86 PC-AT)
+  indicator      : 0x80  last_image=YES
+
+PCIR @0x00f37d  (512-aligned=False)
+  raw 24 bytes   : 50 43 49 52 74 10 66 3d 4e 50 44 53 74 08 66 3d 52 47 49 53 75 48 8b 56
+  field offsets  : 00-03 sig | 04 ven | 06 dev | 08 dlp | 0a plen | 0c rev | 0d-0f class | 10 ilen | 12 crev | 14 ctype | 15 indic
+  vendor:device  : 0x1074:0x3d66
+  device list ptr: 0x504e
+  pci_ds_length  : 21316
+  pci_ds_revision: 116
+  class code     : 3d6608 (base 0x3d sub 0x66 prog 0x08)
+  image length   : 18258 blocks = 9348096 bytes (0x8ea400)
+  code revision  : 0x5349
+  code type      : 117 (unknown)
+  indicator      : 0x48  last_image=NO
+
+=== PCI expansion ROM image chain (corrected) ===
+image 0 @0x000000  PCIR@0x000170  10de:25a2  ctype=0  len=65024 bytes  last=YES
+    NPDE@0x000190 ver=0x0101 len=20 subimages=127 indicator=0x00  last=NO
+    spans 0x000000 .. 0x00fe00  (file ends 0x00fe00)
+    -> last image; chain complete
+
+=== falcon table pointer vs measured extents ===
+  falcon ptr from BIT token 0x70 : 0x077f77 (491383)
+  file length                    : 0x00fe00 (65024)
+  image 0 declared length        : 0x00fe00 (65024)
+  in file?                       : False
+  in declared image 0?           : False

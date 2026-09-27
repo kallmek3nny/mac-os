@@ -1,0 +1,39 @@
+size            : 65024 bytes (0xfe00)
+first 4 bytes   : 55aa7feb
+first u32 LE    : 0xeb7faa55
+PCIR pointer@18 : 0x0170 (368)
+b'PCIR'         : ['0x170', '0xf37d']
+b'NPDE'         : ['0x190', '0xf3b4']
+b'NPDS'         : ['0xf385']
+b'BIT\x00'      : ['0x1b2']
+b'\xff\xb8BIT\x00': ['0x1b0']
+
+BIT header at 0x1b0
+  bcd_version   : 0x0100
+  header_size   : 12
+  token_size    : 6
+  token_entries : 17
+  checksum      : 0x46
+
+  raw header bytes: ffb84249540000010c061146
+
+  id   ver  len    ptr      chr
+  0x32 1    4      0x0232   2
+  0x42 2    37     0x023e   B
+  0x43 2    44     0x0263   C
+  0x44 1    4      0x028f   D
+  0x49 1    36     0x0293   I
+  0x4d 2    41     0x02b7   M
+  0x4e 0    0      0x0000   N
+  0x50 2    232    0x02e0   P
+  0x53 2    24     0x03c8   S
+  0x54 1    2      0x03e0   T
+  0x55 1    5      0x03e2   U
+  0x56 1    6      0x03e7   V
+  0x78 1    8      0x03ed   x
+  0x64 1    2      0x03f5   d
+  0x70 2    4      0x03f7   p
+  0x75 1    17     0x03fb   u
+  0x69 2    110    0x040c   i
+
+  header byte sum mod 256: 0x00

@@ -1,0 +1,140 @@
+igpu-plane-dsi 20260816-023053 UTC
+pci      /sys/bus/pci/devices/0000:00:02.0
+device   0x9a68
+driver   i915
+lockdown [none] integrity confidentiality
+cmdline  BOOT_IMAGE=/boot/vmlinuz-7.0.0-29-generic root=UUID=84a589c9-2256-4b8c-878b-09e08e126709 ro quiet splash crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M modprobe.blacklist=nvidia,nvidia_drm,nvidia_modeset,nvidia_uvm,nouveau
+---- connectors ----
+card1-HDMI-A-1 disconnected modes=[]
+card1-eDP-1 connected modes=[1920x1080]
+---- mmio ----
+CONTROL  transcoder A HTOTAL = 0x081F077F
+
+==== Q1/Q2  DSI transcoders ====
+trans A     @0x60000  LIVE
+    HTOTAL   +0x00  0x081F077F
+    HBLANK   +0x04  0x081F077F
+    HSYNC    +0x08  0x081B07EB
+    VTOTAL   +0x0C  0x049B0437
+    VBLANK   +0x10  0x049B0437
+    VSYNC    +0x14  0x043F043A
+    PIPESRC  +0x1C  0x077F0437
+trans B     @0x61000  ABSENT
+    all seven registers 0x00000000
+trans C     @0x62000  ABSENT
+    all seven registers 0x00000000
+trans D     @0x63000  ABSENT
+    all seven registers 0x00000000
+trans DSI0  @0x6B000  ABSENT
+    all seven registers 0x00000000
+trans DSI1  @0x6B800  ABSENT
+    all seven registers 0x00000000
+stride probe: 0x6C000 (DPCLKA if DSI1 is at 0x6B800) = 0x00000000
+
+==== Q3  universal planes per pipe ====
+pipe A     @0x70000  7 readable slots
+  plane 1 @0x70180 CTL=0x82009000 enable=1 format=0x04 stride=0x0000003C
+      +0x00 0x82009000  +0x04 0x00000000  +0x08 0x0000003C  +0x0C 0x00000000
+      +0x10 0x0437077F  +0x14 0x00000000  +0x18 0x00000000  +0x1C 0x01058000
+      +0x20 0xFF000000  +0x24 0x00000000  +0x28 0x00000000  +0x2C 0x01058000
+      +0x30 0x00000000  +0x34 0x00000000  +0x38 0x00000000  +0x3C 0x00000000
+      +0x40 0x007F8000  +0x44 0x00000000  +0x48 0x00000000  +0x4C 0x00002000
+      +0x50 0x000004BF  +0x54 0x00000000  +0x58 0x0000043F  +0x5C 0x015ECD0F
+      +0x60 0x00000000  +0x64 0x00000000  +0x68 0x00000000  +0x6C 0x00000000
+      +0x70 0x00000000  +0x74 0x00000000  +0x78 0x00000000  +0x7C 0x00000000
+      +0x80 0x00000000  +0x84 0x00000000  +0x88 0x00000000  +0x8C 0x00000000
+      +0x90 0x00000000  +0x94 0x00000000  +0x98 0x00000000  +0x9C 0x00000000
+      +0xA0 0x00000000  +0xA4 0x00000000  +0xA8 0x00000000  +0xAC 0x00000000
+      +0xB0 0x00000000  +0xB4 0x00000000  +0xB8 0x00000000  +0xBC 0x00000000
+      +0xC0 0x8001003E  +0xC4 0x800300B8  +0xC8 0x800300B8  +0xCC 0x800300B8
+      +0xD0 0x800300B8  +0xD4 0x800380D7  +0xD8 0x80058151  +0xDC 0x8006016F
+      +0xE0 0x0000043F  +0xE4 0x077F3EEB  +0xE8 0x80000089  +0xEC 0x00000000
+      +0xF0 0x00000000  +0xF4 0x00000000  +0xF8 0x00000000  +0xFC 0x07AD0000
+  plane 2 @0x70280 CTL=0x00000000 enable=0 format=0x00 stride=0x00000000
+  plane 3 @0x70380 CTL=0x00000000 enable=0 format=0x00 stride=0x00000000
+  plane 4 @0x70480 CTL=0x00000000 enable=0 format=0x00 stride=0x00000000
+  plane 5 @0x70580 CTL=0x00000000 enable=0 format=0x00 stride=0x00000000
+  plane 6 @0x70680 CTL=0x00000000 enable=0 format=0x00 stride=0x00000000
+  plane 7 @0x70780 CTL=0x00000000 enable=0 format=0x00 stride=0x00000000
+pipe B     @0x71000  7 readable slots, every plane CTL 0x00000000
+pipe C     @0x72000  7 readable slots, every plane CTL 0x00000000
+pipe D     @0x73000  7 readable slots, every plane CTL 0x00000000
+pipe DSI0  @0x7B000  7 readable slots, every plane CTL 0x00000000
+pipe DSI1  @0x7B800  7 readable slots, every plane CTL 0x00000000
+
+==== Q4  PIPESRC +1 convention vs the lit panel ====
+drm card1-eDP-1      first mode 1920x1080
+trans A     PIPESRC=0x077F0437  raw=1919x1079  +1=1920x1080
+
+
+================================================================
+READING NOTES added on the host after the run. Everything above this
+line is the machine's output verbatim; everything below is analysis and
+is NOT part of the capture.
+================================================================
+
+MACHINE: Tiger Lake mobile, PCI 8086:9a68 at 0000:00:02.0, i915 bound,
+eDP-1 connected and lit at 1920x1080, HDMI-A-1 disconnected. Kernel
+7.0.0-29-generic. lockdown [none] on the successful run -- the FIRST
+attempt at 02:25:56 UTC had lockdown "none [integrity] confidentiality"
+and the BAR0 mmap raised at reader line 6, because integrity lockdown
+refuses LOCKDOWN_PCI_ACCESS. Secure Boot was disabled between the two
+runs. Both logs are kept: the failure is the proof that the mmap path is
+real and gated, not silently faked.
+
+THE SCRIPT'S OWN VERDICT WORD IS WRONG ON THIS PLATFORM
+------------------------------------------------------
+igpu-plane-dsi.sh's dead() treats None and 0xFFFFFFFF as unreadable, so
+any page reading 0x00000000 came out as "ABSENT". On this silicon EVERY
+unused display page reads 0x00000000, not all-ones. Transcoders B, C and
+D certainly EXIST on Tiger Lake, so "ABSENT" is false for them; the true
+state is DECODED-BUT-UNPROGRAMMED. Read every ABSENT above as
+UNPROGRAMMED. The dry-run harness could not catch this because its
+synthetic BAR was filled with 0xFF, which is what the author expected
+hardware to do and not what this hardware does.
+
+Q1/Q2 -- NOT SETTLED, and the probe was incapable of settling it
+---------------------------------------------------------------
+DSI0 (0x6B000), DSI1 (0x6B800) and the stride probe at 0x6C000 all read
+0x00000000. Zero is what an unprogrammed page reads here, so 0x6C000
+being zero does not distinguish "DPCLKA lives here" from "a timing block
+lives here". The 0x800 DSI stride in IntelDisplay.hpp remains sourced to
+reference/i915/intel_display_device.c:79-80 and UNWITNESSED. An eDP-only
+laptop cannot answer it: nothing will ever program a DSI transcoder here.
+
+Q3 -- plane count NOT settled, for the same reason
+--------------------------------------------------
+All 7 probed slots on all 6 pipes returned a readable 0x00000000. A
+disabled plane and a non-existent slot are therefore indistinguishable,
+so "7 readable slots" bounds nothing. The only positive fact is that
+plane 1 of pipe A is live at 0x70180 and plane 2's slot at 0x70280 is a
+distinct address, which is consistent with the 0x100 stride but does not
+prove a count.
+
+WHAT IS ACTUALLY SETTLED (all from transcoder A / pipe A, one sample)
+--------------------------------------------------------------------
+Timing registers store value - 1, on both halves:
+  HTOTAL  0x081F077F  hactive 1919 -> 1920   htotal 2079 -> 2080
+  VTOTAL  0x049B0437  vactive 1079 -> 1080   vtotal 1179 -> 1180
+  PIPESRC 0x077F0437  width  1919 -> 1920   height 1079 -> 1080
+PIPESRC's +1 matches eDP-1's advertised 1920x1080 exactly. This is the
+item IntelDisplay.hpp flagged as unsettled and it is now witnessed.
+
+FIELD ORDER IS INVERTED BETWEEN PIPESRC AND PLANE_SIZE:
+  PIPESRC    0x077F0437 -> width  in 31:16, height in 15:0
+  PLANE_SIZE 0x0437077F -> height in 31:16, width  in 15:0
+Both encode 1920x1080 minus one. The two words are byte-swapped halves of
+each other, which is exactly the kind of pair that produces a silently
+valid wrong answer if one decoder is reused for both.
+
+PLANE_SURF (+0x1C) and PLANE_SURFLIVE (+0x2C) both read 0x01058000 -- a
+real 4 KiB-aligned GGTT offset, and their agreement is evidence both
+addresses are right rather than one being an alias.
+
+PLANE_CTL 0x82009000 decodes as: bit31 ENABLE=1, bits 27:23 format=4
+(XRGB8888), bits 12:10 tiling=4 (PLANE_CTL_TILED_Y). Bit 15 is set and
+is NOT decoded here on purpose -- naming it would mean inventing a name.
+
+PLANE_STRIDE 0x3C = 60. The panel is 1920 px at 4 B/px = 7680 B/line,
+and 7680 / 60 = 128, so the stride unit on this Y-tiled surface is 128
+bytes. Derived from ONE sample; it is not a witnessed unit field.

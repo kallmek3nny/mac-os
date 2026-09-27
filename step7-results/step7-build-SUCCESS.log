@@ -1,0 +1,209 @@
+=== STEP 7 build attempt ===
+date          : 2026-08-14T20:25:57Z
+uname         : Darwin kennys-Mac.local 24.6.0 Darwin Kernel Version 24.6.0: Tue Jul 21 20:50:07 PDT 2026; root:xnu-11417.140.69.711.44~1/RELEASE_X86_64 x86_64
+sw_vers       : ProductName:		macOS ProductVersion:		15.7.9 BuildVersion:		24G830 
+xcode-select  : /Library/Developer/CommandLineTools
+clang         : Apple clang version 17.0.0 (clang-1700.0.13.5)
+
+--- Kernel.framework presence ---
+sdk path      : /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+Kernel.framework: PRESENT
+
+--- make ---
+/Library/Developer/CommandLineTools/usr/bin/clang++ -arch x86_64 -mkernel -fapple-kext -fno-builtin -fno-common -fno-exceptions -fno-rtti -fno-stack-protector -nostdinc -nostdinc++ -DKERNEL -DKERNEL_PRIVATE -DDRIVER_PRIVATE -DAPPLE -DNeXT -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/PrivateHeaders -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=c++17 -O2 -Wall -Wextra -Wno-unused-parameter -MMD -MP -c NV3050Probe.cpp -o build/NV3050Probe.o
+In file included from NV3050Probe.cpp:13:
+In file included from ./NV3050Probe.hpp:21:
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:410:18: warning: 'handleOpen' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+  410 |     virtual bool handleOpen(IOService * forClient, IOOptionBits options, void * arg);
+      |                  ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/IOService.h:660:15: note: overridden virtual function is here
+  660 |         virtual bool handleOpen(    IOService *   forClient,
+      |                      ^
+In file included from NV3050Probe.cpp:13:
+In file included from ./NV3050Probe.hpp:21:
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:411:18: warning: 'handleClose' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+  411 |     virtual void handleClose(IOService * forClient, IOOptionBits options);
+      |                  ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/IOService.h:670:15: note: overridden virtual function is here
+  670 |         virtual void handleClose(   IOService *       forClient,
+      |                      ^
+In file included from NV3050Probe.cpp:13:
+In file included from ./NV3050Probe.hpp:21:
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:1109:15: warning: 'setProperty' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+ 1109 |         virtual bool setProperty(const OSSymbol * aKey, OSObject * anObject);
+      |                      ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/IORegistryEntry.h:298:15: note: overridden virtual function is here
+  298 |         virtual bool setProperty(const OSSymbol * aKey,
+      |                      ^
+In file included from NV3050Probe.cpp:13:
+In file included from ./NV3050Probe.hpp:21:
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:1110:15: warning: 'setProperty' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+ 1110 |         virtual bool setProperty(const OSString * aKey, OSObject * anObject);
+      |                      ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/IORegistryEntry.h:309:15: note: overridden virtual function is here
+  309 |         virtual bool setProperty(const OSString * aKey, OSObject * anObject);
+      |                      ^
+In file included from NV3050Probe.cpp:13:
+In file included from ./NV3050Probe.hpp:21:
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:1111:15: warning: 'setProperty' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+ 1111 |         virtual bool setProperty(const char * aKey, OSObject * anObject);
+      |                      ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/IORegistryEntry.h:318:15: note: overridden virtual function is here
+  318 |         virtual bool setProperty(const char * aKey, OSObject * anObject);
+      |                      ^
+In file included from NV3050Probe.cpp:13:
+In file included from ./NV3050Probe.hpp:21:
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:1112:15: warning: 'setProperty' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+ 1112 |         virtual bool setProperty(const char * aKey, const char * aString);
+      |                      ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/IORegistryEntry.h:327:15: note: overridden virtual function is here
+  327 |         virtual bool setProperty(const char * aKey, const char * aString);
+      |                      ^
+In file included from NV3050Probe.cpp:13:
+In file included from ./NV3050Probe.hpp:21:
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:1113:15: warning: 'setProperty' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+ 1113 |         virtual bool setProperty(const char * aKey, bool aBoolean);
+      |                      ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/IORegistryEntry.h:336:15: note: overridden virtual function is here
+  336 |         virtual bool setProperty(const char * aKey, bool aBoolean);
+      |                      ^
+In file included from NV3050Probe.cpp:13:
+In file included from ./NV3050Probe.hpp:21:
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:1114:15: warning: 'setProperty' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+ 1114 |         virtual bool setProperty(const char * aKey, unsigned long long aValue, unsigned int aNumberOfBits);
+      |                      ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/IORegistryEntry.h:346:15: note: overridden virtual function is here
+  346 |         virtual bool setProperty( const char *       aKey,
+      |                      ^
+In file included from NV3050Probe.cpp:13:
+In file included from ./NV3050Probe.hpp:21:
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:1115:15: warning: 'setProperty' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+ 1115 |         virtual bool setProperty(const char * aKey, void * bytes, unsigned int length);
+      |                      ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/IORegistryEntry.h:358:15: note: overridden virtual function is here
+  358 |         virtual bool setProperty( const char *       aKey,
+      |                      ^
+In file included from NV3050Probe.cpp:13:
+./NV3050Probe.hpp:63:5: warning: 'IOPCIDevice' is deprecated: Use PCIDriverKit [-Wdeprecated-declarations]
+   63 |     IOPCIDevice        *fPCIDevice;
+      |     ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:367:7: note: 'IOPCIDevice' has been explicitly marked deprecated here
+  367 | class __kpi_deprecated("Use PCIDriverKit") IOPCIDevice : public IOService
+      |       ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/sys/cdefs.h:229:32: note: expanded from macro '__kpi_deprecated'
+  229 | #define __kpi_deprecated(_msg) __deprecated_msg(_msg)
+      |                                ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/sys/cdefs.h:218:48: note: expanded from macro '__deprecated_msg'
+  218 |         #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+      |                                                       ^
+NV3050Probe.cpp:82:5: warning: 'IOPCIDevice' is deprecated: Use PCIDriverKit [-Wdeprecated-declarations]
+   82 |     IOPCIDevice *pci = OSDynamicCast(IOPCIDevice, provider);
+      |     ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:367:7: note: 'IOPCIDevice' has been explicitly marked deprecated here
+  367 | class __kpi_deprecated("Use PCIDriverKit") IOPCIDevice : public IOService
+      |       ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/sys/cdefs.h:229:32: note: expanded from macro '__kpi_deprecated'
+  229 | #define __kpi_deprecated(_msg) __deprecated_msg(_msg)
+      |                                ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/sys/cdefs.h:218:48: note: expanded from macro '__deprecated_msg'
+  218 |         #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+      |                                                       ^
+NV3050Probe.cpp:82:38: warning: 'IOPCIDevice' is deprecated: Use PCIDriverKit [-Wdeprecated-declarations]
+   82 |     IOPCIDevice *pci = OSDynamicCast(IOPCIDevice, provider);
+      |                                      ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:367:7: note: 'IOPCIDevice' has been explicitly marked deprecated here
+  367 | class __kpi_deprecated("Use PCIDriverKit") IOPCIDevice : public IOService
+      |       ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/sys/cdefs.h:229:32: note: expanded from macro '__kpi_deprecated'
+  229 | #define __kpi_deprecated(_msg) __deprecated_msg(_msg)
+      |                                ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/sys/cdefs.h:218:48: note: expanded from macro '__deprecated_msg'
+  218 |         #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+      |                                                       ^
+NV3050Probe.cpp:82:24: warning: 'IOPCIDevice' is deprecated: Use PCIDriverKit [-Wdeprecated-declarations]
+   82 |     IOPCIDevice *pci = OSDynamicCast(IOPCIDevice, provider);
+      |                        ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/libkern/c++/OSMetaClass.h:385:53: note: expanded from macro 'OSDynamicCast'
+  385 |     ((type *) OSMetaClassBase::safeMetaCast((inst), OSTypeID(type)))
+      |                                                     ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/libkern/c++/OSMetaClass.h:325:31: note: expanded from macro 'OSTypeID'
+  325 | #define OSTypeID(type)   (type::metaClass)
+      |                               ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:367:7: note: 'IOPCIDevice' has been explicitly marked deprecated here
+  367 | class __kpi_deprecated("Use PCIDriverKit") IOPCIDevice : public IOService
+      |       ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/sys/cdefs.h:229:32: note: expanded from macro '__kpi_deprecated'
+  229 | #define __kpi_deprecated(_msg) __deprecated_msg(_msg)
+      |                                ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/sys/cdefs.h:218:48: note: expanded from macro '__deprecated_msg'
+  218 |         #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+      |                                                       ^
+NV3050Probe.cpp:143:32: warning: 'IOPCIDevice' is deprecated: Use PCIDriverKit [-Wdeprecated-declarations]
+  143 |     fPCIDevice = OSDynamicCast(IOPCIDevice, provider);
+      |                                ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:367:7: note: 'IOPCIDevice' has been explicitly marked deprecated here
+  367 | class __kpi_deprecated("Use PCIDriverKit") IOPCIDevice : public IOService
+      |       ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/sys/cdefs.h:229:32: note: expanded from macro '__kpi_deprecated'
+  229 | #define __kpi_deprecated(_msg) __deprecated_msg(_msg)
+      |                                ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/sys/cdefs.h:218:48: note: expanded from macro '__deprecated_msg'
+  218 |         #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+      |                                                       ^
+NV3050Probe.cpp:143:18: warning: 'IOPCIDevice' is deprecated: Use PCIDriverKit [-Wdeprecated-declarations]
+  143 |     fPCIDevice = OSDynamicCast(IOPCIDevice, provider);
+      |                  ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/libkern/c++/OSMetaClass.h:385:53: note: expanded from macro 'OSDynamicCast'
+  385 |     ((type *) OSMetaClassBase::safeMetaCast((inst), OSTypeID(type)))
+      |                                                     ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/libkern/c++/OSMetaClass.h:325:31: note: expanded from macro 'OSTypeID'
+  325 | #define OSTypeID(type)   (type::metaClass)
+      |                               ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:367:7: note: 'IOPCIDevice' has been explicitly marked deprecated here
+  367 | class __kpi_deprecated("Use PCIDriverKit") IOPCIDevice : public IOService
+      |       ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/sys/cdefs.h:229:32: note: expanded from macro '__kpi_deprecated'
+  229 | #define __kpi_deprecated(_msg) __deprecated_msg(_msg)
+      |                                ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/sys/cdefs.h:218:48: note: expanded from macro '__deprecated_msg'
+  218 |         #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+      |                                                       ^
+NV3050Probe.cpp:160:17: warning: 'setBusMasterEnable' is deprecated: first deprecated in macOS 12.4 [-Wdeprecated-declarations]
+  160 |     fPCIDevice->setBusMasterEnable(true);
+      |                 ^~~~~~~~~~~~~~~~~~
+      |                 setBusLeadEnable
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:572:18: note: 'setBusMasterEnable' has been explicitly marked deprecated here
+  572 |     virtual bool setBusMasterEnable( bool enable ) API_DEPRECATED_WITH_REPLACEMENT("setBusLeadEnable", macos(10.0, 12.4), ios(1.0, 15.4), watchos(1.0, 8.5), tvos(1.0, 15.4));
+      |                  ^
+NV3050Probe.cpp:267:21: warning: 'setBusMasterEnable' is deprecated: first deprecated in macOS 12.4 [-Wdeprecated-declarations]
+  267 |         fPCIDevice->setBusMasterEnable(false);
+      |                     ^~~~~~~~~~~~~~~~~~
+      |                     setBusLeadEnable
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/IOKit/pci/IOPCIDevice.h:572:18: note: 'setBusMasterEnable' has been explicitly marked deprecated here
+  572 |     virtual bool setBusMasterEnable( bool enable ) API_DEPRECATED_WITH_REPLACEMENT("setBusLeadEnable", macos(10.0, 12.4), ios(1.0, 15.4), watchos(1.0, 8.5), tvos(1.0, 15.4));
+      |                  ^
+17 warnings generated.
+/Library/Developer/CommandLineTools/usr/bin/clang++ -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -nostdlib -Xlinker -kext -lkmod -lcc_kext -o build/NV3050Probe.kext/Contents/MacOS/NV3050Probe build/NV3050Probe.o
+ld: warning: object file (/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib/libkmod.a(c_start.o)) was built for newer macOS version (15.5) than being linked (15.0)
+ld: warning: object file (/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib/libkmod.a(c_stop.o)) was built for newer macOS version (15.5) than being linked (15.0)
+cp Info.plist build/NV3050Probe.kext/Contents/Info.plist
+build/NV3050Probe.kext/Contents/Info.plist: OK
+built build/NV3050Probe.kext
+
+--- result ---
+make exit status: 0
+bundle: PRESENT
+  /Users/kenny/nv3050-step7d/phase0-kext/build/NV3050Probe.kext/Contents/MacOS/NV3050Probe
+  /Users/kenny/nv3050-step7d/phase0-kext/build/NV3050Probe.kext/Contents/Info.plist
+
+--- binary ---
+/Users/kenny/nv3050-step7d/phase0-kext/build/NV3050Probe.kext/Contents/MacOS/NV3050Probe: Mach-O 64-bit kext bundle x86_64
+
+--- IOKit symbols (proves the shell linked, not just compiled) ---
+00000000000031f0 T __ZN11NV3050Probe4stopEP9IOService
+0000000000001450 T __ZN11NV3050Probe5probeEP9IOServicePi
+0000000000001550 T __ZN11NV3050Probe5startEP9IOService
+00000000000010e0 T __ZN11NV3050ProbeC1EPK11OSMetaClass
+00000000000010c0 T __ZN11NV3050ProbeC2EPK11OSMetaClass
+
+=== end ===

@@ -1,0 +1,6 @@
+NOTE: no --osk given. isa-applesmc will present an empty key and
+      Apple's AppleSMC kext is expected to reject it. A failed
+      boot here measures the missing key, not a broken image.
+
+dry run -- nothing launched. Command would be:
+  "C:\Program Files\qemu\qemu-system-x86_64.exe" -machine q35 -accel whpx -cpu Penryn,vendor=GenuineIntel,+invtsc,+hypervisor,kvm=on -m 4096 -smp 2 -drive "if=pflash,format=raw,readonly=on,file=C:\Program Files\qemu\share\edk2-x86_64-code.fd" -drive if=pflash,format=raw,file=F:\nv3050-qemu\OVMF_VARS.fd -device isa-applesmc -device ich9-ahci,id=ahci -drive if=none,id=macdisk,format=qcow2,file=F:\nv3050-qemu\sonoma-base.qcow2 -device ide-hd,bus=ahci.0,drive=macdisk -device nec-usb-xhci,id=xhci -device usb-kbd,bus=xhci.0 -device usb-tablet,bus=xhci.0 -device vmware-svga -nodefaults -no-reboot -serial "file:D:\nerd shit\other projects\mac os\qemu-results\boot-probe-serial.log" -drive if=none,id=vvfat,snapshot=on,file=fat:F:/nv3050-qemu/vvfat -device ide-hd,bus=ahci.1,drive=vvfat

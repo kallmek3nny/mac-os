@@ -1,0 +1,38 @@
+file size : 65024 bytes (0xfe00)
+
+all 55 aa occurrences at 512-byte boundaries:
+  0x000000
+
+=== PCI expansion ROM image chain ===
+image 0 @0x000000
+  PCIR at        : 0x000170 (rel 0x0170)  sig=b'PCIR'
+  vendor:device  : 0x10de:0x25a2
+  pcir struct len: 24   revision: 0
+  class code     : 7f 03 02
+  image length   : 256 blocks = 131072 bytes (0x20000)
+  code revision  : 0x0000
+  code type      : 128 (?)
+  indicator      : 0x00  last_image=NO
+  NPDE at        : 0x000190  ver=0x0101 len=20 subimages=127 indicator=0x00 last=NO
+  image spans    : 0x000000 .. 0x020000
+
+=== signature offsets and alignment ===
+  b'PCIR'    0x000170  512-aligned=False  16-aligned=True
+  b'PCIR'    0x00f37d  512-aligned=False  16-aligned=False
+  b'NPDE'    0x000190  512-aligned=False  16-aligned=True
+  b'NPDE'    0x00f3b4  512-aligned=False  16-aligned=False
+  b'NPDS'    0x00f385  512-aligned=False  16-aligned=False
+  b'\xff\xb8BIT\x00' 0x0001b0  512-aligned=False  16-aligned=True
+
+=== pointer plausibility ===
+  falcon table ptr : 0x077f77 (491383)
+    within 64KB   (0x010000): False
+    within 128KB  (0x020000): False
+    within 256KB  (0x040000): False
+    within 512KB  (0x080000): True
+    within 1MB    (0x100000): True
+  file covers      : 0x000000 .. 0x00fe00
+
+  as-is      -> 0x077f77  in-file=False  (out of range)
+  & 0xffff   -> 0x007f77  in-file=True   b3 00 e8 19 aa e8 da fd e8 33 03 e8 d4 fd e8 02
+  - 0x70000  -> 0x007f77  in-file=True   b3 00 e8 19 aa e8 da fd e8 33 03 e8 d4 fd e8 02

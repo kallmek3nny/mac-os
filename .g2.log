@@ -1,0 +1,180 @@
+=== clang ===
+clang version 19.1.5
+
+=== 1. headers standalone ===
+  ok   NVDecode.hpp
+  ok   NVFalcon.hpp
+  ok   NVRiscvUcode.hpp
+  ok   NVGspBoot.hpp
+  ok   NVGspStage.hpp
+  ok   IntelDisplay.hpp
+
+=== 2. section 1 covers every header ===
+header coverage: 6/7 parsed standalone
+  standalone  IntelDisplay.hpp
+  standalone  NVDecode.hpp
+  standalone  NVFalcon.hpp
+  standalone  NVGspBoot.hpp
+  standalone  NVGspStage.hpp
+  standalone  NVRiscvUcode.hpp
+  via compile NV3050Probe.hpp (angle-bracket include; reached from NV3050Probe.cpp)
+  ok   check-header-coverage.py
+
+=== 3. kext against the IOKit shim ===
+  ok   NV3050Probe.cpp
+
+=== 4. gate-invoked tools have tests ===
+tool coverage: 10/10 gate-invoked tools have a test module
+  check-documented-paths.py
+      invoked by check-kext-syntax.bat
+      covered by test_check_documented_paths.py
+  check-header-coverage.py
+      invoked by check-kext-syntax.bat
+      covered by test_check_header_coverage.py
+  check-kext-bundle.py
+      invoked by check-kext-syntax.bat
+      covered by test_check_kext_bundle.py
+  check-kext-personalities.py
+      invoked by check-kext-syntax.bat
+      covered by test_check_kext_personalities.py
+  check-negative-controls.py
+      invoked by check-kext-syntax.bat
+      covered by test_check_negative_controls.py
+  check-prepare-balance.py
+      invoked by check-kext-syntax.bat
+      covered by test_check_prepare_balance.py
+  check-registers.py
+      invoked by CLAUDE.md
+      covered by test_check_documented_paths.py, test_documented_paths.py, test_intel_gate_nonvacuity.py, test_tools_parsing.py
+  check-structors.py
+      invoked by check-kext-syntax.bat
+      covered by test_check_structors.py
+  check-tool-coverage.py
+      invoked by check-kext-syntax.bat
+      covered by test_check_tool_coverage.py
+  deliver-via-cd.py
+      invoked by CLAUDE.md
+      covered by test_deliver_via_cd.py, test_guest_build_kext.py
+
+not gate-invoked, tests not required (34): _force-foreground-probe.py, _hfs-catalog-walk.py, _hook-probe.py, _igpu-reader-dryrun.py, _input-block-probe.py, _thunk-probe.py, _token-probe.py, _vbios-explore.py, _vbios-explore2.py, _vbios-explore3.py, _vbios-explore4.py, _vbios-explore5.py, apfs-jumpstart.py, apfs-volumes.py, build-installassistant-iso.py, build-step7-payload.py, collapse-sequence.py, dma-summary.py, dmg2raw.py, find-kexts-in-image.py, identify-gpu.py, parse-mmiotrace.py, parse-vbios.py, png-crop.py, png-delta.py, ppm-to-png.py, qcow2-read.py, qemu-boot-sonoma.py, read-igpu-mmio.py, vm-screenshot.py, vm-type.py, vmdk-read.py, vmware-log-parse.py, vmware-osk.py
+  ok   check-tool-coverage.py
+
+=== 5. structors pairing ===
+sources scanned : 8 (IntelDisplay.hpp, NV3050Probe.cpp, NV3050Probe.hpp, NVDecode.hpp, NVFalcon.hpp, NVGspBoot.hpp, NVGspStage.hpp, NVRiscvUcode.hpp)
+structors pairs : 1 declared, 1 defined
+  ok   NV3050Probe : IOService
+
+1/1 passed, 0 failed
+  ok   check-structors.py
+
+=== 6. documented paths resolve ===
+  DIRECT   .claude-crew
+  ABSOLUTE /Volumes
+  DIRECT   HANDOFF.md
+  TAIL     IntelDisplay.hpp
+  TAIL     NV3050Probe.cpp
+  TAIL     NVDecode.hpp
+  TAIL     NVFalcon.hpp
+  TAIL     NVGspBoot.hpp
+  TAIL     NVGspStage.hpp
+  TAIL     NVRiscvUcode.hpp
+  DIRECT   OPERATOR-ACTION-step7-build.md
+  DIRECT   PHASE4-GSP-BRINGUP.md
+  DIRECT   PLAN.md
+  ABSENT   __init__.py
+  TAIL     build-msvc.bat
+  DIRECT   build-payload/step7-payload.iso
+  TAIL     check-kext-syntax.bat
+  TAIL     check-registers.py
+  SYSTEM   cmd.exe
+  DIRECT   handoff10.md
+  DIRECT   handoff11.md
+  DIRECT   handoff12.md
+  DIRECT   handoff13.md
+  DIRECT   handoff14.md
+  DIRECT   handoff15.md
+  DIRECT   handoff2.md
+  DIRECT   handoff3.md
+  DIRECT   handoff4.md
+  DIRECT   handoff5.md
+  DIRECT   handoff6.md
+  DIRECT   handoff7.md
+  DIRECT   handoff8.md
+  DIRECT   handoff9.md
+  DIRECT   igpu-results/tgl-capture-2026-08-16-022556.txt
+  DIRECT   phase0-kext
+  DIRECT   phase0-kext/IntelDisplay.hpp
+  DIRECT   reference
+  DIRECT   reference/i915
+  TAIL     run-python-tests.bat
+  OUTSIDE  site-packages/tests/__init__.py
+  DIRECT   step7-results/step7-build-SUCCESS.log
+  TAIL     test_documented_paths.py
+  BUILD    test_gsp_boot.exe
+  TAIL     test_line_endings.py
+  DIRECT   tests
+  GLOB     tests/*.cpp
+  BUILD    tests/build
+  DIRECT   tests/build-msvc.bat
+  DIRECT   tests/check-kext-syntax.bat
+  DIRECT   tests/kextshim
+  DIRECT   tests/run-python-tests.bat
+  DIRECT   tests/test_gsp_boot.cpp
+  DIRECT   tests/test_gsp_stage.cpp
+  DIRECT   tests/test_intel_display.cpp
+  DIRECT   tests/test_line_endings.py
+  DIRECT   tools
+  DIRECT   tools/check-registers.py
+  DIRECT   tools/deliver-via-cd.py
+  DIRECT   tools/guest-build-kext.sh
+check-documented-paths: 59 documented paths all account for (1 ABSENT, 1 ABSOLUTE, 2 BUILD, 39 DIRECT, 1 GLOB, 1 OUTSIDE, 1 SYSTEM, 13 TAIL)
+  ok   check-documented-paths.py
+
+=== 7. Info.plist personalities name the target silicon ===
+accepted GA107 device IDs from DEVICE-IDS.md: 0x2582, 0x2584, 0x25A0, 0x25A2, 0x25A5, 0x25AB, 0x25AC, 0x25E0, 0x25E2, 0x25E5, 0x25EC
+  OK   NV3050Probe.IOPCIMatch 0x25a210de -- device 0x25A2 is a GA107 ID in DEVICE-IDS.md
+check-kext-personalities: 1 personality(ies), 1 match token(s), all naming GA107 silicon
+  ok   check-kext-personalities.py
+
+=== 8. Info.plist bundle identity agrees with the Makefile and sources ===
+check-kext-bundle: OK -- 25 checks, bundle identity agrees with phase0-kext/Makefile and phase0-kext/
+  ok   check-kext-bundle.py
+
+=== 9. every complete() is guarded by a flag that tracks its prepare() ===
+check-prepare-balance: OK -- 16 checks, every release is guarded by a flag that tracks its acquire (3 pair kind(s) known)
+  ok   check-prepare-balance.py
+
+=== 10. negative control -- baseline must PASS ===
+  ok   baseline
+
+=== 11. negative control -- each defect must FAIL ===
+  ok   NVNEG_BAD_OVERRIDE diagnosed
+  ok   NVNEG_BAD_FORMAT diagnosed
+  ok   NVNEG_TYPO_MEMBER diagnosed
+  ok   NVNEG_UNRELATED_CAST diagnosed
+  ok   NVNEG_DMA_MAPPING_INT diagnosed
+  ok   NVNEG_DMA_BAD_SEGFUNC diagnosed
+  ok   NVNEG_DMA_VOID_MAPPER diagnosed
+  ok   NVNEG_BMD_TYPO_MEMBER diagnosed
+  ok   NVNEG_BMD_ARITY diagnosed
+  ok   NVNEG_BMD_VOID_PTR diagnosed
+  ok   NVNEG_BMD_CONST_PREPARE diagnosed
+
+=== 12. every NVNEG_* block is enumerated, and vice versa ===
+  11 negative control(s), defined set == enumerated set
+    NVNEG_BAD_FORMAT
+    NVNEG_BAD_OVERRIDE
+    NVNEG_BMD_ARITY
+    NVNEG_BMD_CONST_PREPARE
+    NVNEG_BMD_TYPO_MEMBER
+    NVNEG_BMD_VOID_PTR
+    NVNEG_DMA_BAD_SEGFUNC
+    NVNEG_DMA_MAPPING_INT
+    NVNEG_DMA_VOID_MAPPER
+    NVNEG_TYPO_MEMBER
+    NVNEG_UNRELATED_CAST
+VERDICT: PASS
+  ok   check-negative-controls.py
+
+=== ALL SYNTAX GATES PASSED ===
+Reminder: this is a parse, not a build. STEP 7 still required.

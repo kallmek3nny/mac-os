@@ -1,0 +1,16 @@
+target      : hwnd 67505164 'Sonoma - VMware Workstation' (pid 51692)
+foreground  : hwnd 67505164 'Sonoma - VMware Workstation' (pid 51692)
+iconic      : True
+decoy       : hwnd 3543212 '\\u2810 Claude Code' (pid 29912)
+note        : target was ALREADY foreground at startup -- every
+              trial below forces the decoy in front first, so a
+              pass means a real steal, not a no-op.
+---
+plain           SetForegroundWindow ret=True                               -> from=3543212 fg=67505164 TOOK_FOREGROUND=True
+altkey          could not park foreground on decoy                         -> PRECONDITION_FAILED TOOK_FOREGROUND=INVALID
+attach          could not park foreground on decoy                         -> PRECONDITION_FAILED TOOK_FOREGROUND=INVALID
+minimize-trick  could not park foreground on decoy                         -> PRECONDITION_FAILED TOOK_FOREGROUND=INVALID
+switch          could not park foreground on decoy                         -> PRECONDITION_FAILED TOOK_FOREGROUND=INVALID
+---
+WORKING     : plain
+INVALID     : altkey, attach, minimize-trick, switch (no precondition -- these tested nothing)

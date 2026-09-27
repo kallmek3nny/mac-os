@@ -1,0 +1,245 @@
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01HBdsDxe: failed to load Boot0001 "UEFI QEMU HARDDISK QM00013 " from PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0): Not Found
+BdsDxe: loading Boot0002 "EFI Internal Shell" from Fv(7CB8BDC9-F8EB-4F34-AAEA-3EE4AF6516A1)/FvFile(7C04A583-9E3E-4F1C-AD65-E05268D0B4D1)
+BdsDxe: starting Boot0002 "EFI Internal Shell" from Fv(7CB8BDC9-F8EB-4F34-AAEA-3EE4AF6516A1)/FvFile(7C04A583-9E3E-4F1C-AD65-E05268D0B4D1)
+[2J[01;01H[01;01HUEFI Interactive Shell v2.2
+EDK II
+UEFI v2.70 (EDK II, 0x00010000)
+[1m[33m[40mMapping table[0m[37m[40m
+[1m[33m[40m      FS0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a1:;BLK1:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,29A79563-5185-42C4-9134-50CFD94E1526,0x28,0x64000)
+[1m[33m[40m      FS1:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0b65535a1:;BLK4:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)/HD(1,MBR,0xBE1AFDFA,0x3F,0xFBFC1)
+[1m[33m[40m     BLK0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)
+[1m[33m[40m     BLK3:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)
+[1m[33m[40m     BLK2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)
+[17;01HPress [1m[37m[40mESC[0m[37m[40m in 5 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[17;01HPress [1m[37m[40mESC[0m[37m[40m in 4 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[17;01HPress [1m[37m[40mESC[0m[37m[40m in 3 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[17;01HPress [1m[37m[40mESC[0m[37m[40m in 2 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[17;01HPress [1m[37m[40mESC[0m[37m[40m in 1 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.
+[1m[33m[40mShell> [0m[37m[40mecho NSH-MARK-START
+NSH-MARK-START
+[1m[33m[40mShell> [0m[37m[40mecho --- map BEFORE load ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mmap
+[1m[33m[40mMapping table[0m[37m[40m
+[1m[33m[40m      FS0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a1:;BLK1:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,29A79563-5185-42C4-9134-50CFD94E1526,0x28,0x64000)
+[1m[33m[40m      FS1:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0b65535a1:;BLK4:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)/HD(1,MBR,0xBE1AFDFA,0x3F,0xFBFC1)
+[1m[33m[40m     BLK0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)
+[1m[33m[40m     BLK3:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)
+[1m[33m[40m     BLK2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40m    echo NSH-MARK-FOUND-ON %d
+NSH-MARK-FOUND-ON fs1
+[1m[33m[40mShell> [0m[37m[40m    load %d:\apfs.efi
+Image 'FS1:\apfs.efi' loaded at 7D944000 - Success
+apfs.efi: LocateProtocol(AppleLogging) failed
+APFSStart:1589: Mounting with apfs_efi_osx-2332.140.13.702.2
+efi_fusion_pairing:672: Container 8ac04a74-678d-4ec4-a092-b13cfb835351
+efi_fusion_pairing:677: fusion uuid: 00000000-0000-0000-0000-000000000000
+efi_container_create:914: LoadedImage->DeviceHandle = 0x7e7bba98
+efi_container_create:976: Volume attached is internal
+nx_dev_init:868: warning: superblock indicates jumpstart record but this driver was not loaded from that partition
+nx_mount:1308:  initializing cache w/hash_size 256 and cache size 4096
+nx_mount:1630: checkpoint search: largest xid 15491, best xid 15491 @ 190
+nx_mount:1632: reloading after unclean unmount, checkpoint xid 15491, superblock xid 12589
+nx_mount:1657: stable checkpoint indices: desc 189 data 19928
+er_state_obj_get_for_recovery:8420: No ER state object for volume Preboot - rolling is not happening, nothing to recover.
+er_state_obj_get_for_recovery:8420: No ER state object for volume Macintosh HD - Data - rolling is not happening, nothing to recover.
+er_state_obj_get_for_recovery:8420: No ER state object for volume Recovery - rolling is not happening, nothing to recover.
+er_state_obj_get_for_recovery:8420: No ER state object for volume Macintosh HD - rolling is not happening, nothing to recover.
+er_state_obj_get_for_recovery:8420: No ER state object for volume Update - rolling is not happening, nothing to recover.
+er_state_obj_get_for_recovery:8420: No ER state object for volume VM - rolling is not happening, nothing to recover.
+[1m[33m[40mShell> [0m[37m[40m    echo NSH-MARK-LOAD-RETURNED %d
+NSH-MARK-LOAD-RETURNED fs1
+[1m[33m[40mShell> [0m[37m[40m  endif
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5
+[1m[33m[40mShell> [0m[37m[40mecho NSH-MARK-LOOP-DONE
+NSH-MARK-LOOP-DONE
+[1m[33m[40mShell> [0m[37m[40mecho --- reconnect drivers to handles ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mconnect -r
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m33[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m8C[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m8D[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m90[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m96[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m99[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m9D[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m9E[0m[37m[40m] Result Success.
+[1m[33m[40mShell> [0m[37m[40mmap -r
+[1m[33m[40mMapping table[0m[37m[40m
+[1m[33m[40m      FS0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a1:;BLK1:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,29A79563-5185-42C4-9134-50CFD94E1526,0x28,0x64000)
+[1m[33m[40m      FS7:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0b65535a1:;BLK10:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)/HD(1,MBR,0xBE1AFDFA,0x3F,0xFBFC1)
+[1m[33m[40m      FS5:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK7:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,4D0347B17560A54FA308BC703EF149C7)
+[1m[33m[40m      FS2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK4:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,42C3AF31A094F745B65617768BEC7808)
+[1m[33m[40m      FS4:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK6:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,439CE579077A8441882E048E4C23F7F0)
+[1m[33m[40m      FS6:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK8:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,6A08BA32DC65E24893C5163E9B2DAED2)
+[1m[33m[40m      FS3:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK5:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,42E73643B27CDB4C960E53514BB489A2)
+[1m[33m[40m      FS1:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK3:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,2AFC63B4642F46459F4B473762783CAC)
+[1m[33m[40m     BLK0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)
+[1m[33m[40m     BLK9:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)
+[1m[33m[40m     BLK2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)
+[1m[33m[40mShell> [0m[37m[40mecho --- map AFTER load ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mmap
+[1m[33m[40mMapping table[0m[37m[40m
+[1m[33m[40m      FS0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a1:;BLK1:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,29A79563-5185-42C4-9134-50CFD94E1526,0x28,0x64000)
+[1m[33m[40m      FS7:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0b65535a1:;BLK10:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)/HD(1,MBR,0xBE1AFDFA,0x3F,0xFBFC1)
+[1m[33m[40m      FS5:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK7:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,4D0347B17560A54FA308BC703EF149C7)
+[1m[33m[40m      FS2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK4:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,42C3AF31A094F745B65617768BEC7808)
+[1m[33m[40m      FS4:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK6:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,439CE579077A8441882E048E4C23F7F0)
+[1m[33m[40m      FS6:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK8:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,6A08BA32DC65E24893C5163E9B2DAED2)
+[1m[33m[40m      FS3:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK5:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,42E73643B27CDB4C960E53514BB489A2)
+[1m[33m[40m      FS1:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK3:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,2AFC63B4642F46459F4B473762783CAC)
+[1m[33m[40m     BLK0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)
+[1m[33m[40m     BLK9:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)
+[1m[33m[40m     BLK2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)
+[1m[33m[40mShell> [0m[37m[40mecho --- roots of every mapped filesystem ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mecho --- fs0 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs0:\
+[31;01HDirectory of: [1m[37m[40mfs0:\[0m[37m[40m
+          0 File(s)           0 bytes
+          0 Dir(s)
+[1m[33m[40mShell> [0m[37m[40mecho --- fs1 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs1:\
+[31;01HDirectory of: [1m[37m[40mfs1:\[0m[37m[40m
+08/13/2026  23:03           1,048,576  kernelcore
+          1 File(s)   1,048,576 bytes
+          0 Dir(s)
+[1m[33m[40mShell> [0m[37m[40mecho --- fs2 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs2:\
+[31;01HDirectory of: [1m[37m[40mfs2:\[0m[37m[40m
+08/14/2026  20:23 <DIR>         6,150  [1m[34m[40m.fseventsd[0m[37m[40m
+08/07/2026  19:41 <DIR>           150  [1m[34m[40m.Spotlight-V100[0m[37m[40m
+08/01/2026  16:31 <DIR>            50  [1m[34m[40m.TemporaryItems[0m[37m[40m
+08/01/2026  16:31 <DIR>           200  [1m[34m[40mApplications[0m[37m[40m
+08/01/2026  16:31 <DIR>            50  [1m[34m[40mcores[0m[37m[40m
+08/01/2026  16:31 <DIR>            50  [1m[34m[40mhome[0m[37m[40m
+08/14/2026  20:23 <DIR>         3,200  [1m[34m[40mLibrary[0m[37m[40m
+08/01/2026  16:31 <DIR>            50  [1m[34m[40mmnt[0m[37m[40m
+08/07/2026  19:41 <DIR>           100  [1m[34m[40mMobileSoftwareUpdate[0m[37m[40m
+08/01/2026  16:31 <DIR>            50  [1m[34m[40mopt[0m[37m[40m
+08/07/2026  19:40 <DIR>           150  [1m[34m[40mPrevious Content[0m[37m[40m
+08/13/2026  23:03 <DIR>           250  [1m[34m[40mprivate[0m[37m[40m
+08/01/2026  16:31 <DIR>            50  [1m[34m[40msw[0m[37m[40m
+08/01/2026  16:31 <DIR>           100  [1m[34m[40mSystem[0m[37m[40m
+08/07/2026  19:44 <DIR>           200  [1m[34m[40mUsers[0m[37m[40m
+08/01/2026  16:31 <DIR>           200  [1m[34m[40musr[0m[37m[40m
+08/13/2026  23:04 <DIR>           250  [1m[34m[40mVolumes[0m[37m[40m
+          0 File(s)           0 bytes
+         17 Dir(s)
+[1m[33m[40mShell> [0m[37m[40mecho --- fs3 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs3:\
+[31;01HDirectory of: [1m[37m[40mfs3:\[0m[37m[40m
+08/07/2026  19:37                   0  .patchd-dirty-1786131472
+08/07/2026  19:41 <DIR>           150  [1m[34m[40m.TemporaryItems[0m[37m[40m
+08/07/2026  19:26               2,550  Bookmarks.plist
+08/07/2026  19:51 <DIR>           100  [1m[34m[40mController[0m[37m[40m
+08/07/2026  19:26 <DIR>           100  [1m[34m[40mdb[0m[37m[40m
+08/07/2026  19:26 <DIR>            50  [1m[34m[40mFirmware[0m[37m[40m
+08/07/2026  19:37 <DIR>           100  [1m[34m[40mHardware[0m[37m[40m
+08/07/2026  19:37              44,725  install-log-1786131462.log
+08/13/2026  23:04                 500  last_update_result.plist
+08/07/2026  19:26 <DIR>            50  [1m[34m[40mmnt1[0m[37m[40m
+08/07/2026  19:39 <DIR>           100  [1m[34m[40mMobileAsset[0m[37m[40m
+08/07/2026  19:39               8,645  nvram.plist
+08/07/2026  19:39             366,490  patchd-1786131472.log
+08/13/2026  23:15             382,826  restore.log
+08/07/2026  19:37                 754  smstats
+          8 File(s)     806,490 bytes
+          7 Dir(s)
+[1m[33m[40mShell> [0m[37m[40mecho --- fs4 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs4:\
+[31;01HDirectory of: [1m[37m[40mfs4:\[0m[37m[40m
+08/07/2026  23:36 <DIR>         9,700  [1m[34m[40m31AFC342-94A0-45F7-B656-17768BEC7808[0m[37m[40m
+          0 File(s)           0 bytes
+          1 Dir(s)
+[1m[33m[40mShell> [0m[37m[40mecho --- fs5 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs5:\
+[31;01HDirectory of: [1m[37m[40mfs5:\[0m[37m[40m
+08/07/2026  19:27 <DIR>           100  [1m[34m[40m.TemporaryItems[0m[37m[40m
+08/07/2026  19:39 <DIR>         2,200  [1m[34m[40m31AFC342-94A0-45F7-B656-17768BEC7808[0m[37m[40m
+08/07/2026  19:41 <DIR>           100  [1m[34m[40mcom.apple.security.cryptexd[0m[37m[40m
+08/07/2026  19:37 <DIR>           200  [1m[34m[40mCryptexes[0m[37m[40m
+          0 File(s)           0 bytes
+          4 Dir(s)
+[1m[33m[40mShell> [0m[37m[40mecho --- fs6 ---
+[1m[37m[40mecho[0m[37m[40m: Unknown flag - '[1m[37m[40m---[0m[37m[40m'
+[1m[33m[40mShell> [0m[37m[40mls fs6:\
+[31;01HDirectory of: [1m[37m[40mfs6:\[0m[37m[40m
+08/01/2026  16:31                   0  .file
+08/01/2026  16:31 <DIR>            50  [1m[34m[40m.nofollow[0m[37m[40m
+08/01/2026  16:31 <DIR>            50  [1m[34m[40m.resolve[0m[37m[40m
+08/01/2026  16:31 <DIR>            50  [1m[34m[40m.vol[0m[37m[40m
+08/01/2026  16:31                  36  .VolumeIcon.icns
+08/01/2026  16:31 <DIR>            50  [1m[34m[40mApplications[0m[37m[40m
+08/01/2026  16:31 <DIR>         1,900  [1m[34m[40mbin[0m[37m[40m
+08/01/2026  16:31 <DIR>            50  [1m[34m[40mcores[0m[37m[40m
+08/01/2026  16:31 <DIR>            50  [1m[34m[40mdev[0m[37m[40m
+08/01/2026  16:31                  11  etc
+08/01/2026  16:31 <DIR>            50  [1m[34m[40mLibrary[0m[37m[40m
+08/01/2026  16:31 <DIR>            50  [1m[34m[40mopt[0m[37m[40m
+08/01/2026  16:31 <DIR>            50  [1m[34m[40mprivate[0m[37m[40m
+08/01/2026  16:31 <DIR>         3,750  [1m[34m[40msbin[0m[37m[40m
+08/01/2026  16:31 <DIR>           450  [1m[34m[40mSystem[0m[37m[40m
+08/01/2026  16:31                  11  tmp
+08/01/2026  16:31 <DIR>            50  [1m[34m[40mUsers[0m[37m[40m
+08/01/2026  16:31 <DIR>           500  [1m[34m[40musr[0m[37m[40m
+08/01/2026  16:31                  11  var
+08/01/2026  16:31 <DIR>            50  [1m[34m[40mVolumes[0m[37m[40m
+          5 File(s)          69 bytes
+         15 Dir(s)
+[1m[33m[40mShell> [0m[37m[40mecho NSH-MARK-END
+NSH-MARK-END
+[31;01H[1m[33m[40mShell> [0m[37m[40m

@@ -1,0 +1,1293 @@
+ ▐▛███▜▌   Claude Code v2.1.231
+▝▜█████▛▘  Opus 5 · API Usage Billing
+  ▘▘ ▝▝    D:\nerd shit\other projects\mac os
+
+
+✻ Conversation compacted (ctrl+o for history)
+
+
+● I'll check what the recovery fetch actually produced.
+
+  Listed 1 directory (ctrl+o to expand)
+  ⎿  Referenced file 
+     C:\Users\Kentl\AppData\Local\Temp\claude\D--nerd-shit-other-projects-mac-os
+     \2ccfdbb2-327d-4a86-9d06-1e48e872fb4b\tasks\bkwywqka0.output
+  ⎿  Read tests\test_intel_publisher_scan_shape.py (397 lines)
+  ⎿  Referenced file OPERATOR-ACTION-step7-build.md
+  ⎿  Referenced file phase0-kext\IntelDisplayProbe.cpp
+  ⎿  Read phase0-kext\IntelDisplayProbe.hpp (176 lines)
+
+● Two things look wrong in that listing — EFI/OC/ACPI is empty despite the SSDTs
+  being staged, and nothing over 1 MB landed in com.apple.recovery.boot.
+  Checking both plus the fetch log.
+
+  Read 1 file, listed 1 directory (ctrl+o to expand)
+
+● The recovery fetch wrote to the script's own cwd (.\BaseSystem.dmg), not into
+  com.apple.recovery.boot/. Locating it and confirming the download finished.
+
+  Searched for 2 patterns (ctrl+o to expand)
+
+● Download landed in OSX-KVM/ (the script's cwd) at 823 MB of 916, and the log's
+  last write was six minutes before the file's. Checking whether it's still
+  growing or stalled.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/OSX-KVM" && stat -c '%s %y' BaseSystem.dmg &&
+      sleep 20 && stat -c '%s %y' BaseSystem.dmg && echo '--- log mtime ---' &&
+      stat -c '%s…)
+  ⎿  916455424 2026-08-19 15:23:14.622854400 -0400
+     923795456 2026-08-19 15:23:34.720444500 -0400
+     --- log mtime ---
+     54308 2026-08-19 15:23:34.720444500 -0400
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● [System Warning: The upstream model connection dropped abruptly mid-response
+  (Error: RuntimeError). You may need to ask it to continue.]
+
+● Still growing — 916 MB → 923 MB in 20 seconds (~370 KB/s per MB tick, roughly
+  7 MB in 20s). The "916 MB" in the progress bar was the server's advertised
+  size and the file has already passed it, so the fetcher is writing past its
+  own estimate. Waiting for it to settle.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/OSX-KVM" && for i in 1 2 3 4 5 6; do stat -c
+      "%s %y" BaseSystem.dmg; sleep 30; done; echo '=== final ==='; stat -c '%s
+      %y' BaseSyste…)
+  ⎿  937426944 2026-08-19 15:24:02.919108800 -0400
+     945815552 2026-08-19 15:24:36.093396200 -0400
+     954204160 2026-08-19 15:25:02.557041400 -0400
+     … +15 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+  ⎿  (timeout 5m)
+
+● Background command "Download the Tahoe recovery image unbuffered, logging to a
+file" completed (exit code 0)
+
+● Download aborted at 959 MB with ConnectionAbortedError (WinError 10053) and
+  FETCH_EXIT=1. Checking the fetcher for resume support before retrying.
+
+  Searched for 1 pattern, listed 1 directory (ctrl+o to expand)
+
+● Fetcher opens with wb and has no Range handling, so a retry restarts from
+  zero. But the file is at 959,447,040 bytes — exactly 1 MiB short of the
+  advertised 916 MiB. Pulling the URL out of the log to fetch just the tail.
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Fetcher has no resume, but the URL is intact and the file is 1 MiB short.
+  Writing a range-resume script rather than re-downloading 959 MB.
+
+● Write(C:\Users\Kentl\macos-vm\tahoe\resume-basesystem.py)
+  ⎿  Wrote 122 lines to C:\Users\Kentl\macos-vm\tahoe\resume-basesystem.py
+       1 #!/usr/bin/env python3
+          request.
+       3 
+          header, so a
+         ata thrown away
+       6 because of one ConnectionAbortedError near the end.  This append
+       7 
+       8 The loop retries on its own: Apple's CDN aborted once at 89% and
+       9 reason to believe a single further attempt fares better.  Each r
+      10 the on-disk size, so progress is never lost between attempts.
+     … +129 lines (ctrl+o to expand)
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && python resume-basesystem.py 2>&1 |
+      tail -20)
+  ⎿      total = remote_size()
+       File "C:\Users\Kentl\macos-vm\tahoe\resume-basesystem.py", line 39,
+     in remote_size
+     … +17 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● 403 on the Range probe — the CDN is refusing something about my request, not
+  the byte range. Testing which header it objects to.
+
+● Bash(URL='http://oscdn.apple.com/content/downloads/31/41/140-93589/gufwvz5h0uj
+      267sosxllk2a5nlquc8wcf7/RecoveryImage/BaseSystem.dmg'; echo '=== A: plain
+      HEAD, no UA o…)
+  ⎿  === A: plain HEAD, no UA override ===
+     HTTP/1.1 403 Forbidden
+     Server: AkamaiGHost
+     … +35 lines (ctrl+o to expand)
+
+● The signed CDN path expired — Akamai returns TCP_DENIED for every header
+  variant, so this is URL expiry, not a Range refusal. I need a fresh signed URL
+  from the fetcher's session logic.
+
+  Read 1 file (ctrl+o to expand)
+
+● Fresh session needed — save_image sends an AssetToken cookie my curl probes
+  omitted, so the 403 may be auth rather than expiry either way. Reading the
+  tail for Tahoe's board id.
+
+  Read 1 file (ctrl+o to expand)
+
+● Fresh signed URL needed — the old one is Akamai-expired. Reading the
+  session/URL functions so the resume script can reuse them exactly.
+
+  Read 1 file (ctrl+o to expand)
+
+● Fresh signed URL required — the old one is Akamai-expired. Reading the session
+  and image-info functions so the resume script can mint a new one exactly the
+  way the fetcher does.
+  Read 1 file (ctrl+o to expand)
+
+● Fresh signed URL required — Akamai expired the old one. Writing a resume
+  script that mints a new session the same way the fetcher does, then verifies
+  the joined file against the chunklist.
+
+● Write(C:\Users\Kentl\macos-vm\tahoe\resume-basesystem.py)
+  ⎿  Added 222 lines, removed 61 lines
+        1  #!/usr/bin/env python3
+        2 -"""Resume the aborted BaseSystem.dmg download with an HTTP Ran
+          -ge request.                                                   
+        2 +"""Resume the aborted BaseSystem.dmg download, and PROVE the j
+          +oin is coherent.                                              
+        3  
+        4 -fetch-macOS-v2.py opens the target with 'wb' and issues no Ran
+          -ge header, so a                                               
+        5 -retry restarts from byte zero -- 959 MB of already-transferred
+          - data thrown away                                             
+        6 -because of one ConnectionAbortedError near the end.  This appe
+          -nds instead.                                                  
+        4 +Why this exists                                               
+        5 +---------------                                               
+        6  
+        8 -The loop retries on its own: Apple's CDN aborted once at 89% a
+          -nd there is no                                                
+        9 -reason to believe a single further attempt fares better.  Each
+          - retry re-reads                                               
+       10 -the on-disk size, so progress is never lost between attempts. 
+        7 +`fetch-macOS-v2.py` opens its target with 'wb' and sends no Ra
+          +nge header, so a                                              
+        8 +retry restarts from byte zero -- 959 MB already on disk thrown
+          + away because of                                              
+        9 +one ConnectionAbortedError at 89%.                            
+       10 +                                                              
+       11 +Why the obvious fix did not work                              
+       12 +--------------------------------                              
+       13 +                                                              
+       14 +The first version of this script reused the URL out of the fet
+          +ch log and got                                                
+       15 +403 from AkamaiGHost on EVERY header variant, including a plai
+          +n HEAD.  That is                                              
+       16 +not a Range refusal -- it is the signed CDN path having expire
+          +d, plus the fact                                              
+       17 +that `save_image()` sends a `Cookie: AssetToken=<sess>` that a
+          + bare curl omits.                                             
+       18 +So a fresh session has to be minted, exactly the way the fetch
+          +er mints one.                                                 
+       19 +                                                              
+       20 +The risk this creates, and the check that answers it          
+       21 +----------------------------------------------------          
+       22 +                                                              
+       23 +A fresh session returns a fresh signed URL, and nothing guaran
+          +tees it points at                                             
+       24 +the SAME bytes as the session that wrote the first 959 MB.  If
+          + Apple rotated                                                
+       25 +the build in between, appending produces a file that is the ri
+          +ght SIZE and is                                               
+       26 +internally a Frankenstein -- two different images spliced mid-
+          +stream.  A size                                               
+       27 +check cannot see that.                                        
+       28 +                                                              
+       29 +So completion is not the success condition here.  The success 
+          +condition is the                                              
+       30 +CHUNKLIST verifying: `BaseSystem.chunklist` was fetched in the
+          + ORIGINAL session                                             
+       31 +and carries a sha256 per chunk over the whole image.  If the t
+          +ail came from a                                               
+       32 +different build, some chunk straddling the join fails and says
+          + so by index.                                                 
+       33 +That is the one available piece of evidence that distinguishes
+          + "resumed" from                                               
+       34 +"corrupted to the correct length".                            
+       35  """
+       36  
+       37 +import hashlib                                                
+       38  import os
+       39 +import re                                                     
+       40 +import struct                                                 
+       41  import sys
+       42  import time
+       43  import urllib.request
+       17 -import urllib.error                                           
+       44  
+       19 -URL = (                                                       
+       20 -    "http://oscdn.apple.com/content/downloads/31/41/140-93589/
+          -"                                                             
+       21 -    "gufwvz5h0uj267sosxllk2a5nlquc8wcf7/RecoveryImage/BaseSyst
+          -em.dmg"                                                       
+       22 -)                                                             
+       23 -TARGET = r"C:\Users\Kentl\macos-vm\OSX-KVM\BaseSystem.dmg"    
+       45 +OSX_KVM = r"C:\Users\Kentl\macos-vm\OSX-KVM"                  
+       46 +FETCHER = os.path.join(OSX_KVM, "fetch-macOS-v2.py")          
+       47 +DMG = os.path.join(OSX_KVM, "BaseSystem.dmg")                 
+       48 +CHUNKLIST = os.path.join(OSX_KVM, "BaseSystem.chunklist")     
+       49  
+       50  UA = "InternetRecovery/1.0"
+       26 -MAX_ATTEMPTS = 12                                             
+       51  CHUNK = 1024 * 256
+       52 +MAX_ATTEMPTS = 10                                             
+       53  
+       54  
+       30 -def remote_size():                                            
+       31 -    """Total length of the resource, via a Range probe.       
+       55 +def load_fetcher():                                           
+       56 +    """Import the fetcher despite its dash-bearing filename.  
+       57  
+       33 -    A bare HEAD is not used: Apple's CDN has been observed to 
+          -answer HEAD                                                   
+       34 -    differently from GET on these paths, and what matters here
+          - is the length                                                
+       35 -    the SAME kind of request reports.  A one-byte Range GET re
+          -turns                                                         
+       36 -    Content-Range: bytes 0-0/TOTAL, which is the authoritative
+          - number.                                                      
+       58 +    Its session logic is reused rather than reimplemented: `ge
+          +t_session()` and                                              
+       59 +    `get_image_info()` speak a protocol with generated ids and
+          + required keys,                                               
+       60 +    and a hand-rolled copy that drifts would fail in a way tha
+          +t looks like a                                                
+       61 +    network problem.                                          
+       62      """
+       38 -    req = urllib.request.Request(URL, headers={"User-Agent": U
+          -A, "Range": "bytes=0-0"})                                     
+       39 -    with urllib.request.urlopen(req, timeout=60) as resp:     
+       63 +    import importlib.util                                     
+       64 +                                                              
+       65 +    spec = importlib.util.spec_from_file_location("fetch_macos
+          +_v2", FETCHER)                                                
+       66 +    mod = importlib.util.module_from_spec(spec)               
+       67 +    spec.loader.exec_module(mod)                              
+       68 +    return mod                                                
+       69 +                                                              
+       70 +                                                              
+       71 +def tahoe_board_id():                                         
+       72 +    """Read Tahoe's board id out of the fetcher's own product 
+          +table.                                                        
+       73 +                                                              
+       74 +    Parsed from source rather than hardcoded: the table is a l
+          +ocal inside                                                   
+       75 +    main(), so it cannot be imported, and a board id typed her
+          +e by hand would                                               
+       76 +    silently fetch a DIFFERENT macOS if the table ever moved. 
+       77 +    """                                                       
+       78 +    with open(FETCHER, "r", encoding="utf-8") as fh:          
+       79 +        for line in fh:                                       
+       80 +            if "Tahoe" not in line:                           
+       81 +                continue                                      
+       82 +            bid = re.search(r'"b":\s*"([^"]+)"', line)        
+       83 +            mlb = re.search(r'"m":\s*"([^"]+)"', line)        
+       84 +            if bid and mlb:                                   
+       85 +                return bid.group(1), mlb.group(1)             
+       86 +    raise RuntimeError("no Tahoe row found in %s" % FETCHER)  
+       87 +                                                              
+       88 +                                                              
+       89 +class Args(object):                                           
+       90 +    """get_session() reads only .verbose off its argument obje
+          +ct."""                                                        
+       91 +    verbose = False                                           
+       92 +                                                              
+       93 +                                                              
+       94 +def fresh_link():                                             
+       95 +    mod = load_fetcher()                                      
+       96 +    bid, mlb = tahoe_board_id()                               
+       97 +    print("board id = %s" % bid)                              
+       98 +                                                              
+       99 +    session = mod.get_session(Args())                         
+      100 +    info = mod.get_image_info(session, bid=bid, mlb=mlb, os_ty
+          +pe="default")                                                 
+      101 +                                                              
+      102 +    link_key = getattr(mod, "INFO_IMAGE_LINK", "AU")          
+      103 +    sess_key = getattr(mod, "INFO_IMAGE_SESS", "AT")          
+      104 +    return info[link_key], info[sess_key]                     
+      105 +                                                              
+      106 +                                                              
+      107 +def ranged_get(url, sess, offset):                            
+      108 +    from urllib.parse import urlparse                         
+      109 +                                                              
+      110 +    purl = urlparse(url)                                      
+      111 +    req = urllib.request.Request(                             
+      112 +        url,                                                  
+      113 +        headers={                                             
+      114 +            "Host": purl.hostname,                            
+      115 +            "Connection": "close",                            
+      116 +            "User-Agent": UA,                                 
+      117 +            "Cookie": "AssetToken=" + sess,                   
+      118 +            "Range": "bytes=%d-" % offset,                    
+      119 +        },                                                    
+      120 +    )                                                         
+      121 +    return urllib.request.urlopen(req, timeout=120)           
+      122 +                                                              
+      123 +                                                              
+      124 +def total_size(url, sess):                                    
+      125 +    with ranged_get(url, sess, 0) as resp:                    
+      126          cr = resp.headers.get("Content-Range")
+      127          if cr and "/" in cr:
+      128              return int(cr.rsplit("/", 1)[1])
+       43 -        # Server ignored the Range header entirely -- it does 
+          -not support                                                   
+       44 -        # resumption, and appending would corrupt the file.   
+       45 -        return None                                           
+      129 +        cl = resp.headers.get("Content-Length")               
+      130 +        return int(cl) if cl else None                        
+      131  
+      132  
+       48 -def fetch_from(offset, total):                                
+       49 -    req = urllib.request.Request(                             
+       50 -        URL,                                                  
+       51 -        headers={"User-Agent": UA, "Range": "bytes=%d-" % offs
+          -et},                                                          
+       52 -    )                                                         
+       53 -    with urllib.request.urlopen(req, timeout=120) as resp:    
+      133 +def append_from(url, sess, offset, total):                    
+      134 +    with ranged_get(url, sess, offset) as resp:               
+      135          if resp.status != 206:
+      136              raise RuntimeError(
+       56 -                "expected 206 Partial Content, got %s -- serve
+          -r refused the "                                               
+       57 -                "Range and would have restarted from zero" % r
+          -esp.status                                                    
+      137 +                "expected 206 Partial Content, got %s -- the s
+          +erver ignored "                                               
+      138 +                "the Range and appending would duplicate the w
+          +hole image"                                                   
+      139 +                % resp.status                                 
+      140              )
+       59 -        with open(TARGET, "ab") as fh:                        
+      141 +        with open(DMG, "ab") as fh:                           
+      142              got = 0
+      143              last = time.monotonic()
+      144              while True:
+     ...
+      150                  now = time.monotonic()
+      151                  if now - last > 2.0:
+      152                      here = offset + got
+       71 -                    sys.stdout.write(                         
+       72 -                        "\r%d / %d bytes (%.2f%%)"            
+       73 -                        % (here, total, 100.0 * here / total) 
+       74 -                    )                                         
+       75 -                    sys.stdout.flush()                        
+      153 +                    print("  %d / %d (%.2f%%)" % (here, total,
+          + 100.0 * here / total))                                       
+      154                      last = now
+      155      return got
+      156  
+      157  
+      158 +CHUNKLIST_HEADER = struct.Struct("<4sIBBBxQQQ")               
+      159 +CHUNKLIST_CHUNK = struct.Struct("<I32s")                      
+      160 +                                                              
+      161 +                                                              
+      162 +def verify_chunklist():                                       
+      163 +    """Hash the dmg chunk by chunk against the chunklist.     
+      164 +                                                              
+      165 +    The chunklist was fetched in the ORIGINAL session, so it d
+          +escribes the                                                  
+      166 +    image the first 959 MB came from.  A tail spliced in from 
+          +a different                                                   
+      167 +    build fails here, at a named chunk index -- which is exact
+          +ly the failure a                                              
+      168 +    size check cannot produce.                                
+      169 +                                                              
+      170 +    The header's own signature is NOT verified: this is a cohe
+          +rence check on a                                              
+      171 +    resumed transfer, not an authenticity claim, and saying so
+          + is cheaper than                                              
+      172 +    implying a trust decision that was never made.            
+      173 +    """                                                       
+      174 +    if not os.path.exists(CHUNKLIST):                         
+      175 +        return None, "no chunklist on disk -- the join is UNVE
+          +RIFIED"                                                       
+      176 +                                                              
+      177 +    with open(CHUNKLIST, "rb") as f:                          
+      178 +        head = f.read(CHUNKLIST_HEADER.size)                  
+      179 +        (magic, header_size, file_version, chunk_method,      
+      180 +         signature_method, chunk_count, chunk_offset,         
+      181 +         signature_offset) = CHUNKLIST_HEADER.unpack(head)    
+      182 +                                                              
+      183 +        if magic != b"CNKL":                                  
+      184 +            return None, "chunklist magic is %r, not CNKL" % m
+          +agic                                                          
+      185 +                                                              
+      186 +        f.seek(chunk_offset)                                  
+      187 +        chunks = []                                           
+      188 +        for _ in range(chunk_count):                          
+      189 +            chunks.append(CHUNKLIST_CHUNK.unpack(f.read(CHUNKL
+          +IST_CHUNK.size)))                                             
+      190 +                                                              
+      191 +    print("chunklist: %d chunks" % len(chunks))               
+      192 +                                                              
+      193 +    covered = sum(c[0] for c in chunks)                       
+      194 +    have = os.path.getsize(DMG)                               
+      195 +    if covered != have:                                       
+      196 +        return False, (                                       
+      197 +            "chunklist covers %d bytes but the dmg is %d -- le
+          +ngths disagree"                                               
+      198 +            % (covered, have)                                 
+      199 +        )                                                     
+      200 +                                                              
+      201 +    with open(DMG, "rb") as dmgf:                             
+      202 +        for index, (size, want) in enumerate(chunks):         
+      203 +            data = dmgf.read(size)                            
+      204 +            if len(data) != size:                             
+      205 +                return False, (                               
+      206 +                    "chunk %d: wanted %d bytes, read %d -- fil
+          +e is short"                                                   
+      207 +                    % (index, size, len(data))                
+      208 +                )                                             
+      209 +            got = hashlib.sha256(data).digest()               
+      210 +            if got != want:                                   
+      211 +                return False, (                               
+      212 +                    "chunk %d of %d FAILED sha256 -- the resum
+          +ed tail does not "                                            
+      213 +                    "belong to the same image as the head"    
+      214 +                    % (index, len(chunks))                    
+      215 +                )                                             
+      216 +        if dmgf.read(1) != b"":                               
+      217 +            return False, "trailing bytes past the last chunk"
+      218 +                                                              
+      219 +    return True, "all %d chunks verified" % len(chunks)       
+      220 +                                                              
+      221 +                                                              
+      222  def main():
+       81 -    total = remote_size()                                     
+       82 -    if total is None:                                         
+       83 -        print("REFUSED: server did not honour Range; cannot re
+          -sume safely.")                                                
+      223 +    if not os.path.exists(DMG):                               
+      224 +        print("REFUSED: %s does not exist -- nothing to resume
+          +" % DMG)                                                      
+      225          return 2
+      226  
+       86 -    have = os.path.getsize(TARGET) if os.path.exists(TARGET) e
+          -lse 0                                                         
+       87 -    print("local  = %d bytes" % have)                         
+      227 +    have = os.path.getsize(DMG)                               
+      228 +    print("local = %d bytes" % have)                          
+      229 +                                                              
+      230 +    url, sess = fresh_link()                                  
+      231 +    print("fresh link acquired")                              
+      232 +                                                              
+      233 +    total = total_size(url, sess)                             
+      234 +    if total is None:                                         
+      235 +        print("REFUSED: server reported no length; cannot resu
+          +me safely")                                                   
+      236 +        return 3                                              
+      237      print("remote = %d bytes" % total)
+      238  
+      239      if have > total:
+      240          print(
+      241              "REFUSED: local file is LARGER than the remote res
+           ource. That is "
+       93 -            "not a truncated download, and appending would mak
+          -e it worse."                                                  
+      242 +            "not a truncated download and appending cannot fix
+          + it."                                                         
+      243          )
+       95 -        return 3                                              
+      244 +        return 4                                              
+      245  
+      246      for attempt in range(1, MAX_ATTEMPTS + 1):
+       98 -        have = os.path.getsize(TARGET)                        
+       99 -        if have == total:                                     
+      100 -            print("\ncomplete: %d bytes" % have)              
+      101 -            return 0                                          
+      102 -        print("\nattempt %d: resuming at %d (%d remaining)"   
+      247 +        have = os.path.getsize(DMG)                           
+      248 +        if have >= total:                                     
+      249 +            break                                             
+      250 +        print("attempt %d: resuming at %d (%d remaining)"     
+      251                % (attempt, have, total - have))
+      252          try:
+      105 -            fetch_from(have, total)                           
+      253 +            append_from(url, sess, have, total)               
+      254          except Exception as exc:
+      107 -            print("\n  attempt %d failed: %s: %s"             
+      108 -                  % (attempt, type(exc).__name__, exc))       
+      255 +            print("  failed: %s: %s" % (type(exc).__name__, ex
+          +c))                                                           
+      256              time.sleep(min(5 * attempt, 30))
+      257 +            # A stale link is the expected failure here, not a
+          + flaky socket.                                                
+      258 +            try:                                              
+      259 +                url, sess = fresh_link()                      
+      260 +                print("  re-minted link")                     
+      261 +            except Exception as exc2:                         
+      262 +                print("  could not re-mint: %s" % exc2)       
+      263              continue
+      264  
+      112 -    have = os.path.getsize(TARGET)                            
+      113 -    if have == total:                                         
+      114 -        print("\ncomplete: %d bytes" % have)                  
+      115 -        return 0                                              
+      116 -    print("\nINCOMPLETE: %d of %d bytes after %d attempts"    
+      117 -          % (have, total, MAX_ATTEMPTS))                      
+      118 -    return 1                                                  
+      265 +    have = os.path.getsize(DMG)                               
+      266 +    if have != total:                                         
+      267 +        print("INCOMPLETE: %d of %d bytes" % (have, total))   
+      268 +        return 1                                              
+      269  
+      270 +    print("transfer complete: %d bytes" % have)               
+      271 +    ok, why = verify_chunklist()                              
+      272 +    if ok is None:                                            
+      273 +        print("UNVERIFIED: %s" % why)                         
+      274 +        return 5                                              
+      275 +    if not ok:                                                
+      276 +        print("CORRUPT: %s" % why)                            
+      277 +        return 6                                              
+      278 +    print("VERIFIED: %s" % why)                               
+      279 +    return 0                                                  
+      280  
+      281 +                                                              
+      282  if __name__ == "__main__":
+      283      sys.exit(main())
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && python resume-basesystem.py 2>&1 |
+      tail -30; echo "EXIT=${PIPESTATUS[0]}")
+  ⎿  local = 959447040 bytes
+     board id = Mac-CFF7D910A743CAAF
+     fresh link acquired
+     … +4 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+  ⎿  (timeout 10m)
+
+● Refusal fired correctly — 884,317,790 is exactly the size of the Sonoma image
+  already on this disk, so the fresh link is pointing at the wrong product.
+  Checking which board id the parser actually grabbed, and deriving the true
+  length from the chunklist.
+
+  Searched for 1 pattern (ctrl+o to expand)
+  ⎿  Invalid tool parameters
+
+● The board id was right; my call wasn't. Tahoe's row carries "os_type": 
+  "latest" and I passed "default", so Apple handed back an older image —
+  884,317,790 bytes, which is why it looked like Sonoma's size. Fixing the
+  parser to carry os_type, and cross-checking the remote length against the
+  chunklist before any append.
+
+● Update(C:\Users\Kentl\macos-vm\tahoe\resume-basesystem.py)
+  ⎿  Added 41 lines, removed 2 lines
+      69  
+      70  
+      71  def tahoe_board_id():
+      72 -    """Read Tahoe's board id out of the fetcher's own product t
+         -able.                                                          
+      72 +    """Read Tahoe's board id, MLB and os_type out of the fetche
+         +r's own table.                                                 
+      73  
+      74      Parsed from source rather than hardcoded: the table is a lo
+          cal inside
+      75      main(), so it cannot be imported, and a board id typed here
+           by hand would
+      76      silently fetch a DIFFERENT macOS if the table ever moved.
+      77 +                                                               
+      78 +    `os_type` is carried for a reason that already cost one was
+         +ted round trip.                                                
+      79 +    The first version of this function returned only (bid, mlb)
+         + and the caller                                                
+      80 +    passed os_type='default'; Apple answered with a 884,317,790
+         +-byte image --                                                 
+      81 +    byte-for-byte the size of the SONOMA recovery already on th
+         +is disk.  The                                                  
+      82 +    board id was correct the whole time.  Tahoe's row carries  
+      83 +    '"os_type": "latest"', and that field is not decoration: it
+         + selects which                                                 
+      84 +    image the same board id resolves to.  A row without the key
+         + defaults to                                                   
+      85 +    'default', which is what the fetcher itself does.          
+      86      """
+      87      with open(FETCHER, "r", encoding="utf-8") as fh:
+      88          for line in fh:
+     ...
+       90                  continue
+       91              bid = re.search(r'"b":\s*"([^"]+)"', line)
+       92              mlb = re.search(r'"m":\s*"([^"]+)"', line)
+       93 +            ost = re.search(r'"os_type":\s*"([^"]+)"', line)  
+       94              if bid and mlb:
+       85 -                return bid.group(1), mlb.group(1)             
+       95 +                return bid.group(1), mlb.group(1), (ost.group(
+          +1) if ost else "default")                                     
+       96      raise RuntimeError("no Tahoe row found in %s" % FETCHER)
+       97  
+       98  
+       99 +def chunklist_total():                                        
+      100 +    """Authoritative image length, summed from the chunklist o
+          +n disk.                                                       
+      101 +                                                              
+      102 +    This is a SECOND opinion on the remote's Content-Range, an
+          +d the two come                                                
+      103 +    from different sessions: the chunklist was written by the 
+          +original fetch,                                               
+      104 +    the Content-Range by whatever session is live now.  If the
+          +y disagree, the                                               
+      105 +    fresh link is not pointing at the image the head bytes cam
+          +e from, and no                                                
+      106 +    amount of appending fixes that -- so the disagreement is a
+          + refusal rather                                               
+      107 +    than a warning.                                           
+      108 +                                                              
+      109 +    Returns None when there is no chunklist, which the caller 
+          +must treat as                                                 
+      110 +    "cannot cross-check" rather than "cross-check passed".    
+      111 +    """                                                       
+      112 +    if not os.path.exists(CHUNKLIST):                         
+      113 +        return None                                           
+      114 +    with open(CHUNKLIST, "rb") as f:                          
+      115 +        head = f.read(CHUNKLIST_HEADER.size)                  
+      116 +        (magic, _hs, _fv, _cm, _sm, chunk_count,              
+      117 +         chunk_offset, _so) = CHUNKLIST_HEADER.unpack(head)   
+      118 +        if magic != b"CNKL":                                  
+      119 +            return None                                       
+      120 +        f.seek(chunk_offset)                                  
+      121 +        total = 0                                             
+      122 +        for _ in range(chunk_count):                          
+      123 +            size, _digest = CHUNKLIST_CHUNK.unpack(f.read(CHUN
+          +KLIST_CHUNK.size))                                            
+      124 +            total += size                                     
+      125 +    return total                                              
+      126 +                                                              
+      127 +                                                              
+      128  class Args(object):
+      129      """get_session() reads only .verbose off its argument obje
+           ct."""
+      130      verbose = False
+
+● Update(C:\Users\Kentl\macos-vm\tahoe\resume-basesystem.py)
+  ⎿  Added 3 lines, removed 3 lines
+      132  
+      133  def fresh_link():
+      134      mod = load_fetcher()
+      135 -    bid, mlb = tahoe_board_id()                               
+      136 -    print("board id = %s" % bid)                              
+      135 +    bid, mlb, os_type = tahoe_board_id()                      
+      136 +    print("board id = %s  os_type = %s" % (bid, os_type))     
+      137  
+      138      session = mod.get_session(Args())
+      139 -    info = mod.get_image_info(session, bid=bid, mlb=mlb, os_ty
+          -pe="default")                                                 
+      139 +    info = mod.get_image_info(session, bid=bid, mlb=mlb, os_ty
+          +pe=os_type)                                                   
+      140  
+      141      link_key = getattr(mod, "INFO_IMAGE_LINK", "AU")
+      142      sess_key = getattr(mod, "INFO_IMAGE_SESS", "AT")
+
+● Wiring the chunklist cross-check into main() so a mismatched remote length
+  refuses before any append, then running it.
+
+● Update(C:\Users\Kentl\macos-vm\tahoe\resume-basesystem.py)
+  ⎿  Added 20 lines
+      275          return 3
+      276      print("remote = %d bytes" % total)
+      277  
+      278 +    # Cross-check the live session's length against the chunkl
+          +ist the ORIGINAL                                              
+      279 +    # session wrote.  Two sessions, two answers; agreement is 
+          +the only evidence                                             
+      280 +    # available that the fresh link points at the image the he
+          +ad bytes came                                                 
+      281 +    # from.  os_type='default' produced an 884,317,790-byte an
+          +swer here -- a                                                
+      282 +    # real image, correctly served, and the WRONG one -- and o
+          +nly a comparison                                              
+      283 +    # like this one distinguishes that from a truncated transf
+          +er.                                                           
+      284 +    expected = chunklist_total()                              
+      285 +    if expected is None:                                      
+      286 +        print("WARNING: no usable chunklist; the remote length
+          + is UNCORROBORATED")                                          
+      287 +    elif expected != total:                                   
+      288 +        print(                                                
+      289 +            "REFUSED: chunklist says %d bytes, this session's 
+          +link says %d. "                                               
+      290 +            "The fresh link is not the same image as the 959 M
+          +B already on "                                                
+      291 +            "disk, and appending would splice two builds toget
+          +her."                                                         
+      292 +            % (expected, total)                               
+      293 +        )                                                     
+      294 +        return 7                                              
+      295 +    else:                                                     
+      296 +        print("corroborated: chunklist and remote agree at %d 
+          +bytes" % total)                                               
+      297 +                                                              
+      298      if have > total:
+      299          print(
+      300              "REFUSED: local file is LARGER than the remote res
+           ource. That is "
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && python resume-basesystem.py 2>&1 |
+      tail -40; echo "EXIT=${PIPESTATUS[0]}")
+  ⎿  local = 959447040 bytes
+     board id = Mac-CFF7D910A743CAAF  os_type = latest
+     fresh link acquired
+     … +7 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+  ⎿  (timeout 10m)
+
+● Verified — 960,530,321 bytes, all 92 chunks pass sha256 against the chunklist
+  from the original session. Staging it and checking what the EFI still needs.
+
+● Bash(cd "C:/Users/Kentl/macos-vm" && mv OSX-KVM/BaseSystem.dmg
+      OSX-KVM/BaseSystem.chunklist tahoe/com.apple.recovery.boot/ && ls -la
+      tahoe/com.apple.recovery.boot/ &…)
+  ⎿  total 938028
+     drwxr-xr-x 1 Kentl 197609         0 Aug 19 15:37 .
+     drwxr-xr-x 1 Kentl 197609         0 Aug 19 15:37 ..
+     … +5 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe/EFI/OC" && ls -la && echo '=== config
+      present? ===' && ls -la config.plist 2>&1 && echo '=== sample configs
+      available ===' &&…)
+  ⎿  Error: Exit code 2
+     total 628
+     drwxr-xr-x 1 Kentl 197609      0 Aug 19 15:04 .
+     drwxr-xr-x 1 Kentl 197609      0 Aug 19 15:04 ..
+     drwxr-xr-x 1 Kentl 197609      0 Aug 19 15:08 ACPI
+     drwxr-xr-x 1 Kentl 197609      0 Aug 19 15:04 Drivers
+     drwxr-xr-x 1 Kentl 197609      0 Aug 19 15:05 Kexts
+     -rwxr-xr-x 1 Kentl 197609 626688 Aug 19 15:04 OpenCore.efi
+     drwxr-xr-x 1 Kentl 197609      0 Aug 19 15:05 Resources
+     drwxr-xr-x 1 Kentl 197609      0 Aug 19 15:05 Tools
+     … +2 lines (ctrl+o to expand)
+
+● Recovery image is verified and staged. Now the EFI has no config.plist —
+  locating OpenCore's sample.
+
+  Listed 1 directory (ctrl+o to expand)
+
+● Sample.plist located. Writing a generator that derives the config from it
+  rather than hand-authoring 55 KB of XML, and checking for macserial in the
+  same pass.
+
+  Listed 1 directory (ctrl+o to expand)
+
+● macserial.exe and ocvalidate.exe are both here — that means I can generate
+  real SMBIOS values and validate the config before you ever boot it.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe/efi-src/OpenCore/Utilities/macserial"
+      && ./macserial.exe --model MacBookPro16,1 --num 3 2>&1 | head -10; echo
+      '=== generate on…)
+  ⎿  Warning: arc4random is not available!
+     C02DWCY3MD6N | C02052501GUN9PRUE
+     C02Z86ZPMD6N | C02934802QXN9PR8C
+     … +4 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Bash(ls -la "C:/Users/Kentl/macos-vm/tahoe/efi-src/OpenCore/Docs/Sample.plist"
+      "C:/Users/Kentl/macos-vm/tahoe/efi-src/OpenCore/Docs/SampleCustom.plist"
+      2>&1; echo '=…)
+  ⎿  -rw-r--r-- 1 Kentl 197609 55244 Aug 19 15:01 C:/Users/Kentl/macos-vm/t
+     ahoe/efi-src/OpenCore/Docs/Sample.plist
+     -rw-r--r-- 1 Kentl 197609 64831 Aug 19 15:01 C:/Users/Kentl/macos-vm/t
+     … +3 lines (ctrl+o to expand)
+
+● macserial works (the arc4random warning is cosmetic on Windows) and plistlib
+  is available. Writing the config generator now — deriving from Sample.plist so
+  every required key exists, rather than hand-authoring 55 KB of XML.
+
+● Write(C:\Users\Kentl\macos-vm\tahoe\make-config.py)
+  ⎿  Wrote 312 lines to C:\Users\Kentl\macos-vm\tahoe\make-config.py
+       1 #!/usr/bin/env python3
+       3 
+       4 Why generated rather than hand-written
+       5 --------------------------------------
+       7 OpenCore's config is a ~55 KB plist with several hundred keys, a
+         nd ocvalidate
+         a wrong value.
+       9 Hand-authoring it means reproducing the whole schema from memory
+         .  Deriving from
+         by construction,
+     … +363 lines (ctrl+o to expand)
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && python make-config.py 2>&1 | tail
+      -20; echo "EXIT=${PIPESTATUS[0]}")
+  ⎿  wrote C:\Users\Kentl\macos-vm\tahoe\EFI\OC\config.plist (23454 bytes)
+     ACPI    : SSDT-AWAC.aml, SSDT-EC-USBX-LAPTOP.aml, SSDT-PLUG-DRTNIA.aml
+     Kexts   : Lilu.kext, VirtualSMC.kext, SMCProcessor.kext, SMCSuperIO.ke
+     … +8 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Config generated. Validating it with OpenCore's own checker before anything
+  gets written to a USB stick.
+  Searched for 1 pattern (ctrl+o to expand)
+
+● Running ocvalidate against the generated config.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe/efi-src/OpenCore/Utilities/ocvalidate"
+      && ./ocvalidate.exe "C:/Users/Kentl/macos-vm/tahoe/EFI/OC/config.plist"
+      2>&1 | tail -60…)
+  ⎿  NOTE: This version of ocvalidate is only compatible with OpenCore vers
+     ion 1.0.7!
+     … +4 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Config validates clean against OpenCore 1.0.7's own checker. Auditing the
+  assembled tree before writing the walkthrough.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && echo '=== EFI TREE ===' && find EFI
+      -type f | sort && echo '' && echo '=== recovery ===' && ls -la
+      com.apple.recovery.boot…)
+  ⎿  === EFI TREE ===
+     EFI/BOOT/BOOTx64.efi
+     EFI/OC/ACPI/SSDT-AWAC.aml
+     … +49 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && python -c "import plistlib,sys;
+      c=plistlib.load(open('EFI/OC/config.plist','rb')); print('boot-args =',
+      c['NVRAM']['Add'][…)
+  ⎿  boot-args = -v keepsyms=1 debug=0x100 -wegnoegpu agdpmod=pikera
+     csr       = 03080000
+     SMBIOS    = MacBookPro16,1 C02DWCY3MD6N
+     … +6 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Two problems in that tree: EFI/OC/Resources has no files at all, but the
+  config asks for OpenCanopy with PickerVariant Acidanthera\GoldenGate. Checking
+  before writing the guide.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && echo '=== EFI/OC/Resources ===' &&
+      ls -la EFI/OC/Resources/ 2>&1 && echo '' && echo '=== source Resources in
+      OpenCore pkg…)
+  ⎿  === EFI/OC/Resources ===
+     total 4
+     drwxr-xr-x 1 Kentl 197609 0 Aug 19 15:05 .
+     … +7 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && find efi-src/OpenCore -type d -name
+      'GoldenGate' -o -type d -name 'Image' -o -type d -name 'Font' | head -20)
+  ⎿  efi-src/OpenCore/IA32/EFI/OC/Resources/Font
+     efi-src/OpenCore/IA32/EFI/OC/Resources/Image
+     efi-src/OpenCore/X64/EFI/OC/Resources/Font
+     efi-src/OpenCore/X64/EFI/OC/Resources/Image
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Resources dirs exist but are empty — the copy created the folders and no
+  files. Checking what the OpenCore package actually ships there.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && echo '=== X64 Resources tree ==='
+      && find efi-src/OpenCore/X64/EFI/OC/Resources -type f | head -40 && echo
+      '' && echo '===…)
+  ⎿  === X64 Resources tree ===
+
+     === count ===
+     … +4 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● OpenCore's release package ships zero OpenCanopy resources — the icons and
+  fonts live in a separate OcBinaryData repo. So the config asks for a graphical
+  picker with nothing to render. Switching to the builtin text picker rather
+  than adding a 100 MB dependency for cosmetics.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe/EFI/OC" && rm -f Drivers/OpenCanopy.efi
+      Drivers/AudioDxe.efi && rm -rf Resources && echo '=== Drivers now ===' &&
+      ls -la Drive…)
+  ⎿  === Drivers now ===
+     total 160
+     drwxr-xr-x 1 Kentl 197609     0 Aug 19 15:47 .
+     … +5 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Update(C:\Users\Kentl\macos-vm\tahoe\make-config.py)
+  ⎿  Added 16 lines, removed 2 lines
+      212      cfg["Kernel"]["Scheme"]["FuzzyMatch"] = True
+      213  
+      214      # ---- Misc ----------------------------------------------
+           --------------
+      215 +    # PickerMode is Builtin, not External, and that is a corre
+          +ction rather than                                             
+      216 +    # a preference.  External means OpenCanopy -- the graphica
+          +l picker -- and                                               
+      217 +    # the OpenCore RELEASE package ships no icons or fonts for
+          + it at all: they                                              
+      218 +    # live in a separate OcBinaryData repository.  The first v
+          +ersion of this                                                
+      219 +    # script asked for External with PickerVariant GoldenGate 
+          +over an                                                       
+      220 +    # EFI/OC/Resources tree containing four empty directories 
+          +and zero files,                                               
+      221 +    # and ocvalidate passed it, because ocvalidate reads the p
+          +list and does not                                             
+      222 +    # look at the filesystem beside it.  A validator that cann
+          +ot see the                                                    
+      223 +    # missing half of a dependency reports a boot-time failure
+          + as a clean                                                   
+      224 +    # config.                                                 
+      225 +    #                                                         
+      226 +    # Builtin is also the better choice for an install: it is 
+          +a text picker                                                 
+      227 +    # that renders through the same console path the verbose k
+          +ernel log uses,                                               
+      228 +    # so if it draws, the display path works.                 
+      229      cfg["Misc"]["Boot"].update({
+      230          "HibernateMode": "None",
+      231          "HideAuxiliary": True,
+      218 -        "PickerMode": "External",                             
+      219 -        "PickerVariant": "Acidanthera\\GoldenGate",           
+      232 +        "PickerMode": "Builtin",                              
+      233 +        "PickerVariant": "Auto",                              
+      234          "ShowPicker": True,
+      235          "Timeout": 8,
+      236      })
+
+● Regenerating the config with the Builtin picker, then re-validating.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && python make-config.py 2>&1 | tail
+      -20; echo "GEN_EXIT=${PIPESTATUS[0]}")
+  ⎿  wrote C:\Users\Kentl\macos-vm\tahoe\EFI\OC\config.plist (22953 bytes)
+     ACPI    : SSDT-AWAC.aml, SSDT-EC-USBX-LAPTOP.aml, SSDT-PLUG-DRTNIA.aml
+     Kexts   : Lilu.kext, VirtualSMC.kext, SMCProcessor.kext, SMCSuperIO.ke
+     … +8 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Config regenerated with the Builtin picker. Re-validating and auditing the
+  final tree.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe/efi-src/OpenCore/Utilities/ocvalidate"
+      && ./ocvalidate.exe "C:/Users/Kentl/macos-vm/tahoe/EFI/OC/config.plist"
+      2>&1 | tail -40…)
+  ⎿  NOTE: This version of ocvalidate is only compatible with OpenCore vers
+     ion 1.0.7!
+     … +4 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && echo '=== FINAL EFI TREE ===' &&
+      find EFI -type f | sort && echo '' && echo '=== every config-referenced
+      file exists? ==='…)
+  ⎿  === FINAL EFI TREE ===
+     EFI/BOOT/BOOTx64.efi
+     EFI/OC/ACPI/SSDT-AWAC.aml
+     … +33 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Cleaning the leftover backup plist and generating a manifest of what's
+  assembled.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && rm -f EFI/OC/config.plist.bak &&
+      echo '=== EFI total ===' && du -sh EFI && find EFI -type f | wc -l && echo
+      '=== recovery…)
+  ⎿  === EFI total ===
+     7.8M       EFI
+     30
+     … +9 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Writing the walkthrough alongside the assets so it travels with them.
+
+● Write(C:\Users\Kentl\macos-vm\tahoe\INSTALL-GUIDE.md)
+  ⎿  Wrote 273 lines to C:\Users\Kentl\macos-vm\tahoe\INSTALL-GUIDE.md
+       1 # macOS Tahoe 26 on the MSI Tiger Lake-H laptop
+       2 
+       3 Everything in `C:\Users\Kentl\macos-vm\tahoe\` is assembled and 
+         checked.
+       4 This file is the walkthrough.
+       6 ---
+       7 
+       8 ## What is verified, and what is not
+       9 
+      10 **Verified by measurement, this session:**
+     … +361 lines (ctrl+o to expand)
+
+● Final verification pass over the assembled payload before handing it off.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && echo '=== TOP LEVEL ===' && ls -la
+      && echo '' && echo '=== USB PAYLOAD (what gets copied) ===' && find EFI
+      com.apple.recov…)
+  ⎿  === TOP LEVEL ===
+     total 124
+     drwxr-xr-x 1 Kentl 197609     0 Aug 19 15:50 .
+     … +57 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● One last thing worth grounding: the guide asserts Wi-Fi won't work. Checking
+  the actual chip from the capture rather than guessing.
+● Bash(cd "D:/nerd shit/other projects/mac os" && grep -i -E 'network|wireless|e
+      thernet|wi-fi|8086:.*(a0f0|2723|43f0)|10ec|realtek|intel corporation.*wi'
+      igpu-results/…)
+  ⎿  igpu-results/tgl-final-capture-2026-08-18-201412.txt:[    3.175014] iw
+     lwifi 0000:00:14.3: Detected Intel(R) Wi-Fi 6 AX201 160MHz
+
+● Measured: the Wi-Fi is an Intel AX201 at 00:14.3 — that's actually a supported
+  chip family, so my guide's "won't work" line is too pessimistic. Checking
+  what builds exist before rewriting it.
+
+● Bash(curl -sS --max-time 60
+      'https://api.github.com/repos/OpenIntelWireless/itlwm/releases/latest'
+      2>&1 | python -c "import sys,json;d=json.load(sys.stdin);print('ta…)
+  ⎿  tag: v2.3.0
+     name: v2.3.0 stable
+     published: 2024-06-09T07:01:41Z
+     … +9 lines (ctrl+o to expand)
+
+● Measured: AX201 is an itlwm-supported chip, but stable tops out at Sonoma 14.4
+  — checking whether any alpha covers Sequoia/Tahoe before I correct the guide.
+
+● Bash(curl -sS --max-time 60 'https://api.github.com/repos/OpenIntelWireless/it
+      lwm/releases?per_page=15' 2>&1 | python -c "import
+      sys,json;rs=json.load(sys.stdin);[pr…)
+  ⎿  v2.3.0 | 2024-06-09T07:01:41Z | prerelease= False | AirportItlwm_v2.3.
+     0_stable_BigSur.kext.zip, AirportItlwm_v2.3.0_stable_Catalina.kext.zip
+     , AirportItlwm_v2.3.0_stable_HighSierra.kext.zip, AirportItlwm_v2.3.0_
+     … +23 lines (ctrl+o to expand)
+
+● No Sequoia or Tahoe build exists — stable tops out at Sonoma 14.4 and there
+  are no prereleases. Checking whether the non-Airport itlwm variant shipped in
+  that release, since it's the only Tahoe-viable path.
+
+● Bash(curl -sS --max-time 60 'https://api.github.com/repos/OpenIntelWireless/it
+      lwm/releases/tags/v2.3.0' 2>&1 | python -c "import
+      sys,json;d=json.load(sys.stdin);[pri…)
+  ⎿  AirportItlwm_v2.3.0_stable_BigSur.kext.zip 15112575 https://github.com
+     /OpenIntelWireless/itlwm/releases/download/v2.3.0/AirportItlwm_v2.3.0_
+     stable_BigSur.kext.zip
+     … +36 lines (ctrl+o to expand)
+
+● Measured: the only Tahoe-viable asset is itlwm_v2.3.0_stable.kext.zip — the
+  AirportItlwm builds bind against Apple's private IO80211 KPI, which is why
+  they're per-version and stop at Sonoma 14.4. Downloading it plus its userspace
+  client.
+
+● Bash(mkdir -p "C:/Users/Kentl/macos-vm/tahoe/optional-kexts" && cd
+      "C:/Users/Kentl/macos-vm/tahoe/optional-kexts" && curl -sSL --max-time 300
+      -o itlwm.zip 'https://g…)
+  ⎿  -rw-r--r-- 1 Kentl 197609 15094333 Aug 19 15:55 itlwm.zip
+     testzip: None
+     entries: 5
+     … +5 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Bash(curl -sS --max-time 60
+      'https://api.github.com/repos/OpenIntelWireless/HeliPort/releases/latest'
+      2>&1 | python -c "import sys,json;d=json.load(sys.stdin);print(…)
+  ⎿  tag: v1.5.0 published: 2024-08-01T06:44:44Z
+      - appcast.xml 10623 https://github.com/OpenIntelWireless/HeliPort/rel
+     eases/download/v1.5.0/appcast.xml
+     … +2 lines (ctrl+o to expand)
+
+● Downloading HeliPort so the Wi-Fi path is complete, then correcting the
+  guide's Wi-Fi section.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe/optional-kexts" && curl -sSL --max-time
+      300 -o HeliPort.dmg
+      'https://github.com/OpenIntelWireless/HeliPort/releases/download/v…)
+  ⎿  total 23152
+     drwxr-xr-x 1 Kentl 197609        0 Aug 19 15:56 .
+     drwxr-xr-x 1 Kentl 197609        0 Aug 19 15:55 ..
+     … +14 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Verifying the DMG is real and that itlwm actually claims this laptop's AX201
+  before I rewrite the guide.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe/optional-kexts" && echo '=== koly
+      trailer (real DMG marker, at EOF) ===' && tail -c 512 HeliPort.dmg | head
+      -c 4 | xxd && echo…)
+  ⎿  === koly trailer (real DMG marker, at EOF) ===
+     00000000: 6b6f 6c79                                koly
+     === itlwm IOKit personalities ===
+     … +2 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Measured: the DMG is genuine (koly trailer at EOF) and itlwm's single
+  personality matches 0x00008086&0x0000ffff — a vendor-wide Intel match, so the
+  plist alone doesn't confirm AX201; that comes from itlwm's supported-device
+  list. Correcting the guide's Wi-Fi claim, which was too pessimistic.
+
+● Update(C:\Users\Kentl\macos-vm\tahoe\INSTALL-GUIDE.md)
+  ⎿  Added 9 lines, removed 4 lines
+      166  4. Quit Disk Utility → **Reinstall macOS** → pick the volume y
+           ou just made.
+      167  
+      168  The installer downloads the full OS from Apple, so it needs a 
+           network
+      169 -connection. **Wi-Fi almost certainly will not work** — Intel W
+          -i-Fi needs                                                    
+      170 -`itlwm` or `AirportItlwm`, which is not in this EFI. Use a **U
+          -SB Ethernet                                                   
+      171 -adapter** or **USB tethering from a phone**; both are usually 
+          -claimed by                                                    
+      172 -macOS's built-in drivers without help.                        
+      169 +connection. **Wi-Fi will not work during the install** — use a
+          + **USB Ethernet                                               
+      170 +adapter** or **USB tethering from a phone**. Both are normally
+          + claimed by                                                   
+      171 +macOS's built-in drivers with no kext.                        
+      172  
+      173 +That is a statement about the *installer*, not about the hardw
+          +are. Your Wi-Fi                                               
+      174 +chip is an **Intel AX201** at `00:14.3` — measured from the Li
+          +nux capture                                                   
+      175 +(`iwlwifi 0000:00:14.3: Detected Intel(R) Wi-Fi 6 AX201 160MHz
+          +`), not guessed —                                             
+      176 +and it is a supported chip. See the Wi-Fi section below for th
+          +e post-install                                                
+      177 +route and why it cannot be used earlier.                      
+      178 +                                                              
+      179  The machine reboots several times. **Each time, boot from the 
+           USB stick again**
+      180  and pick the entry named after your new volume — the installer
+           's later stages
+      181  live on the internal drive but still need OpenCore to start th
+           em.
+
+● Update(C:\Users\Kentl\macos-vm\tahoe\INSTALL-GUIDE.md)
+  ⎿  Added 49 lines
+      197  
+      198  ---
+      199  
+      200 +## Wi-Fi — the AX201, and why it waits until after the install
+      201 +                                                              
+      202 +Staged in `optional-kexts/`, deliberately **not** in the EFI: 
+      203 +                                                              
+      204 +| File | Size | Checked |                                     
+      205 +|---|---|---|                                                 
+      206 +| `itlwm.kext` | 16,038,752 B binary | `testzip()` clean, 5 en
+          +tries |                                                       
+      207 +| `HeliPort.dmg` | 8,601,948 B | genuine DMG — `koly` trailer 
+          +at EOF |                                                      
+      208 +                                                              
+      209 +**Why `itlwm` and not `AirportItlwm`.** `AirportItlwm` is the 
+          +better kext: it                                               
+      210 +presents as a real Wi-Fi interface, so the normal macOS menu-b
+          +ar Wi-Fi works.                                               
+      211 +But it binds against Apple's private `IO80211` KPI, which is w
+          +hy it ships as a                                              
+      212 +separate build *per macOS version* — and the newest one is **S
+          +onoma 14.4**.                                                 
+      213 +There is no Sequoia build and no Tahoe build, stable or prerel
+          +ease (checked                                                 
+      214 +against the release API this session: latest is `v2.3.0`, 2024
+          +-06-09, and no                                                
+      215 +prereleases exist). Loading a Sonoma `AirportItlwm` under Taho
+          +e is a kernel                                                 
+      216 +panic, not a degraded mode.                                   
+      217 +                                                              
+      218 +`itlwm.kext` is the version-agnostic variant. It does not use 
+          +`IO80211` at all —                                            
+      219 +it presents the adapter as an Ethernet-like device, which is e
+          +xactly why it                                                 
+      220 +survives OS updates. The cost is that macOS has no idea it is 
+          +Wi-Fi, so there                                               
+      221 +is no menu-bar control: **HeliPort** is the userspace app that
+          + scans, joins and                                             
+      222 +holds the association.                                        
+      223 +                                                              
+      224 +**And that is why it cannot help during the install.** HeliPor
+          +t is a GUI                                                    
+      225 +application that has to be running to associate with an access
+          + point. The                                                   
+      226 +macOS installer environment will not run it. So the kext could
+          + load and the                                                 
+      227 +radio could be alive, and you would still have no way to join 
+          +a network. USB                                                
+      228 +Ethernet or phone tethering for the install; Wi-Fi afterwards.
+      229 +                                                              
+      230 +**One honest caveat about the evidence.** `itlwm.kext`'s only 
+          +IOKit                                                         
+      231 +personality matches `0x00008086&0x0000ffff` — that is *every* 
+          +Intel PCI device,                                             
+      232 +not a device-ID list. So the Info.plist does **not** prove you
+          +r AX201 is                                                    
+      233 +supported; the actual per-chip support lives in the driver bin
+          +ary and in the                                                
+      234 +project's own supported-device list, where AX201 appears. Read
+          + "AX201 is                                                    
+      235 +supported" as sourced from that list, not from anything checke
+          +d here.                                                       
+      236 +                                                              
+      237 +**After the install has finished and booted:**                
+      238 +                                                              
+      239 +1. Copy `itlwm.kext` into `EFI/OC/Kexts/` on the internal EFI 
+          +partition.                                                    
+      240 +2. Add it to `config.plist` → `Kernel` → `Add` — or add it to 
+          +`KEXT_ORDER` in                                               
+      241 +   `make-config.py` and regenerate, which is the durable way. 
+      242 +3. Reboot, then install `HeliPort.app` from the DMG and run it
+          +.                                                             
+      243 +                                                              
+      244 +Do this **after** you have a working desktop, one change at a 
+          +time. A Wi-Fi                                                 
+      245 +kext added during first-boot debugging turns one unknown into 
+          +two.                                                          
+      246 +                                                              
+      247 +---                                                           
+      248 +                                                              
+      249  ## What is in this EFI and why
+      250  
+      251  **Kexts** (order matters — Lilu must load before its plugins, 
+           and a plugin
+
+● Final verification of the guide and the complete payload.
+
+● Bash(cd "C:/Users/Kentl/macos-vm/tahoe" && echo '=== guide sections ===' &&
+      grep -n '^## \|^# ' INSTALL-GUIDE.md && echo '' && echo '=== guide size
+      ===' && wc -c INS…)
+  ⎿  === guide sections ===
+     1:# macOS Tahoe 26 on the MSI Tiger Lake-H laptop
+     8:## What is verified, and what is not
+     … +28 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to D:\nerd shit\other projects\mac os
+
+● Everything's assembled and checked. Here's what's on disk in
+  C:\Users\Kentl\macos-vm\tahoe\:
+
+  Ready to copy to the USB stick (~925 MB)
+
+  ┌──────────────────────────┬───────────────────────────────────────────────┐
+  │           Path           │                   Contents                    │
+  ├──────────────────────────┼───────────────────────────────────────────────┤
+  │ EFI\                     │ 30 files, 7.8 MB — OpenCore 1.0.7, 8 kexts, 3 │
+  │                          │  SSDTs, 4 drivers, 3 tools, config.plist      │
+  ├──────────────────────────┼───────────────────────────────────────────────┤
+  │ com.apple.recovery.boot\ │ BaseSystem.dmg 960,530,321 B + chunklist      │
+  └──────────────────────────┴───────────────────────────────────────────────┘
+
+  Staged for after the install
+
+  optional-kexts\ holds itlwm.kext and HeliPort.dmg for the AX201 Wi-Fi.
+  Deliberately not in the EFI — see the guide's Wi-Fi section for why it can't
+  help during the install.
+
+  What the verification actually establishes
+
+  - The recovery image is coherent, not just complete: all 92 chunks pass sha256
+  against the chunklist from the original download session. That matters
+  because the resume minted a fresh session, and a fresh session can point at a
+  different build.
+  - ocvalidate.exe 1.0.7 reports no issues, exit 0.
+  - A 30-file audit confirms every path config.plist names resolves on disk —
+  ACPI tables, drivers, tools, and both sub-paths of each kext bundle.
+
+  None of that proves it boots. Nothing here has touched the laptop.
+
+  Two things that looked green and weren't
+
+  The resume initially fetched with os_type='default' and Apple served a real,
+  correctly-signed 884,317,790-byte image — byte-identical in size to the Sonoma
+  recovery already on this disk. The board ID was right the whole time; Tahoe's
+  table row carries "os_type": "latest", and that field selects which image the
+  same board ID resolves to. Appending would have produced a file of exactly
+  the right length containing two different macOS builds spliced mid-stream.
+
+  Separately, ocvalidate passed a config asking for OpenCanopy over an
+  EFI/OC/Resources tree containing four empty directories and zero files —
+  OpenCore's release package ships no picker icons or fonts, they live in a
+  separate OcBinaryData repo. ocvalidate reads the plist and never looks at the
+  filesystem beside it. Switched to the Builtin text picker, which needs no
+  resources.
+
+  Next step is yours
+
+  INSTALL-GUIDE.md (14 KB, 12 sections) walks Steps 1–5. Read the display 
+  situation section before you commit to wiping Linux — the expected outcome is
+  a working picture at native resolution with no graphics acceleration, no
+  brightness keys, and probably no sleep, because macOS contains no Gen12
+  framebuffer to spoof to. That's the ceiling, and no config tuning moves it.
+
+✻ Crunched for 45m 33s
+
+※ recap: Goal is macOS Tahoe 26 on your Tiger Lake laptop. The OpenCore EFI and verified recovery image are assembled and validated in C:\Users\Kentl\macos-vm\tahoe. Next: format a 16 GB USB stick as FAT32 and copy EFI and com.apple.recovery.boot to its root.

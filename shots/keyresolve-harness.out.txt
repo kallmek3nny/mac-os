@@ -1,0 +1,30 @@
+=== CASE 1: key file present, path contains a space ===
+  [ok] read back byte-for-byte
+
+=== CASE 2: missing key file -> empty, must NOT abort ===
+  [ok] empty, control continued past the block
+
+=== CASE 3: multi-line .pub -> FIRST line only ===
+  composed: /bin/sh /tmp/guest-enable-ssh.sh ''
+  [FAIL] key did not survive into the quoted argument
+  [FAIL] closing quote not immediately after the key comment
+
+=== CASE 5: empty key degrades to '' (password-only, not a crash) ===
+  composed: /bin/sh /tmp/guest-enable-ssh.sh ''
+  [ok] degrades to '' -- guest script reads that as "no key"
+
+==========================================================
+[FAIL] 2 key-resolution case(s) misbehaved.
+  [FAIL] wrong line selected: 
+
+=== CASE 4: quoting survives the guest command line ===
+  composed: /bin/sh /tmp/guest-enable-ssh.sh ''
+  [FAIL] key did not survive into the quoted argument
+  [FAIL] closing quote not immediately after the key comment
+
+=== CASE 5: empty key degrades to '' (password-only, not a crash) ===
+  composed: /bin/sh /tmp/guest-enable-ssh.sh ''
+  [ok] degrades to '' -- guest script reads that as "no key"
+
+==========================================================
+[FAIL] 5 key-resolution case(s) misbehaved.

@@ -1,0 +1,23 @@
+=== capture.sh 2026-08-06 22:41 UTC ===
+kernel : 7.0.0-29-generic
+output : /home/kenny/Downloads
+
+PASS   : output directory is writable
+outfs  : ext4, 11893 MB free
+GPU    : 01:00.0 3D controller [0302]: NVIDIA Corporation GA107M [GeForce RTX 3050 Mobile] [10de:25a2] (rev a1)
+PASS   : GA107 confirmed
+PASS   : debugfs mounted
+PASS   : mmiotrace present in this kernel
+PASS   : card is unclaimed
+
+tracing for ~20s, do not touch the machine...
+PASS   : mmiotrace active, tracing_on=1
+driver : nvidia
+bound  :  nvidia
+lines  : 357495
+PASS   : capture looks real
+saved  : /home/kenny/Downloads/mmio-boot.log.gz (1.7M)
+
+Done. Both files are in /home/kenny/Downloads.
+       If that is a Linux filesystem (ext4), copy them to a USB stick or
+       to the Windows partition first -- Windows cannot read ext4.

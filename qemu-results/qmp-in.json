@@ -1,0 +1,3 @@
+{"execute":"qmp_capabilities"}
+{"execute":"query-pci"}
+{"execute":"quit"}

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>NV3050Probe</string>
+	<key>CFBundleIdentifier</key>
+	<string>local.nv3050.NV3050Probe</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>NV3050Probe</string>
+	<key>CFBundlePackageType</key>
+	<string>KEXT</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>0.1.0</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>OSBundleLibraries</key>
+	<dict>
+		<key>com.apple.iokit.IOGraphicsFamily</key>
+		<string>2.0</string>
+		<key>com.apple.iokit.IOPCIFamily</key>
+		<string>2.9</string>
+		<key>com.apple.kpi.iokit</key>
+		<string>19.0</string>
+		<key>com.apple.kpi.libkern</key>
+		<string>19.0</string>
+		<key>com.apple.kpi.mach</key>
+		<string>19.0</string>
+		<key>com.apple.kpi.unsupported</key>
+		<string>19.0</string>
+	</dict>
+	<key>IOKitPersonalities</key>
+	<dict>
+		<key>NV3050Probe</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>local.nv3050.NV3050Probe</string>
+			<key>IOClass</key>
+			<string>NV3050Probe</string>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+			<!-- Confirmed against the target laptop on 2026-08-06:
+			       01:00.0 3D controller [0302]
+			       NVIDIA GA107M [GeForce RTX 3050 Mobile] [10de:25a2] rev a1
+
+			     IOPCIMatch encodes (device << 16) | vendor, so 10de:25a2
+			     becomes 0x25a210de. This is now an exact match rather than
+			     the vendor-wide wildcard it started as. That wildcard would
+			     have claimed any NVIDIA card, which matters if this kext ever
+			     loads on a machine other than the target laptop.
+
+			     probe() still rejects non-display functions as a second
+			     filter; see NV3050Probe.cpp. Note the class here is 0x0302
+			     (3D controller), NOT 0x0300 (VGA controller). That is the
+			     muxless signature, and probe() checks base class 0x03 only,
+			     so it accepts both.
+
+			     Do not write a double hyphen anywhere in this comment. XML
+			     forbids it inside comments, and plutil/plistlib reject the
+			     whole file with a parse error that does not name the line. -->
+			<key>IOPCIMatch</key>
+			<string>0x25a210de</string>
+			<!-- Outbid IOPCIFamily's generic driver, which would otherwise
+			     claim the device before we get a chance. -->
+			<key>IOProbeScore</key>
+			<integer>100000</integer>
+		</dict>
+		<key>IntelDisplayProbe</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>local.nv3050.NV3050Probe</string>
+			<key>IOClass</key>
+			<string>IntelDisplayProbe</string>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+			<!-- The Gen12 display track's personality. Same bundle as the
+			     NVIDIA one on purpose: a bundle is the unit macOS loads, so
+			     two bundles would mean two Info.plists, two signatures and
+			     two kextload steps for what is one project. The
+			     CFBundleIdentifier above must therefore be the BUNDLE's id,
+			     not a per personality one.
+
+			     0x9a688086 is (device << 16) | vendor for 8086:9A68, which
+			     is the one Intel part this project has ever seen on real
+			     silicon: the 2026-08-16 Linux boot on the target laptop
+			     (igpu-results/tgl-capture-2026-08-16-022556.txt). Every
+			     other TGL id in INTEL-DEVICE-IDS.md rests on the vendored
+			     i915 table alone, so only the observed one is matched here.
+			     tools/check-kext-personalities.py parses that document and
+			     refuses any id it does not attribute to TGL.
+
+			     probe() re reads the device id from config space and asks
+			     IntelGpuId.hpp rather than trusting this string, because a
+			     plist is data an operator can edit and nothing on the target
+			     enforces the host side checker.
+
+			     Do not write a double hyphen anywhere in this comment. XML
+			     forbids it inside comments, and plutil/plistlib reject the
+			     whole file with a parse error that does not name the line. -->
+			<key>IOPCIMatch</key>
+			<string>0x9a688086</string>
+			<!-- Added 2026-08-20, when IntelFbPresentProbe became a SECOND
+			     personality matching this same provider. Without a category on
+			     BOTH, IOKit treats the provider's default category as exclusive
+			     and exactly one of the two Intel personalities attaches, with
+			     probe score deciding which. That failure is invisible in the way
+			     this project cares about: the kext loads, one driver appears in
+			     the IORegistry, and the missing one is indistinguishable from a
+			     broken probe(). Setting it on only the new personality is the
+			     shape that reads as fixed and is not, because a category is a
+			     property of the personality that declares it. -->
+			<key>IOMatchCategory</key>
+			<string>IntelDisplayProbe</string>
+			<!-- Lower than the NVIDIA personality's score, and deliberately
+			     so: this shell only READS state firmware already programmed,
+			     so it has no business outbidding a real display driver. It
+			     still exceeds IOPCIFamily's generic score of 0. -->
+			<key>IOProbeScore</key>
+			<integer>1000</integer>
+		</dict>
+		<key>IntelFbPresentProbe</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>local.nv3050.NV3050Probe</string>
+			<key>IOClass</key>
+			<string>IntelFbPresentProbe</string>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+			<!-- The Gen12 inherited framebuffer presenter, and the first
+			     IOFramebuffer subclass in this bundle. Same bundle id as the
+			     other two for the reason spelled above: a bundle is the unit
+			     macOS loads.
+
+			     Same observed device id as IntelDisplayProbe, 8086:9A68, and
+			     for the same reason: it is the one Intel part this project has
+			     ever seen on real silicon. Two personalities on one id is not a
+			     conflict, because IOMatchCategory below puts them in separate
+			     categories and IOKit will attach both.
+
+			     IOMatchCategory is the load bearing key here and neither of the
+			     other two personalities needs it. Without it IOKit treats the
+			     provider's default category as exclusive, so exactly ONE of the
+			     two Intel personalities attaches and which one wins is decided
+			     by probe score. That failure is invisible in the way this
+			     project cares about: the kext loads, one driver appears in the
+			     IORegistry, and the missing one looks like a broken probe()
+			     rather than a plist that never offered it a slot.
+
+			     The score is below IntelDisplayProbe's on purpose. This class
+			     ADOPTS a scanout rather than describing registers, so if only
+			     one Intel driver can ever attach on a given machine the read
+			     only reporter is the one worth having. It still exceeds
+			     IOPCIFamily's generic score of 0.
+
+			     Do not write a double hyphen anywhere in this comment. XML
+			     forbids it inside comments, and plutil/plistlib reject the
+			     whole file with a parse error that does not name the line. -->
+			<key>IOPCIMatch</key>
+			<string>0x9a688086</string>
+			<key>IOMatchCategory</key>
+			<string>IntelFbPresentProbe</string>
+			<key>IOProbeScore</key>
+			<integer>900</integer>
+			<!-- IntelDisplayProbe carries a matching IOMatchCategory of its own.
+			     Both are required: a category is a property of the personality
+			     that declares it, so setting it on ONE of two personalities
+			     sharing a provider leaves the other in the provider's default
+			     category and back in the exclusive slot this key exists to
+			     escape. One sided is the shape that reads as fixed and is not. -->
+		</dict>
+	</dict>
+	<key>OSBundleRequired</key>
+	<string>Local-Root</string>
+</dict>
+</plist>

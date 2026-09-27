@@ -1,0 +1,20 @@
+=== CASE 1: key file present, path contains a space ===
+  [ok] read back byte-for-byte
+
+=== CASE 2: missing key file -> empty, must NOT abort ===
+  [ok] empty, control continued past the block
+
+=== CASE 3: multi-line .pub -> FIRST line only ===
+  [ok] first line kept, second ignored
+
+=== CASE 4: quoting survives the guest command line ===
+  composed: /bin/sh /tmp/guest-enable-ssh.sh 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPFGC+QqUOIS/ZqcceE8rN1uQzFwNKE08XGOtCgNTb3T kentl-windows'
+  [ok] key is inside the single-quoted argument, spaces intact
+  [ok] argument closes correctly after the trailing comment
+
+=== CASE 5: empty key degrades to '' (password-only, not a crash) ===
+  composed: /bin/sh /tmp/guest-enable-ssh.sh ''
+  [ok] degrades to '' -- guest script reads that as "no key"
+
+==========================================================
+[PASS] all key-resolution cases behave as specified.

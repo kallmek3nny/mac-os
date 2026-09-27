@@ -1,0 +1,4 @@
+window : Sonoma - VMware Workstation (hwnd 67505164)
+key    : esc (0 modifiers)
+dry-run: nothing injected
+exit   : 0

@@ -1,0 +1,55 @@
+//
+//  IOBufferMemoryDescriptor.h -- minimal stand-in.
+//
+//  NOT APPLE'S HEADER. See IOTypes.h for the full caveat.
+//
+//  Added for Phase 5: NV3050Probe::loadGspFirmware() allocates a physically
+//  contiguous, 256-byte-aligned kernel buffer for the GSP bootloader blob and
+//  hands its physical address to NVGspBoot.hpp. Only the four members that call
+//  site actually uses are declared -- inTaskWithPhysicalMask(), getBytesNoCopy(),
+//  getCapacity() and prepare()/complete() -- because a wider stub would let a
+//  wrong argument list through the one gate that can see it.
+//
+
+#ifndef NVSHIM_IOKIT_IOBUFFERMEMORYDESCRIPTOR_H
+#define NVSHIM_IOKIT_IOBUFFERMEMORYDESCRIPTOR_H
+
+#include <IOKit/IOTypes.h>
+#include <IOKit/IOMemoryDescriptor.h>
+
+//
+// Apple spells these in <IOKit/IOMemoryDescriptor.h> via mach headers. The
+// values are irrelevant to a syntax parse; what matters is that the driver
+// passes kIODirectionOut where Apple expects a direction and not, say, a
+// map option.
+//
+#define kIODirectionNone  0x0
+#define kIODirectionIn    0x1
+#define kIODirectionOut   0x2
+#define kIODirectionOutIn 0x3
+
+#define kIOMemoryPhysicallyContiguous 0x00000010
+
+class IOBufferMemoryDescriptor : public IOMemoryDescriptor {
+public:
+    //
+    //  capacity is mach_vm_size_t in Apple's header, not mach_vm_address_t, and
+    //  getCapacity() returns vm_size_t rather than IOByteCount. Both alias to
+    //  unsigned long long on LP64, so neither is a live defect -- they are
+    //  corrected so the table in SIGNATURES.md can say MATCHES without an
+    //  exception nobody would re-check. See SIGNATURES.md.
+    //
+    static IOBufferMemoryDescriptor *inTaskWithPhysicalMask(
+        task_t inTask,
+        IOOptionBits options,
+        mach_vm_size_t capacity,
+        mach_vm_address_t physicalMask);
+
+    virtual void     *getBytesNoCopy(void);
+    virtual vm_size_t getCapacity(void) const;
+
+    virtual IOReturn prepare(IODirection forDirection = kIODirectionNone);
+    virtual IOReturn complete(IODirection forDirection = kIODirectionNone);
+};
+
+#endif // NVSHIM_IOKIT_IOBUFFERMEMORYDESCRIPTOR_H

@@ -1,0 +1,23 @@
+-- Configuring done (0.1s)
+-- Generating done (0.1s)
+-- Build files have been written to: D:/nerd shit/other projects/mac os/tests/build
+ninja: no work to do.
+
+=== running tests ===
+Test project D:/nerd shit/other projects/mac os/tests/build
+    Start 1: test_decode
+1/6 Test #1: test_decode ......................   Passed    0.04 sec
+    Start 2: test_falcon
+2/6 Test #2: test_falcon ......................   Passed    0.03 sec
+    Start 3: test_riscv_ucode
+3/6 Test #3: test_riscv_ucode .................   Passed    0.03 sec
+    Start 4: test_gsp_boot
+4/6 Test #4: test_gsp_boot ....................   Passed    0.03 sec
+    Start 5: test_gsp_stage
+5/6 Test #5: test_gsp_stage ...................   Passed    0.03 sec
+    Start 6: test_intel_display
+6/6 Test #6: test_intel_display ...............   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 6
+
+Total Test time (real) =   0.21 sec

@@ -1,0 +1,15 @@
+=== _vm-type-elevated.cmd ===
+args: 
+elevation: NOT ELEVATED -- injection will silently no-op
+--- delivery probe ---
+block: held_by_other=True  (BlockInput(F) ret=False err=5)
+  inject target=(1844, 153) -> landed=(1884, 153)   sent=1 err=0  lastinput_advanced=False  on_target=False  DELIVERED=False
+---
+cursor samples      : [(1884, 153)]
+cursor changed      : False  (physical input observed = False)
+VERDICT             : injection is NOT delivering
+  Do not read vm-type.py's 'N event group(s) accepted by SendInput' line as delivery while this says NOT delivering -- SendInput accepting events is not delivery. (It printed 'result : injected' before 2026-08-07; that claim was removed because it was measurably false at Medium integrity.)
+probe exit: 1
+ABORTED: injection is not delivering even elevated. Do NOT read
+vm-type.py's "accepted by SendInput" count as delivery.
+Diagnose before retrying.

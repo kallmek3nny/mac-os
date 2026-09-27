@@ -1,0 +1,27 @@
+=== building stub vmrun at C:\Users\Kentl\AppData\Local\Temp\_fake-vmrun.cmd ===
+
+=== CASE 1: checkToolsState = running ===
+  exit = 0  (expected 0)
+  [ok]
+
+=== CASE 2: checkToolsState = unknown ===
+[TOOLS] checkToolsState = "unknown" at case 2 (unknown) -- expected 'running'.
+  exit = 1  (expected 1)
+  [ok]
+
+=== CASE 3: checkToolsState = installed (post-teardown) ===
+[TOOLS] checkToolsState = "installed" at case 3 (installed) -- expected 'running'.
+  exit = 1  (expected 1)
+  [ok]
+
+=== CASE 4: checkToolsState = RUNNING (case folding) ===
+  exit = 0  (expected 0, /i comparison)
+  [ok]
+
+=== CASE 5: called from inside an if-block, nested errorlevel test ===
+[TOOLS] checkToolsState = "installed" at case 5 (nested) -- expected 'running'.
+  nested result = drop-detected  (expected drop-detected)
+  [ok]
+
+==========================================================
+[PASS] all 5 :toolsguard cases behave as specified.

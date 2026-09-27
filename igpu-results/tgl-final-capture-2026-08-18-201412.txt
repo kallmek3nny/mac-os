@@ -1,0 +1,1529 @@
+igpu-final-capture 20260818-201412 UTC
+script    igpu-final-capture.sh
+kernel    Linux kenny-linus 7.0.0-29-generic #29-Ubuntu SMP PREEMPT_DYNAMIC Fri Jul 17 20:52:35 UTC 2026 x86_64 GNU/Linux
+distro    PRETTY_NAME="Ubuntu 26.04 LTS" NAME="Ubuntu" 
+
+==== PROVENANCE ====
+pci       /sys/bus/pci/devices/0000:00:02.0
+vendor    0x8086
+device    0x9a68
+subsystem 0x1462:0x132e
+revision  0x01
+class     0x030000
+driver    i915
+enable    1
+lockdown  [none] integrity confidentiality
+secureboot SecureBoot disabled
+cmdline   BOOT_IMAGE=/boot/vmlinuz-7.0.0-29-generic root=UUID=84a589c9-2256-4b8c-878b-09e08e126709 ro quiet splash crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M modprobe.blacklist=nvidia,nvidia_drm,nvidia_modeset,nvidia_uvm,nouveau
+iomem-cap 1
+
+---- BAR layout (sysfs resource lines: start end flags) ----
+0x0000006102000000 0x0000006102ffffff 0x0000000000140204
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x0000004000000000 0x000000400fffffff 0x000000000014220c
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x0000000000005000 0x000000000000503f 0x0000000000040101
+0x0000000000000000 0x0000000000000000 0x0000000000000000
+0x00000000000c0000 0x00000000000dffff 0x0000000000000212
+0x0000004010000000 0x0000004016ffffff 0x0000000000140204
+resource0 bytes = 16777216
+
+---- lspci ----
+00:02.0 VGA compatible controller [0300]: Intel Corporation TigerLake-H GT1 [UHD Graphics] [8086:9a68] (rev 01)
+00:02.0 VGA compatible controller: Intel Corporation TigerLake-H GT1 [UHD Graphics] (rev 01) (prog-if 00 [VGA controller])
+	DeviceName: Onboard - Video
+	Subsystem: Micro-Star International Co., Ltd. [MSI] Device 132e
+	Control: I/O+ Mem+ BusMaster+ SpecCycle- MemWINV- VGASnoop- ParErr- Stepping- SERR- FastB2B- DisINTx+
+	Status: Cap+ 66MHz- UDF- FastB2B- ParErr- DEVSEL=fast >TAbort- <TAbort- <MAbort- >SERR- <PERR- INTx-
+	Latency: 0, Cache Line Size: 64 bytes
+	Interrupt: pin A routed to IRQ 173
+	IOMMU group: 0
+	Region 0: Memory at 6102000000 (64-bit, non-prefetchable) [size=16M]
+	Region 2: Memory at 4000000000 (64-bit, prefetchable) [size=256M]
+	Region 4: I/O ports at 5000 [size=64]
+	Expansion ROM at 000c0000 [virtual] [disabled] [size=128K]
+	Capabilities: [40] Vendor Specific Information: Intel Capabilities v1
+		CapA: Peg60Dis- Peg12Dis- Peg11Dis- Peg10Dis- PeLWUDis- DmiWidth=x4
+		      EccDis- ForceEccEn- VTdDis- DmiG2Dis- PegG2Dis- DDRMaxSize=Unlimited
+		      1NDis- CDDis- DDPCDis- X2APICEn- PDCDis- IGDis- CDID=0 CRID=0
+		      DDROCCAP+ OCEn+ DDRWrtVrefEn- DDR3LEn-
+		CapB: ImguDis- OCbySSKUCap- OCbySSKUEn- SMTCap- CacheSzCap 0x0
+		      SoftBinCap- DDR3MaxFreqWithRef100=Disabled PegG3Dis-
+		      PkgTyp- AddGfxEn- AddGfxCap- PegX16Dis- DmiG3Dis- GmmDis-
+		      DDR3MaxFreq=2932MHz LPDDR3En-
+	Capabilities: [70] Express (v2) Root Complex Integrated Endpoint, IntMsgNum 0
+		DevCap:	MaxPayload 128 bytes, PhantFunc 0
+			ExtTag- RBE+ FLReset+ TEE-IO-
+		DevCtl:	CorrErr- NonFatalErr- FatalErr- UnsupReq-
+			RlxdOrd- ExtTag- PhantFunc- AuxPwr- NoSnoop- FLReset-
+			MaxPayload 128 bytes, MaxReadReq 128 bytes
+		DevSta:	CorrErr- NonFatalErr- FatalErr- UnsupReq- AuxPwr- TransPend-
+		DevCap2: Completion Timeout: Not Supported, TimeoutDis- NROPrPrP- LTR-
+			 10BitTagComp- 10BitTagReq- OBFF Not Supported, ExtFmt- EETLPPrefix-
+			 EmergencyPowerReduction Not Supported, EmergencyPowerReductionInit-
+			 FRS-
+			 AtomicOpsCap: 32bit- 64bit- 128bitCAS-
+		DevCtl2: Completion Timeout: 50us to 50ms, TimeoutDis-
+			 AtomicOpsCtl: ReqEn-
+			 IDOReq- IDOCompl- LTR- EmergencyPowerReductionReq-
+			 10BitTagReq- OBFF Disabled, EETLPPrefixBlk-
+	Capabilities: [ac] MSI: Enable+ Count=1/1 Maskable+ 64bit-
+		Address: fee00018  Data: 0000
+		Masking: 00000000  Pending: 00000000
+	Capabilities: [d0] Power Management version 2
+		Flags: PMEClk- DSI+ D1- D2- AuxCurrent=0mA PME(D0-,D1-,D2-,D3hot-,D3cold-)
+		Status: D0 NoSoftRst- PME-Enable- DSel=0 DScale=0 PME-
+	Capabilities: [100 v1] Process Address Space ID (PASID)
+		PASIDCap: Exec- Priv-, Max PASID Width: 14
+		PASIDCtl: Enable- Exec- Priv-
+	Capabilities: [200 v1] Address Translation Service (ATS)
+		ATSCap:	Invalidate Queue Depth: 00
+		ATSCtl:	Enable+, Smallest Translation Unit: 00
+	Capabilities: [300 v1] Page Request Interface (PRI)
+		PRICtl: Enable- Reset-
+		PRISta: RF- UPRGI- Stopped+ PASID+
+		Page Request Capacity: 00008000, Page Request Allocation: 00000000
+	Capabilities: [320 v1] Single Root I/O Virtualization (SR-IOV)
+		IOVCap:	Migration- 10BitTagReq- IntMsgNum 0
+		IOVCtl:	Enable- Migration- Interrupt- MSE- ARIHierarchy- 10BitTagReq-
+		IOVSta:	Migration-
+		Initial VFs: 7, Total VFs: 7, Number of VFs: 0, Function Dependency Link: 00
+		VF offset: 1, stride: 1, Device ID: 9a68
+		Supported Page Size: 00000553, System Page Size: 00000001
+
+---- PCI config space (first 256 bytes, hex) ----
+000000 86 80 68 9a 07 04 10 00 01 00 00 03 10 00 00 00
+000010 04 00 00 02 61 00 00 00 0c 00 00 00 40 00 00 00
+000020 01 50 00 00 00 00 00 00 00 00 00 00 62 14 2e 13
+000030 00 00 00 00 40 00 00 00 00 00 00 00 ff 01 00 00
+000040 09 70 0c 01 0c 00 00 00 00 00 00 00 00 00 00 00
+000050 c1 fe 00 00 39 20 00 00 00 00 00 00 00 00 00 00
+000060 00 00 01 00 00 00 00 00 00 00 00 00 01 00 00 00
+000070 10 ac 92 00 00 80 00 10 00 00 00 00 00 00 00 00
+000080 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+*
+0000A0 00 00 00 00 00 00 00 00 00 00 00 00 05 d0 01 01
+0000B0 18 00 e0 fe 00 00 00 00 00 00 00 00 00 00 00 00
+0000C0 01 00 80 7c 00 00 00 00 01 00 d9 fe 00 00 00 00
+0000D0 01 00 22 00 00 00 00 00 00 00 00 00 00 00 00 00
+0000E0 00 00 00 00 00 00 00 00 00 80 00 00 00 00 00 00
+0000F0 c7 00 20 80 00 00 00 00 00 00 00 00 18 40 c5 70
+
+---- i915 module parameters ----
+  disable_display = N
+  disable_power_well = -1
+  dmc_firmware_path = (null)
+  edp_vswing = 0
+  enable_dc = -1
+  enable_dmc_wl = -1
+  enable_dp_mst = Y
+  enable_dpcd_backlight = -1
+  enable_dpt = Y
+  enable_dsb = Y
+  enable_fbc = -1
+  enable_flipq = N
+  enable_guc = -1
+  enable_gvt = N
+  enable_hangcheck = Y
+  enable_ips = Y
+  enable_panel_replay = -1
+  enable_psr = -1
+  enable_psr2_sel_fetch = Y
+  enable_sagv = Y
+  error_capture = Y
+  force_probe = 
+  force_reset_modeset_test = N
+  gsc_firmware_path = (null)
+  guc_firmware_path = (null)
+  guc_log_level = -1
+  huc_firmware_path = (null)
+  invert_brightness = 0
+  lmem_bar_size = 0
+  lmem_size = 0
+  load_detect_test = N
+  lvds_channel_mode = 0
+  memtest = N
+  mitigations = auto
+  mmio_debug = 0
+  modeset = -1
+  nuclear_pageflip = N
+  panel_use_ssc = -1
+  psr_safest_params = N
+  request_timeout_ms = 20000
+  reset = 3
+  vbt_firmware = (null)
+  vbt_sdvo_panel_type = -1
+  verbose_state_checks = Y
+
+---- DRM connectors ----
+connector card1-HDMI-A-1
+    status    disconnected
+    enabled   disabled
+    dpms      Off
+    modes     []
+    edid      absent or empty
+connector card1-eDP-1
+    status    connected
+    enabled   enabled
+    dpms      On
+    modes     [1920x1080 1920x1080 ]
+    edid      absent or empty
+
+---- DRM cards ----
+card1 -> /sys/devices/pci0000:00/0000:00:02.0
+card1-HDMI-A-1 -> /sys/devices/pci0000:00/0000:00:02.0/drm/card1
+card1-eDP-1 -> /sys/devices/pci0000:00/0000:00:02.0/drm/card1
+
+---- dmesg, i915 and drm lines ----
+[    0.000000] Command line: BOOT_IMAGE=/boot/vmlinuz-7.0.0-29-generic root=UUID=84a589c9-2256-4b8c-878b-09e08e126709 ro quiet splash crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M modprobe.blacklist=nvidia,nvidia_drm,nvidia_modeset,nvidia_uvm,nouveau
+[    0.000000]   Intel GenuineIntel
+[    0.019133] ACPI: SSDT 0x0000000070B69000 003378 (v02 INTEL  IgfxSsdt 00003000 INTL 20191018)
+[    0.019135] ACPI: SSDT 0x0000000070B5D000 00B27A (v02 INTEL  TcssSsdt 00001000 INTL 20191018)
+[    0.019153] ACPI: DMAR 0x0000000070B50000 000088 (v02 INTEL  EDK2     00000002      01000013)
+[    0.019155] ACPI: SSDT 0x0000000070B4F000 000A9D (v02 INTEL  xh_thdd4 00000000 INTL 20191018)
+[    0.019159] ACPI: SSDT 0x0000000070B4D000 000144 (v02 Intel  ADebTabl 00001000 INTL 20191018)
+[    0.019519] Reserving Intel graphics memory at [mem 0x7c800000-0x803fffff]
+[    0.040108] Kernel command line: BOOT_IMAGE=/boot/vmlinuz-7.0.0-29-generic root=UUID=84a589c9-2256-4b8c-878b-09e08e126709 ro quiet splash crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G:2048M,128G-:4096M modprobe.blacklist=nvidia,nvidia_drm,nvidia_modeset,nvidia_uvm,nouveau
+[    0.125094] smpboot: CPU0: 11th Gen Intel(R) Core(TM) i5-11400H @ 2.70GHz (family: 0x6, model: 0x8d, stepping: 0x1)
+[    0.125228] Performance Events: PEBS fmt4+-baseline,  AnyThread deprecated, Icelake events, 32-deep LBR, full-width counters, Intel PMU driver.
+[    0.386469] DMAR: Intel(R) Virtualization Technology for Directed I/O
+[    0.415147] ACPI: bus type drm_connector registered
+[    0.426948] intel_pstate: Intel P-state driver initializing
+[    0.427905] intel_pstate: HWP enabled
+[    0.428047] simple-framebuffer simple-framebuffer.0: [drm] Registered 1 planes with drm panic
+[    0.428064] [drm] Initialized simpledrm 1.0.0 for simple-framebuffer.0 on minor 0
+[    0.429371] simple-framebuffer simple-framebuffer.0: [drm] fb0: simpledrmdrmfb frame buffer device
+[    0.930425] intel-lpss 0000:00:15.0: enabling device (0004 -> 0006)
+[    0.931495] idma64 idma64.0: Found Intel integrated DMA 64-bit
+[    2.639060] systemd[1]: modprobe@drm.service - Load Kernel Module drm skipped, unmet condition check ConditionKernelModuleLoaded=!drm
+[    3.037767] intel_pmc_core INT33A1:00:  initialized
+[    3.175014] iwlwifi 0000:00:14.3: Detected Intel(R) Wi-Fi 6 AX201 160MHz
+[    3.216389] Bluetooth: hci0: Found device firmware: intel/ibt-19-0-4.sfi
+[    3.613907] i915 0000:00:02.0: [drm] Found tigerlake (device ID 9a68) integrated display version 12.00 stepping D0
+[    3.614370] i915 0000:00:02.0: [drm] VT-d active for gfx access
+[    3.643102] i915 0000:00:02.0: vgaarb: deactivate vga console
+[    3.643177] i915 0000:00:02.0: [drm] Using Transparent Hugepages
+[    3.646924] i915 0000:00:02.0: vgaarb: VGA decodes changed: olddecodes=io+mem,decodes=io+mem:owns=io+mem
+[    3.651691] intel_tcc_cooling: TCC Offset locked
+[    3.653661] i915 0000:00:02.0: [drm] Finished loading DMC firmware i915/tgl_dmc_ver2_12.bin (v2.12)
+[    3.658771] mei_pxp 0000:00:16.0-fbf6fcf1-96cf-4e2e-a6a6-1bab8cbe36b1: bound 0000:00:02.0 (ops i915_pxp_tee_component_ops [i915])
+[    3.658946] i915 0000:00:02.0: [drm] Protected Xe Path (PXP) protected content support initialized
+[    3.658952] mei_hdcp 0000:00:16.0-b638ab7e-94e2-4ea2-a552-d1c54b627f04: bound 0000:00:02.0 (ops i915_hdcp_ops [i915])
+[    3.663314] i915 0000:00:02.0: [drm] Registered 4 planes with drm panic
+[    3.671585] [drm] Initialized i915 1.6.0 for 0000:00:02.0 on minor 1
+[    3.678604] fbcon: i915drmfb (fb0) is primary device
+[    3.678609] i915 0000:00:02.0: [drm] fb0: i915drmfb frame buffer device
+[    3.695622] intel_rapl_common: Found RAPL domain package
+[    3.695627] intel_rapl_common: Found RAPL domain core
+[    3.695628] intel_rapl_common: Found RAPL domain uncore
+[    3.740346] sof-audio-pci-intel-tgl 0000:00:1f.3: enabling device (0000 -> 0002)
+[    3.740526] sof-audio-pci-intel-tgl 0000:00:1f.3: DSP detected with PCI class/subclass/prog-if 0x040100
+[    3.740595] sof-audio-pci-intel-tgl 0000:00:1f.3: bound 0000:00:02.0 (ops intel_audio_component_bind_ops [i915])
+[    3.747975] sof-audio-pci-intel-tgl 0000:00:1f.3: use msi interrupt mode
+[    4.041752] sof-audio-pci-intel-tgl 0000:00:1f.3: hda codecs found, mask 5
+[    4.041757] sof-audio-pci-intel-tgl 0000:00:1f.3: using HDA machine driver skl_hda_dsp_generic now
+[    4.041759] sof-audio-pci-intel-tgl 0000:00:1f.3: NHLT device BT(0) detected, ssp_mask 0x4
+[    4.041761] sof-audio-pci-intel-tgl 0000:00:1f.3: BT link detected in NHLT tables: 0x4
+[    4.041762] sof-audio-pci-intel-tgl 0000:00:1f.3: DMICs detected in NHLT tables: 2
+[    4.044685] sof-audio-pci-intel-tgl 0000:00:1f.3: Firmware paths/files for ipc type 0:
+[    4.044689] sof-audio-pci-intel-tgl 0000:00:1f.3:  Firmware file:     intel/sof/sof-tgl-h.ri
+[    4.044690] sof-audio-pci-intel-tgl 0000:00:1f.3:  Topology file:     intel/sof-tplg/sof-hda-generic-2ch.tplg
+[    4.045069] sof-audio-pci-intel-tgl 0000:00:1f.3: Firmware info: version 2:2:0-57864
+[    4.045072] sof-audio-pci-intel-tgl 0000:00:1f.3: Firmware: ABI 3:22:1 Kernel ABI 3:23:1
+[    4.143221] sof-audio-pci-intel-tgl 0000:00:1f.3: Firmware info: version 2:2:0-57864
+[    4.143225] sof-audio-pci-intel-tgl 0000:00:1f.3: Firmware: ABI 3:22:1 Kernel ABI 3:23:1
+[    4.160963] sof-audio-pci-intel-tgl 0000:00:1f.3: loading topology: intel/sof-tplg/sof-hda-generic-2ch.tplg
+[    4.161012] sof-audio-pci-intel-tgl 0000:00:1f.3: Topology: ABI 3:22:1 Kernel ABI 3:23:1
+[    4.889321] Bluetooth: hci0: Found Intel DDC parameters: intel/ibt-19-0-4.ddc
+[    4.891505] Bluetooth: hci0: Applying Intel DDC parameters completed
+
+---- debugfs, if mounted ----
+===== /sys/kernel/debug/dri/0000:00:02.0/i915_display_info =====
+CRTC info
+---------
+[CRTC:170:pipe A]:
+	uapi: enable=yes, active=yes, mode="1920x1080": 144 353800 1920 2028 2076 2080 1080 1083 1088 1180 0x48 0xa
+	hw: enable=yes, active=yes
+	adjusted_mode="1920x1080": 144 353800 1920 2028 2076 2080 1080 1083 1088 1180 0x48 0xa
+	pipe__mode="1920x1080": 144 353800 1920 2028 2076 2080 1080 1083 1088 1180 0x40 0xa
+	pipe src=1920x1080+0+0, dither=no, bpp=24
+	port_clock=540000, lane_count=4
+	num_scalers=2, scaler_users=0 scaler_id=-1 scaling_filter=0, scalers[0]: use=no, mode=0, scalers[1]: use=no, mode=0
+	[ENCODER:586:DDI A/PHY A]: connectors:
+		[CONNECTOR:587:eDP-1]
+	[PLANE:34:plane 1A]: type=PRI
+		uapi: [FB:604] XR30 little-endian (0x30335258),0x100000000000008,1920x1080, visible=visible, src=1920.000000x1080.000000+0.000000+0.000000, dst=1920x1080+0+0, rotation=0 (0x00000001)
+		hw: [FB:604] XR30 little-endian (0x30335258),0x100000000000008,1920x1080, visible=yes, src=1920.000000x1080.000000+0.000000+0.000000, dst=1920x1080+0+0, rotation=0 (0x00000001)
+	[PLANE:64:plane 2A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:94:plane 3A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:124:plane 4A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:134:plane 5A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:144:plane 6A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:154:plane 7A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:164:cursor A]: type=CUR
+		uapi: [FB:588] AR24 little-endian (0x34325241),0x0,64x64, visible=visible, src=64.000000x64.000000+0.000000+0.000000, dst=64x64+1141+374, rotation=0 (0x00000001)
+		hw: [FB:588] AR24 little-endian (0x34325241),0x0,64x64, visible=yes, src=64.000000x64.000000+0.000000+0.000000, dst=64x64+1141+374, rotation=0 (0x00000001)
+	underrun reporting: cpu=yes pch=yes
+[CRTC:308:pipe B]:
+	uapi: enable=no, active=no, mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	hw: enable=no, active=no
+	adjusted_mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe__mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe src=0x0+0+0, dither=no, bpp=0
+	port_clock=0, lane_count=0
+	num_scalers=2, scaler_users=0 scaler_id=-1 scaling_filter=0, scalers[0]: use=no, mode=0, scalers[1]: use=no, mode=0
+	[PLANE:172:plane 1B]: type=PRI
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:202:plane 2B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:232:plane 3B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:262:plane 4B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:272:plane 5B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:282:plane 6B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:292:plane 7B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:302:cursor B]: type=CUR
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	underrun reporting: cpu=yes pch=yes
+[CRTC:446:pipe C]:
+	uapi: enable=no, active=no, mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	hw: enable=no, active=no
+	adjusted_mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe__mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe src=0x0+0+0, dither=no, bpp=0
+	port_clock=0, lane_count=0
+	num_scalers=2, scaler_users=0 scaler_id=-1 scaling_filter=0, scalers[0]: use=no, mode=0, scalers[1]: use=no, mode=0
+	[PLANE:310:plane 1C]: type=PRI
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:340:plane 2C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:370:plane 3C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:400:plane 4C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:410:plane 5C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:420:plane 6C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:430:plane 7C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:440:cursor C]: type=CUR
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	underrun reporting: cpu=yes pch=yes
+[CRTC:584:pipe D]:
+	uapi: enable=no, active=no, mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	hw: enable=no, active=no
+	adjusted_mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe__mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe src=0x0+0+0, dither=no, bpp=0
+	port_clock=0, lane_count=0
+	num_scalers=2, scaler_users=0 scaler_id=-1 scaling_filter=0, scalers[0]: use=no, mode=0, scalers[1]: use=no, mode=0
+	[PLANE:448:plane 1D]: type=PRI
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:478:plane 2D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:508:plane 3D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:538:plane 4D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:548:plane 5D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:558:plane 6D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:568:plane 7D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:578:cursor D]: type=CUR
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	underrun reporting: cpu=yes pch=yes
+
+Connector info
+--------------
+[CONNECTOR:587:eDP-1]: status: connected
+	physical dimensions: 340x190mm
+	subpixel order: Unknown
+	CEA rev: 0
+	DPCD rev: 12
+	audio support: no
+	DP branch device present: no
+	HDCP version: No Connector Support
+	max bpc: 8
+	fixed modes:
+		"1920x1080": 144 353800 1920 2028 2076 2080 1080 1083 1088 1180 0x48 0xa
+===== /sys/kernel/debug/dri/1/i915_display_info =====
+CRTC info
+---------
+[CRTC:170:pipe A]:
+	uapi: enable=yes, active=yes, mode="1920x1080": 144 353800 1920 2028 2076 2080 1080 1083 1088 1180 0x48 0xa
+	hw: enable=yes, active=yes
+	adjusted_mode="1920x1080": 144 353800 1920 2028 2076 2080 1080 1083 1088 1180 0x48 0xa
+	pipe__mode="1920x1080": 144 353800 1920 2028 2076 2080 1080 1083 1088 1180 0x40 0xa
+	pipe src=1920x1080+0+0, dither=no, bpp=24
+	port_clock=540000, lane_count=4
+	num_scalers=2, scaler_users=0 scaler_id=-1 scaling_filter=0, scalers[0]: use=no, mode=0, scalers[1]: use=no, mode=0
+	[ENCODER:586:DDI A/PHY A]: connectors:
+		[CONNECTOR:587:eDP-1]
+	[PLANE:34:plane 1A]: type=PRI
+		uapi: [FB:604] XR30 little-endian (0x30335258),0x100000000000008,1920x1080, visible=visible, src=1920.000000x1080.000000+0.000000+0.000000, dst=1920x1080+0+0, rotation=0 (0x00000001)
+		hw: [FB:604] XR30 little-endian (0x30335258),0x100000000000008,1920x1080, visible=yes, src=1920.000000x1080.000000+0.000000+0.000000, dst=1920x1080+0+0, rotation=0 (0x00000001)
+	[PLANE:64:plane 2A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:94:plane 3A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:124:plane 4A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:134:plane 5A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:144:plane 6A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:154:plane 7A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:164:cursor A]: type=CUR
+		uapi: [FB:588] AR24 little-endian (0x34325241),0x0,64x64, visible=visible, src=64.000000x64.000000+0.000000+0.000000, dst=64x64+1141+374, rotation=0 (0x00000001)
+		hw: [FB:588] AR24 little-endian (0x34325241),0x0,64x64, visible=yes, src=64.000000x64.000000+0.000000+0.000000, dst=64x64+1141+374, rotation=0 (0x00000001)
+	underrun reporting: cpu=yes pch=yes
+[CRTC:308:pipe B]:
+	uapi: enable=no, active=no, mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	hw: enable=no, active=no
+	adjusted_mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe__mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe src=0x0+0+0, dither=no, bpp=0
+	port_clock=0, lane_count=0
+	num_scalers=2, scaler_users=0 scaler_id=-1 scaling_filter=0, scalers[0]: use=no, mode=0, scalers[1]: use=no, mode=0
+	[PLANE:172:plane 1B]: type=PRI
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:202:plane 2B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:232:plane 3B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:262:plane 4B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:272:plane 5B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:282:plane 6B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:292:plane 7B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:302:cursor B]: type=CUR
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	underrun reporting: cpu=yes pch=yes
+[CRTC:446:pipe C]:
+	uapi: enable=no, active=no, mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	hw: enable=no, active=no
+	adjusted_mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe__mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe src=0x0+0+0, dither=no, bpp=0
+	port_clock=0, lane_count=0
+	num_scalers=2, scaler_users=0 scaler_id=-1 scaling_filter=0, scalers[0]: use=no, mode=0, scalers[1]: use=no, mode=0
+	[PLANE:310:plane 1C]: type=PRI
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:340:plane 2C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:370:plane 3C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:400:plane 4C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:410:plane 5C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:420:plane 6C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:430:plane 7C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:440:cursor C]: type=CUR
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	underrun reporting: cpu=yes pch=yes
+[CRTC:584:pipe D]:
+	uapi: enable=no, active=no, mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	hw: enable=no, active=no
+	adjusted_mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe__mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe src=0x0+0+0, dither=no, bpp=0
+	port_clock=0, lane_count=0
+	num_scalers=2, scaler_users=0 scaler_id=-1 scaling_filter=0, scalers[0]: use=no, mode=0, scalers[1]: use=no, mode=0
+	[PLANE:448:plane 1D]: type=PRI
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:478:plane 2D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:508:plane 3D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:538:plane 4D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:548:plane 5D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:558:plane 6D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:568:plane 7D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:578:cursor D]: type=CUR
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	underrun reporting: cpu=yes pch=yes
+
+Connector info
+--------------
+[CONNECTOR:587:eDP-1]: status: connected
+	physical dimensions: 340x190mm
+	subpixel order: Unknown
+	CEA rev: 0
+	DPCD rev: 12
+	audio support: no
+	DP branch device present: no
+	HDCP version: No Connector Support
+	max bpc: 8
+	fixed modes:
+		"1920x1080": 144 353800 1920 2028 2076 2080 1080 1083 1088 1180 0x48 0xa
+===== /sys/kernel/debug/dri/128/i915_display_info =====
+CRTC info
+---------
+[CRTC:170:pipe A]:
+	uapi: enable=yes, active=yes, mode="1920x1080": 144 353800 1920 2028 2076 2080 1080 1083 1088 1180 0x48 0xa
+	hw: enable=yes, active=yes
+	adjusted_mode="1920x1080": 144 353800 1920 2028 2076 2080 1080 1083 1088 1180 0x48 0xa
+	pipe__mode="1920x1080": 144 353800 1920 2028 2076 2080 1080 1083 1088 1180 0x40 0xa
+	pipe src=1920x1080+0+0, dither=no, bpp=24
+	port_clock=540000, lane_count=4
+	num_scalers=2, scaler_users=0 scaler_id=-1 scaling_filter=0, scalers[0]: use=no, mode=0, scalers[1]: use=no, mode=0
+	[ENCODER:586:DDI A/PHY A]: connectors:
+		[CONNECTOR:587:eDP-1]
+	[PLANE:34:plane 1A]: type=PRI
+		uapi: [FB:607] XR30 little-endian (0x30335258),0x100000000000008,1920x1080, visible=visible, src=1920.000000x1080.000000+0.000000+0.000000, dst=1920x1080+0+0, rotation=0 (0x00000001)
+		hw: [FB:607] XR30 little-endian (0x30335258),0x100000000000008,1920x1080, visible=yes, src=1920.000000x1080.000000+0.000000+0.000000, dst=1920x1080+0+0, rotation=0 (0x00000001)
+	[PLANE:64:plane 2A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:94:plane 3A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:124:plane 4A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:134:plane 5A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:144:plane 6A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:154:plane 7A]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:164:cursor A]: type=CUR
+		uapi: [FB:588] AR24 little-endian (0x34325241),0x0,64x64, visible=visible, src=64.000000x64.000000+0.000000+0.000000, dst=64x64+1141+374, rotation=0 (0x00000001)
+		hw: [FB:588] AR24 little-endian (0x34325241),0x0,64x64, visible=yes, src=64.000000x64.000000+0.000000+0.000000, dst=64x64+1141+374, rotation=0 (0x00000001)
+	underrun reporting: cpu=yes pch=yes
+[CRTC:308:pipe B]:
+	uapi: enable=no, active=no, mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	hw: enable=no, active=no
+	adjusted_mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe__mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe src=0x0+0+0, dither=no, bpp=0
+	port_clock=0, lane_count=0
+	num_scalers=2, scaler_users=0 scaler_id=-1 scaling_filter=0, scalers[0]: use=no, mode=0, scalers[1]: use=no, mode=0
+	[PLANE:172:plane 1B]: type=PRI
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:202:plane 2B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:232:plane 3B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:262:plane 4B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:272:plane 5B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:282:plane 6B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:292:plane 7B]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:302:cursor B]: type=CUR
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	underrun reporting: cpu=yes pch=yes
+[CRTC:446:pipe C]:
+	uapi: enable=no, active=no, mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	hw: enable=no, active=no
+	adjusted_mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe__mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe src=0x0+0+0, dither=no, bpp=0
+	port_clock=0, lane_count=0
+	num_scalers=2, scaler_users=0 scaler_id=-1 scaling_filter=0, scalers[0]: use=no, mode=0, scalers[1]: use=no, mode=0
+	[PLANE:310:plane 1C]: type=PRI
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:340:plane 2C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:370:plane 3C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:400:plane 4C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:410:plane 5C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:420:plane 6C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:430:plane 7C]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:440:cursor C]: type=CUR
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	underrun reporting: cpu=yes pch=yes
+[CRTC:584:pipe D]:
+	uapi: enable=no, active=no, mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	hw: enable=no, active=no
+	adjusted_mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe__mode="": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+	pipe src=0x0+0+0, dither=no, bpp=0
+	port_clock=0, lane_count=0
+	num_scalers=2, scaler_users=0 scaler_id=-1 scaling_filter=0, scalers[0]: use=no, mode=0, scalers[1]: use=no, mode=0
+	[PLANE:448:plane 1D]: type=PRI
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:478:plane 2D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:508:plane 3D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:538:plane 4D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:548:plane 5D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:558:plane 6D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:568:plane 7D]: type=OVL
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	[PLANE:578:cursor D]: type=CUR
+		uapi: [FB:0] n/a,0x0,0x0,, visible=hidden, src=0.000000x0.000000+0.000000+0.000000, dst=0x0+0+0, rotation=0 (0x00000001)
+	underrun reporting: cpu=yes pch=yes
+
+Connector info
+--------------
+[CONNECTOR:587:eDP-1]: status: connected
+	physical dimensions: 340x190mm
+	subpixel order: Unknown
+	CEA rev: 0
+	DPCD rev: 12
+	audio support: no
+	DP branch device present: no
+	HDCP version: No Connector Support
+	max bpc: 8
+	fixed modes:
+		"1920x1080": 144 353800 1920 2028 2076 2080 1080 1083 1088 1180 0x48 0xa
+===== /sys/kernel/debug/dri/0000:00:02.0/i915_dp_mst_info =====
+===== /sys/kernel/debug/dri/1/i915_dp_mst_info =====
+===== /sys/kernel/debug/dri/128/i915_dp_mst_info =====
+===== /sys/kernel/debug/dri/0000:00:02.0/i915_frequency_info =====
+Video Turbo Mode: no
+HW control enabled: no
+SW control enabled: no
+PM IER=0x00000000 IMR=0xffcf0000, MASK=0x80000388
+pm_intrmsk_mbz: 0x00000000
+GT_PERF_STATUS: 0x0361b140
+Render p-state ratio: 433
+Render p-state VID: 64
+Render p-state limit: 255
+RPSTAT1: 0x0361b159
+RPMODECTL: 0x00000400
+RPINCLIMIT: 0x00000000
+RPDECLIMIT: 0x00000000
+RPNSWREQ: 867MHz
+CAGF: 900MHz
+RP CUR UP EI: 0 (0ns)
+RP CUR UP: 0 (0ns)
+RP PREV UP: 0 (0ns)
+Up threshold: 95%
+RP UP EI: 0 (0ns)
+RP UP THRESHOLD: 0 (0ns)
+RP CUR DOWN EI: 0 (0ns)
+RP CUR DOWN: 0 (0ns)
+RP PREV DOWN: 0 (0ns)
+Down threshold: 85%
+RP DOWN EI: 0 (0ns)
+RP DOWN THRESHOLD: 0 (0ns)
+Lowest (RPN) frequency: 350MHz
+Nominal (RP1) frequency: 600MHz
+Max non-overclocked (RP0) frequency: 1450MHz
+Max overclocked frequency: 1450MHz
+Current freq: 867 MHz
+Actual freq: 900 MHz
+Idle freq: 350 MHz
+Min freq: 350 MHz
+Boost freq: 1450 MHz
+Max freq: 1450 MHz
+efficient (RPe) frequency: 450 MHz
+===== /sys/kernel/debug/dri/1/i915_frequency_info =====
+Video Turbo Mode: no
+HW control enabled: no
+SW control enabled: no
+PM IER=0x00000000 IMR=0xffcf0000, MASK=0x80000388
+pm_intrmsk_mbz: 0x00000000
+GT_PERF_STATUS: 0x0001b140
+Render p-state ratio: 433
+Render p-state VID: 64
+Render p-state limit: 255
+RPSTAT1: 0x0361b159
+RPMODECTL: 0x00000400
+RPINCLIMIT: 0x00000000
+RPDECLIMIT: 0x00000000
+RPNSWREQ: 867MHz
+CAGF: 900MHz
+RP CUR UP EI: 0 (0ns)
+RP CUR UP: 0 (0ns)
+RP PREV UP: 0 (0ns)
+Up threshold: 95%
+RP UP EI: 0 (0ns)
+RP UP THRESHOLD: 0 (0ns)
+RP CUR DOWN EI: 0 (0ns)
+RP CUR DOWN: 0 (0ns)
+RP PREV DOWN: 0 (0ns)
+Down threshold: 85%
+RP DOWN EI: 0 (0ns)
+RP DOWN THRESHOLD: 0 (0ns)
+Lowest (RPN) frequency: 350MHz
+Nominal (RP1) frequency: 600MHz
+Max non-overclocked (RP0) frequency: 1450MHz
+Max overclocked frequency: 1450MHz
+Current freq: 867 MHz
+Actual freq: 900 MHz
+Idle freq: 350 MHz
+Min freq: 350 MHz
+Boost freq: 1450 MHz
+Max freq: 1450 MHz
+efficient (RPe) frequency: 450 MHz
+===== /sys/kernel/debug/dri/128/i915_frequency_info =====
+Video Turbo Mode: no
+HW control enabled: no
+SW control enabled: no
+PM IER=0x00000000 IMR=0xffcf0000, MASK=0x80000388
+pm_intrmsk_mbz: 0x00000000
+GT_PERF_STATUS: 0x00000000
+Render p-state ratio: 0
+Render p-state VID: 0
+Render p-state limit: 255
+RPSTAT1: 0x0361b159
+RPMODECTL: 0x00000400
+RPINCLIMIT: 0x00000000
+RPDECLIMIT: 0x00000000
+RPNSWREQ: 867MHz
+CAGF: 900MHz
+RP CUR UP EI: 0 (0ns)
+RP CUR UP: 0 (0ns)
+RP PREV UP: 0 (0ns)
+Up threshold: 95%
+RP UP EI: 0 (0ns)
+RP UP THRESHOLD: 0 (0ns)
+RP CUR DOWN EI: 0 (0ns)
+RP CUR DOWN: 0 (0ns)
+RP PREV DOWN: 0 (0ns)
+Down threshold: 85%
+RP DOWN EI: 0 (0ns)
+RP DOWN THRESHOLD: 0 (0ns)
+Lowest (RPN) frequency: 350MHz
+Nominal (RP1) frequency: 600MHz
+Max non-overclocked (RP0) frequency: 1450MHz
+Max overclocked frequency: 1450MHz
+Current freq: 867 MHz
+Actual freq: 900 MHz
+Idle freq: 350 MHz
+Min freq: 350 MHz
+Boost freq: 1450 MHz
+Max freq: 1450 MHz
+efficient (RPe) frequency: 450 MHz
+===== /sys/kernel/debug/dri/0000:00:02.0/i915_capabilities =====
+graphics version: 12
+media version: 12
+graphics stepping: B0
+media stepping: B0
+gt: 0
+memory-regions: 0x21
+page-sizes: 0x211000
+platform: TIGERLAKE
+ppgtt-size: 48
+ppgtt-type: 2
+dma_mask_size: 39
+is_mobile: no
+require_force_probe: no
+is_dgfx: no
+has_64bit_reloc: yes
+has_64k_pages: no
+gpu_reset_clobbers_display: no
+has_reset_engine: yes
+has_3d_pipeline: yes
+has_flat_ccs: no
+has_global_mocs: yes
+has_gmd_id: no
+has_gt_uc: yes
+has_heci_pxp: no
+has_heci_gscfi: no
+has_guc_deprivilege: no
+has_guc_tlb_invalidation: no
+has_l3_ccs_read: no
+has_l3_dpf: no
+has_llc: yes
+has_logical_ring_contexts: yes
+has_logical_ring_elsq: yes
+has_media_ratio_mode: no
+has_mslice_steering: no
+has_oa_bpc_reporting: no
+has_oa_slice_contrib_limits: no
+has_oam: no
+has_one_eu_per_fuse_bit: no
+has_pxp: yes
+has_rc6: yes
+has_rc6p: no
+has_rps: yes
+has_runtime_pm: yes
+has_snoop: no
+has_coherent_ggtt: no
+tuning_thread_rr_after_dep: no
+unfenced_needs_alignment: no
+hws_needs_physical: no
+has_pooled_eu: no
+iommu: enabled
+available engines: 40403
+slice total: 1, mask=0001
+subslice total: 1
+slice0: 1 subslices, mask=00000001
+EU total: 16
+EU per subslice: 16
+has slice power gating: yes
+has subslice power gating: no
+has EU power gating: no
+Has logical contexts? yes
+scheduler: 0x1f
+i915.modeset=-1
+i915.enable_guc=0
+i915.guc_log_level=-1
+i915.guc_firmware_path=(null)
+i915.huc_firmware_path=(null)
+i915.gsc_firmware_path=(null)
+i915.memtest=no
+i915.mmio_debug=0
+i915.reset=3
+i915.force_probe=
+i915.request_timeout_ms=20000
+i915.lmem_size=0
+i915.lmem_bar_size=0
+i915.enable_hangcheck=yes
+i915.error_capture=yes
+i915.enable_gvt=no
+i915.enable_debug_only_api=no
+===== /sys/kernel/debug/dri/1/i915_capabilities =====
+graphics version: 12
+media version: 12
+graphics stepping: B0
+media stepping: B0
+gt: 0
+memory-regions: 0x21
+page-sizes: 0x211000
+platform: TIGERLAKE
+ppgtt-size: 48
+ppgtt-type: 2
+dma_mask_size: 39
+is_mobile: no
+require_force_probe: no
+is_dgfx: no
+has_64bit_reloc: yes
+has_64k_pages: no
+gpu_reset_clobbers_display: no
+has_reset_engine: yes
+has_3d_pipeline: yes
+has_flat_ccs: no
+has_global_mocs: yes
+has_gmd_id: no
+has_gt_uc: yes
+has_heci_pxp: no
+has_heci_gscfi: no
+has_guc_deprivilege: no
+has_guc_tlb_invalidation: no
+has_l3_ccs_read: no
+has_l3_dpf: no
+has_llc: yes
+has_logical_ring_contexts: yes
+has_logical_ring_elsq: yes
+has_media_ratio_mode: no
+has_mslice_steering: no
+has_oa_bpc_reporting: no
+has_oa_slice_contrib_limits: no
+has_oam: no
+has_one_eu_per_fuse_bit: no
+has_pxp: yes
+has_rc6: yes
+has_rc6p: no
+has_rps: yes
+has_runtime_pm: yes
+has_snoop: no
+has_coherent_ggtt: no
+tuning_thread_rr_after_dep: no
+unfenced_needs_alignment: no
+hws_needs_physical: no
+has_pooled_eu: no
+iommu: enabled
+available engines: 40403
+slice total: 1, mask=0001
+subslice total: 1
+slice0: 1 subslices, mask=00000001
+EU total: 16
+EU per subslice: 16
+has slice power gating: yes
+has subslice power gating: no
+has EU power gating: no
+Has logical contexts? yes
+scheduler: 0x1f
+i915.modeset=-1
+i915.enable_guc=0
+i915.guc_log_level=-1
+i915.guc_firmware_path=(null)
+i915.huc_firmware_path=(null)
+i915.gsc_firmware_path=(null)
+i915.memtest=no
+i915.mmio_debug=0
+i915.reset=3
+i915.force_probe=
+i915.request_timeout_ms=20000
+i915.lmem_size=0
+i915.lmem_bar_size=0
+i915.enable_hangcheck=yes
+i915.error_capture=yes
+i915.enable_gvt=no
+i915.enable_debug_only_api=no
+===== /sys/kernel/debug/dri/128/i915_capabilities =====
+graphics version: 12
+media version: 12
+graphics stepping: B0
+media stepping: B0
+gt: 0
+memory-regions: 0x21
+page-sizes: 0x211000
+platform: TIGERLAKE
+ppgtt-size: 48
+ppgtt-type: 2
+dma_mask_size: 39
+is_mobile: no
+require_force_probe: no
+is_dgfx: no
+has_64bit_reloc: yes
+has_64k_pages: no
+gpu_reset_clobbers_display: no
+has_reset_engine: yes
+has_3d_pipeline: yes
+has_flat_ccs: no
+has_global_mocs: yes
+has_gmd_id: no
+has_gt_uc: yes
+has_heci_pxp: no
+has_heci_gscfi: no
+has_guc_deprivilege: no
+has_guc_tlb_invalidation: no
+has_l3_ccs_read: no
+has_l3_dpf: no
+has_llc: yes
+has_logical_ring_contexts: yes
+has_logical_ring_elsq: yes
+has_media_ratio_mode: no
+has_mslice_steering: no
+has_oa_bpc_reporting: no
+has_oa_slice_contrib_limits: no
+has_oam: no
+has_one_eu_per_fuse_bit: no
+has_pxp: yes
+has_rc6: yes
+has_rc6p: no
+has_rps: yes
+has_runtime_pm: yes
+has_snoop: no
+has_coherent_ggtt: no
+tuning_thread_rr_after_dep: no
+unfenced_needs_alignment: no
+hws_needs_physical: no
+has_pooled_eu: no
+iommu: enabled
+available engines: 40403
+slice total: 1, mask=0001
+subslice total: 1
+slice0: 1 subslices, mask=00000001
+EU total: 16
+EU per subslice: 16
+has slice power gating: yes
+has subslice power gating: no
+has EU power gating: no
+Has logical contexts? yes
+scheduler: 0x1f
+i915.modeset=-1
+i915.enable_guc=0
+i915.guc_log_level=-1
+i915.guc_firmware_path=(null)
+i915.huc_firmware_path=(null)
+i915.gsc_firmware_path=(null)
+i915.memtest=no
+i915.mmio_debug=0
+i915.reset=3
+i915.force_probe=
+i915.request_timeout_ms=20000
+i915.lmem_size=0
+i915.lmem_bar_size=0
+i915.enable_hangcheck=yes
+i915.error_capture=yes
+i915.enable_gvt=no
+i915.enable_debug_only_api=no
+
+==== MMIO ====
+BAR0 file size 0x1000000, mapped 0x200000
+
+CONTROL   transcoder A HTOTAL @0x60000 = 0x081F077F
+          reader PROVEN -- a null below is a fact about the block
+
+==== SECTION 1  raw range dump ====
+Every non-trivial dword in every range. Trivial words (0x00000000 and
+0xFFFFFFFF) are counted rather than printed, because on this silicon a
+page of zeros is the normal look of an unprogrammed block and printing
+1024 of them per page buries the evidence.
+
+range 0x044000 +0x2000  north display engine interrupts / DE misc    LIVE
+    75 live, 1973 trivial, 0 unreadable
+      0x044070 0x03D875D7  0x044074 0x00014017  0x044200 0x80000000  0x044210 0xFFFF0000
+      0x044214 0xFFFF0000  0x044218 0xFFFF003F  0x044404 0x6D8F107F  0x04440C 0x9270EF89
+      0x044444 0xC1800000  0x04444C 0x00003F07  0x044464 0xDB8480F8  0x04446C 0x00080000
+      0x04447C 0x003F003F  0x0444F4 0xF7FFFFFF  0x0444FC 0x08000000  0x044FE4 0x00000A11
+      0x044FE8 0xC040C000  0x044FEC 0x0000FFFF  0x044FFC 0x00000A11  0x045000 0x8E661056
+      0x045004 0xA8090E08  0x045008 0xC040C000  0x04500C 0x0000FFFF  0x045038 0xA2913050
+      0x04503C 0xC9030014  0x045040 0xB9030000  0x045044 0x89030000  0x045048 0x9A913050
+      0x04504C 0xAA913050  0x045140 0x08080000  0x045144 0x0000001F  0x045150 0x08080000
+      0x045154 0x0000001F  0x04521C 0x0000FA00  0x045220 0xFFFF0000  0x045224 0x80000064
+      0x045250 0x00000001  0x045260 0x20000000  0x045264 0x001CD44F  0x045270 0x00000030
+      0x045280 0x70000000  0x045288 0x80000000  0x04528C 0xFFFF02FA  0x045290 0x860D0020
+      0x045300 0xFFFF02F4  0x045304 0x2D1F0000  0x045320 0xEB6F0000  0x045400 0x00000001
+      0x045404 0x00000003  0x04540C 0x00000001  0x045418 0x00842108  0x045420 0x005294A1
+      0x045424 0x00000001  0x045430 0x051A051A  0x045434 0x051A051A  0x045438 0x0000051A
+      0x045440 0x00000001  0x045444 0x00000003  0x04544C 0x00000001  0x045450 0x00000001
+      0x045454 0x00000003  0x04545C 0x00000001  0x045460 0x00005B6D  0x045500 0x00000003
+      0x045520 0x00000003  0x045604 0xFFFF0000  0x045614 0xFFFF0000  0x045624 0xFFFF0000
+      0x045634 0xFFFF0000  0x045644 0xFFFF0000  0x045654 0xFFFF0000  0x045800 0x8E661056
+      0x045804 0xA8090E00  0x045808 0x8E661056  0x04580C 0xA8090E00
+range 0x046000 +0x1000  CDCLK, DPLL control                          LIVE
+    10 live, 1014 trivial, 0 unreadable
+      0x046000 0x0038017E  0x046010 0xCC000000  0x046070 0xC000000A  0x046140 0x10000000
+      0x046408 0x00000030  0x046430 0x00002008  0x046434 0x0F000016  0x046440 0xF8000000
+      0x046530 0x08000000  0x046538 0x80400000
+range 0x051000 +0x1000  (+) display fuse / SKL_DFSM                  LIVE
+    5 live, 1019 trivial, 0 unreadable
+      0x051000 0x800C1240  0x051004 0x40000031  0x051008 0x4C000820  0x05100C 0x000AE360
+      0x051080 0x00000001
+range 0x060000 +0x1000  transcoder A timings                         LIVE
+    43 live, 981 trivial, 0 unreadable
+      0x060000 0x081F077F  0x060004 0x081F077F  0x060008 0x081B07EB  0x06000C 0x049B0437
+      0x060010 0x049B0437  0x060014 0x043F043A  0x06001C 0x077F0437  0x060030 0x7E3EE5D4
+      0x060034 0x00800000  0x060040 0x00053DD1  0x060044 0x00080000  0x060058 0x40000000
+      0x060098 0x920EA358  0x06009C 0x00003128  0x060200 0x04100000  0x06028C 0x00002000
+      0x060290 0x01000000  0x060294 0x01000000  0x060298 0x5F9F77DF  0x06029C 0xFCF754FF
+      0x060320 0x08020700  0x060344 0xD5EC6100  0x060400 0x8A000006  0x060410 0x00000021
+      0x060420 0x60000179  0x060424 0x0000049B  0x06042C 0x00500000  0x060434 0x0000049A
+      0x060438 0x0000049B  0x06043C 0x0000042B  0x060480 0x0000049B  0x060540 0x80040300
+      0x060544 0x00700000  0x060800 0x81F00EE6  0x060814 0x0000000B  0x060840 0x04020006
+      0x060844 0x0000002C  0x060848 0x00010045  0x060860 0x1E000000  0x060900 0x00004811
+      0x060910 0x00000001  0x060940 0x04000000  0x060A60 0x00000002
+range 0x061000 +0x1000  transcoder B timings                         UNPROGRAMMED-OR-ABSENT
+    0 live, 1024 trivial, 0 unreadable
+range 0x062000 +0x1000  transcoder C timings                         UNPROGRAMMED-OR-ABSENT
+    0 live, 1024 trivial, 0 unreadable
+range 0x063000 +0x1000  (+) transcoder D timings                     UNPROGRAMMED-OR-ABSENT
+    0 live, 1024 trivial, 0 unreadable
+range 0x064000 +0x1000  (+) DDI buffer control and DP_TP_CTL         LIVE
+    16 live, 1008 trivial, 0 unreadable
+      0x064000 0x80000007  0x064010 0x2C10023F  0x064028 0x04000000  0x064090 0x000003E8
+      0x064094 0x00034A00  0x064100 0x00000080  0x064110 0x0400023F  0x064190 0x000003E8
+      0x064194 0x00034A00  0x064200 0x00000080  0x064210 0x0400023F  0x064290 0x000003E8
+      0x064294 0x00034A00  0x064C00 0x23000000  0x064C04 0x23000000  0x064C08 0x20000000
+range 0x06B000 +0x1000  (+) transcoder DSI0 and DSI1 (0x800 stride)  LIVE
+    18 live, 1006 trivial, 0 unreadable
+      0x06B044 0xFFFF0000  0x06B050 0x07F00FFF  0x06B088 0x000007D0  0x06B08C 0x00004E20
+      0x06B090 0x000F0000  0x06B09C 0x00000014  0x06B0A0 0x00800000  0x06B0D0 0x00001040
+      0x06B400 0x00030000  0x06B844 0xFFFF0000  0x06B850 0x07F00FFF  0x06B888 0x000007D0
+      0x06B88C 0x00004E20  0x06B890 0x000F0000  0x06B89C 0x00000014  0x06B8A0 0x00800000
+      0x06B8D0 0x00001040  0x06BC00 0x00030000
+range 0x06C000 +0x1000  DPCLKA / PLL distribution                    LIVE
+    159 live, 865 trivial, 0 unreadable
+      0x06C00C 0x2A830FF0  0x06C010 0x8013A881  0x06C014 0x12040478  0x06C018 0x7F0F4100
+      0x06C020 0x00080000  0x06C024 0x00008000  0x06C028 0x0003000A  0x06C030 0x000000C0
+      0x06C034 0x0000001C  0x06C038 0x001C0000  0x06C03C 0x28000000  0x06C054 0x418A01CA
+      0x06C058 0x012800E7  0x06C05C 0x00000300  0x06C06C 0x000000C0  0x06C07C 0x00000001
+      0x06C080 0x01000208  0x06C084 0x00000400  0x06C088 0x0101021B  0x06C08C 0x00001C00
+      0x06C100 0x80005F27  0x06C104 0x81000400  0x06C10C 0xC0608021  0x06C110 0x03001000
+      0x06C114 0x4F000000  0x06C118 0x2700250C  0x06C11C 0x891800FF  0x06C120 0x000D0280
+      0x06C124 0x62AB67BB  0x06C128 0x51914F96  0x06C12C 0xF18025A8  0x06C130 0x31800000
+      0x06C134 0x00E24000  0x06C138 0x00C400ED  0x06C13C 0x00C400ED  0x06C14C 0x001F0000
+      0x06C150 0x80002041  0x06C154 0x00000200  0x06C190 0x0010007D  0x06C194 0x00008000
+      0x06C1A0 0x001F0000  0x06C1A4 0xB0050000  0x06C1CC 0x0FFFFF00  0x06C1E8 0x00005B00
+      0x06C300 0x00000200  0x06C304 0x1C300004  0x06C308 0xF20004A1  0x06C30C 0x5515ACAA
+      0x06C310 0x575555C1  0x06C314 0x02003E63  0x06C31C 0x00001009  0x06C324 0x01030100
+      0x06C328 0x80000010  0x06C380 0x0B00AAB4  0x06C384 0x0000FF01  0x06C388 0x00003098
+      0x06C38C 0x2C180400  0x06C390 0x00280018  0x06C394 0x00290000  0x06C39C 0x7F000000
+      0x06C3A0 0x3003501C  0x06C3A4 0x0F104F10  0x06C3A8 0x11102E10  0x06C3B8 0x407C407C
+      0x06C3BC 0x0013090E  0x06C3C0 0x0000025F  0x06C3C4 0x00002040  0x06C800 0x00000200
+      0x06C804 0x1C000004  0x06C808 0xF20004A1  0x06C80C 0x5515ACAA  0x06C810 0x575555C1
+      0x06C814 0x02003E63  0x06C81C 0x00001009  0x06C824 0x01030100  0x06C828 0x80000010
+      0x06C880 0x0B20AAB4  0x06C884 0x0000FF01  0x06C888 0x00001098  0x06C88C 0x2C180400
+      0x06C890 0x00280018  0x06C894 0x00290000  0x06C89C 0x7F000000  0x06C8A0 0xB003501C
+      0x06C8A4 0x0F104F10  0x06C8A8 0x11102E10  0x06C8B8 0x407C407C  0x06C8BC 0x0013090E
+      0x06C8C0 0x0000025F  0x06C8C4 0x00002040  0x06C900 0x00000200  0x06C904 0x1C000004
+      0x06C908 0xF20004A1  0x06C90C 0x5515ACAA  0x06C910 0x575555C1  0x06C914 0x02003E63
+      0x06C91C 0x00001009  0x06C924 0x01030100  0x06C928 0x80000010  0x06C980 0x0B00AAB4
+      0x06C984 0x0000FF01  0x06C988 0x00001098  0x06C98C 0x2C180400  0x06C990 0x00280018
+      0x06C994 0x00290000  0x06C99C 0x7F000000  0x06C9A0 0xB003501C  0x06C9A4 0x0F104F10
+      0x06C9A8 0x11102E10  0x06C9B8 0x407C407C  0x06C9BC 0x0013090E  0x06C9C0 0x0000025F
+      0x06C9C4 0x00002040  0x06CA00 0x00000200  0x06CA04 0x1C000004  0x06CA08 0xF20004A1
+      0x06CA0C 0x5515ACAA  0x06CA10 0x575555C1  0x06CA14 0x02003E63  0x06CA1C 0x00001009
+      0x06CA24 0x01030100  0x06CA28 0x80000010  0x06CA80 0x0B20AAB4  0x06CA84 0x0000FF01
+      0x06CA88 0x00001098  0x06CA8C 0x2C180400  0x06CA90 0x00280018  0x06CA94 0x00290000
+      0x06CA9C 0x7F000000  0x06CAA0 0xB003501C  0x06CAA4 0x0F104F10  0x06CAA8 0x11102E10
+      0x06CAB8 0x407C407C  0x06CABC 0x0013090E  0x06CAC0 0x0000025F  0x06CAC4 0x00002040
+      0x06CB00 0x00000200  0x06CB04 0x1C000004  0x06CB08 0xF20004A1  0x06CB0C 0x5515ACAA
+      0x06CB10 0x575555C1  0x06CB14 0x02003E63  0x06CB1C 0x00001009  0x06CB24 0x01030100
+      0x06CB28 0x80000010  0x06CB80 0x0B00AAB4  0x06CB84 0x0000FF01  0x06CB88 0x00001098
+      0x06CB8C 0x2C180400  0x06CB90 0x00280018  0x06CB94 0x00290000  0x06CB9C 0x7F000000
+      0x06CBA0 0xB003501C  0x06CBA4 0x0F104F10  0x06CBA8 0x11102E10  0x06CBB8 0x407C407C
+      0x06CBBC 0x0013090E  0x06CBC0 0x0000025F  0x06CBC4 0x00002040
+range 0x06F000 +0x1000  transcoder EDP timings (pre-Gen12 layout)    UNPROGRAMMED-OR-ABSENT
+    0 live, 1024 trivial, 0 unreadable
+range 0x070000 +0x1000  pipe A configuration and universal plane 1   LIVE
+    99 live, 925 trivial, 0 unreadable
+      0x070000 0x000000DB  0x070008 0xC0000024  0x070020 0x05000000  0x070028 0x00000A0F
+      0x07002C 0x00808000  0x070030 0x00800100  0x070038 0x00008080  0x07003C 0xB1038C02
+      0x070040 0x00000024  0x070044 0x00000016  0x070048 0x03D8C379  0x07004C 0x03D8535E
+      0x070050 0x002400DE  0x070054 0x03D85714  0x070058 0x60000000  0x070080 0x00000027
+      0x070084 0x0086B000  0x070088 0x01760475  0x0700AC 0x0086B000  0x0700B0 0x0000043F
+      0x0700B4 0x0001CC8F  0x070140 0x8001400B  0x070144 0x80030019  0x070148 0x80030019
+      0x07014C 0x80030019  0x070150 0x80030019  0x070154 0x8003801D  0x070158 0x8005802D
+      0x07015C 0x80060031  0x070160 0x0000043F  0x070164 0x03EFF68F  0x070168 0x80000019
+      0x07017C 0x07FF07AE  0x070180 0x82009000  0x070188 0x0000003C  0x070190 0x0437077F
+      0x07019C 0x01A7C000  0x0701A0 0xFF000000  0x0701AC 0x01A7C000  0x0701C0 0x007F8000
+      0x0701CC 0x00002000  0x0701D0 0x000004BF  0x0701D8 0x0000043F  0x0701DC 0x04FFFBFF
+      0x070240 0x8001003E  0x070244 0x800300B8  0x070248 0x800300B8  0x07024C 0x800300B8
+      0x070250 0x800300B8  0x070254 0x800380D7  0x070258 0x80058151  0x07025C 0x8006016F
+      0x070260 0x0000043F  0x070264 0x07097E00  0x070268 0x80000089  0x07027C 0x07AD0000
+      0x0702D0 0x000004BF  0x0702D8 0x0000043F  0x0702DC 0x07FEFF31  0x070360 0x0000043F
+      0x070364 0x01FB8FDF  0x0703D0 0x000004BF  0x0703D8 0x0000043F  0x0703DC 0x07FFBFFF
+      0x0704D0 0x0000043F  0x0704D4 0x0005CF6D  0x0704D8 0x0000043F  0x0704DC 0x00000F0B
+      0x0705D0 0x0000043F  0x0705D4 0x00061004  0x0705D8 0x0000043F  0x0705DC 0x00074A6F
+      0x0706D0 0x0000043F  0x0706D4 0x00000304  0x0706D8 0x0000043F  0x0706DC 0x00052F45
+      0x0707D0 0x0000043F  0x0707D4 0x00016FDB  0x0707D8 0x0000043F  0x0707DC 0x000738A7
+      0x070B0C 0x00000808  0x070B10 0x01190000  0x070B24 0x00080000  0x070B30 0x0020FFFF
+      0x070B3C 0x00008000  0x070B48 0x00000008  0x070C0C 0x00000808  0x070C10 0x01190000
+      0x070C24 0x00080000  0x070C30 0x0020FFFF  0x070C38 0x8000041F  0x070C3C 0x00008000
+      0x070C48 0x00000008  0x070D0C 0x00000808  0x070D10 0x01190000  0x070D24 0x00080000
+      0x070D30 0x0020FFFF  0x070D3C 0x00008000  0x070D48 0x00000008
+range 0x071000 +0x1000  pipe B configuration and universal plane 1   UNPROGRAMMED-OR-ABSENT
+    0 live, 1024 trivial, 0 unreadable
+range 0x072000 +0x1000  pipe C configuration and universal plane 1   UNPROGRAMMED-OR-ABSENT
+    0 live, 1024 trivial, 0 unreadable
+range 0x073000 +0x1000  (+) pipe D configuration and universal plane 1 UNPROGRAMMED-OR-ABSENT
+    0 live, 1024 trivial, 0 unreadable
+range 0x07B000 +0x1000  (+) pipe DSI0 and DSI1 (0x800 stride)        LIVE
+    4 live, 1020 trivial, 0 unreadable
+      0x07B008 0x00000024  0x07B020 0x05000000  0x07B808 0x00000024  0x07B820 0x05000000
+range 0x0C0000 +0x1000  south display / port control                 UNPROGRAMMED-OR-ABSENT
+    0 live, 1024 trivial, 0 unreadable
+range 0x0C2000 +0x1000  (+) SOUTH_CHICKEN1 and SFUSE_STRAP           LIVE
+    2 live, 1022 trivial, 0 unreadable
+      0x0C2000 0x00000901  0x0C2020 0x00008000
+range 0x0C6000 +0x1000  (+) PCH DPLL and DREF control                LIVE
+    1 live, 1023 trivial, 0 unreadable
+      0x0C6204 0x10130800
+range 0x0C7000 +0x1000  panel power sequencing                       LIVE
+    4 live, 1020 trivial, 0 unreadable
+      0x0C7200 0x80000008  0x0C7204 0x00000067  0x0C7208 0x07D00001  0x0C720C 0x01F40001
+range 0x0C8000 +0x1000  backlight PWM                                LIVE
+    3 live, 1021 trivial, 0 unreadable
+      0x0C8250 0x80000000  0x0C8254 0x00017700  0x0C8258 0x00017700
+range 0x0E0000 +0x1000  (+) TRANS_DP_CTL                             UNPROGRAMMED-OR-ABSENT
+    0 live, 1024 trivial, 0 unreadable
+range 0x160000 +0x2000  combo PHY A/B                                UNPROGRAMMED-OR-ABSENT
+    0 live, 2048 trivial, 0 unreadable
+range 0x162000 +0x2000  combo PHY C and DDI aux                      LIVE
+    199 live, 1849 trivial, 0 unreadable
+      0x16200C 0x09220FF0  0x162010 0x8013A881  0x162014 0x1204047B  0x162018 0x7F0F4100
+      0x162020 0x00080000  0x162024 0x00008000  0x162028 0x00030000  0x162030 0x000000C0
+      0x162034 0x0000001C  0x162038 0x001C0000  0x16203C 0x28000000  0x162054 0x418A01CA
+      0x162058 0x012800E7  0x16205C 0x00000300  0x16206C 0x000000C0  0x16207C 0x00000001
+      0x162080 0x01000208  0x162084 0x00000400  0x162088 0x0101021B  0x16208C 0x00001C00
+      0x162100 0x80005F26  0x162104 0x81000400  0x16210C 0xC0606021  0x162110 0x03001000
+      0x162114 0x50000000  0x162118 0x2800250C  0x16211C 0x891800FF  0x162120 0x010D0280
+      0x162124 0x62AB67BB  0x162128 0x51914F96  0x16212C 0xF18025A8  0x162130 0x31800000
+      0x162134 0x00E34004  0x162138 0x00C600ED  0x16213C 0x00C600ED  0x16214C 0x001F0000
+      0x162150 0x80004041  0x162154 0x00000200  0x162190 0x0010007D  0x162194 0x00008000
+      0x1621A0 0x001F0000  0x1621A4 0xB0050000  0x1621A8 0x00000200  0x1621CC 0x0FFFFF00
+      0x1621E8 0x00005B00  0x162300 0x00000200  0x162304 0x1C300004  0x162308 0xF20004A1
+      0x16230C 0x5515ACAA  0x162310 0x575555C1  0x162314 0x02003E63  0x16231C 0x00001009
+      0x162324 0x01030100  0x162328 0x8000001C  0x162380 0x0B20AAB4  0x162384 0x0000FF01
+      0x162388 0x00003098  0x16238C 0x2C180400  0x162390 0x00280018  0x162394 0x00290000
+      0x16239C 0x7F000000  0x1623A0 0x30037C9C  0x1623A4 0x0F104F10  0x1623A8 0x11102E10
+      0x1623B8 0x407C407C  0x1623BC 0x0013090E  0x1623C0 0x0000025F  0x1623C4 0x00002040
+      0x162800 0x00000200  0x162804 0x1C000004  0x162808 0xF2000CA1  0x16280C 0x5515ACAA
+      0x162810 0x575555C1  0x162814 0x02003E63  0x16281C 0x00009009  0x162824 0x01030100
+      0x162828 0x80000011  0x162880 0x0B00AAB4  0x162884 0x0000FF01  0x162888 0x00009098
+      0x16288C 0x2C180600  0x162890 0x0028003F  0x162894 0xA0290030  0x16289C 0x35000000
+      0x1628A0 0xB0034D3C  0x1628A4 0x0F104F10  0x1628A8 0x11102E10  0x1628B8 0x407C407C
+      0x1628BC 0x00130A0F  0x1628C0 0x0000025F  0x1628C4 0x00002040  0x162900 0x00000200
+      0x162904 0x1C000004  0x162908 0xF2000CA1  0x16290C 0x5515ACAA  0x162910 0x575555C1
+      0x162914 0x02003E63  0x16291C 0x00009009  0x162924 0x01030100  0x162928 0x80000010
+      0x162980 0x0B20AAB4  0x162984 0x0000FF01  0x162988 0x00009098  0x16298C 0x2E1A0600
+      0x162990 0x8028003F  0x162994 0xA0290030  0x16299C 0x35000000  0x1629A0 0xB0034D1C
+      0x1629A4 0x0F104F10  0x1629A8 0x11102E10  0x1629B8 0x407C407C  0x1629BC 0x00150B10
+      0x1629C0 0x0000025F  0x1629C4 0x00002040  0x162A00 0x00000200  0x162A04 0x1C000004
+      0x162A08 0xF2000CA1  0x162A0C 0x5515ACAA  0x162A10 0x575555C1  0x162A14 0x02003E63
+      0x162A1C 0x00009009  0x162A24 0x01030100  0x162A28 0x8000000E  0x162A80 0x0B20AAB4
+      0x162A84 0x0000FF01  0x162A88 0x00009098  0x162A8C 0x2C180600  0x162A90 0x8028003F
+      0x162A94 0xA0290030  0x162A9C 0x35000000  0x162AA0 0xB0032DDC  0x162AA4 0x0F104F10
+      0x162AA8 0x11102E10  0x162AB8 0x407C407C  0x162ABC 0x00130A0F  0x162AC0 0x0000025F
+      0x162AC4 0x00002040  0x162B00 0x00000200  0x162B04 0x1C000004  0x162B08 0xF2000CA1
+      0x162B0C 0x5515ACAA  0x162B10 0x575555C1  0x162B14 0x02003E63  0x162B1C 0x00009009
+      0x162B24 0x01030100  0x162B28 0x8000000F  0x162B80 0x0B00AAB4  0x162B84 0x0000FF01
+      0x162B88 0x00009098  0x162B8C 0x2E1A0600  0x162B90 0x8028003F  0x162B94 0xA0290030
+      0x162B9C 0x35000000  0x162BA0 0xB0032FFC  0x162BA4 0x0F104F10  0x162BA8 0x11102E10
+      0x162BB8 0x407C407C  0x162BBC 0x00150B10  0x162BC0 0x0000025F  0x162BC4 0x00002040
+      0x163000 0x00018000  0x163010 0x00000080  0x163014 0x00001000  0x163018 0x00200200
+      0x163020 0xC0000000  0x163024 0x00000001  0x163028 0x00000002  0x163040 0x00100008
+      0x163044 0x0000CCCC  0x163048 0x00000800  0x16304C 0x0000CCCC  0x163060 0x41000208
+      0x163064 0x00000400  0x163068 0x4100021E  0x16306C 0x00001400  0x163078 0x41000208
+      0x16307C 0x00000400  0x163080 0x4100021B  0x163084 0x00000400  0x163090 0x41000208
+      0x163094 0x00000400  0x163098 0x4100020A  0x16309C 0x00000400  0x1630A8 0x41000208
+      0x1630AC 0x00000400  0x1630B0 0x4100021B  0x1630B4 0x00001400  0x163200 0x00000004
+      0x163204 0x0000FFFF  0x163280 0x00000004  0x163284 0x0000EEEE  0x163300 0x00001111
+      0x163400 0x00001111  0x163480 0x00001111  0x1634A0 0x00001111  0x1638A0 0x00000010
+      0x163F00 0x80000004  0x163F04 0x0000EEEE  0x163F80 0x80000000
+range 0x164000 +0x1000  (+) Gen12 DPLL config and DPCLKA_CFGCR       LIVE
+    80 live, 944 trivial, 0 unreadable
+      0x164060 0x01000208  0x164064 0x00000400  0x164068 0x01000208  0x16406C 0x00000400
+      0x164070 0x0100021B  0x164074 0x00001400  0x164078 0x01000208  0x16407C 0x00000400
+      0x164280 0x01E17800  0x164284 0x00E001A5  0x164288 0x00000048  0x16428C 0x018001D4
+      0x164290 0x00002644  0x164294 0x018001D4  0x164298 0x00002644  0x16429C 0x00AAA853
+      0x1642A0 0x00000509  0x1642B4 0x00000177  0x1642B8 0x01555442  0x164B00 0x5E27343A
+      0x164B04 0x0CDCC522  0x164B08 0x00401300  0x164B0C 0x4044B56A  0x164B10 0x401320FF
+      0x164B14 0xE6000000  0x164B18 0x0000083F  0x164B1C 0x50003180  0x164B20 0x54321000
+      0x164B24 0xE4004080  0x164B28 0x80008130  0x164B2C 0x04001C00  0x164B44 0x00040030
+      0x164B48 0x000000F0  0x164B4C 0x00000F40  0x164B50 0x03770000  0x164B54 0x1FF801FF
+      0x164B58 0x0003FF80  0x164B60 0x9000F7AB  0x164B64 0x00000034  0x164B68 0x04000000
+      0x164B70 0x34008000  0x164B74 0x0032B207  0x164B78 0x0000008C  0x164B7C 0x771D29FF
+      0x164C00 0x5E27343A  0x164C04 0x0CDCC522  0x164C08 0x00401300  0x164C0C 0x4044B56A
+      0x164C10 0x401320FF  0x164C14 0xE6000000  0x164C18 0x0000083F  0x164C1C 0x50003180
+      0x164C20 0x54321000  0x164C24 0xE4004080  0x164C28 0x80008130  0x164C2C 0x04001C00
+      0x164C44 0x00040030  0x164C48 0x000000F0  0x164C4C 0x00000F40  0x164C50 0x01FF00F3
+      0x164C54 0x1FF801FF  0x164C58 0x0003FF80  0x164C60 0x9000BF9C  0x164C64 0x0000003A
+      0x164C68 0x02000000  0x164C70 0x3A000400  0x164C74 0x00558B8F  0x164C78 0x000000FF
+      0x164C7C 0x670D09FF  0x164E80 0x01E17800  0x164E84 0x00E001A5  0x164E88 0x00000048
+      0x164E8C 0x018001D4  0x164E90 0x00002644  0x164E94 0x018001D4  0x164E98 0x00002644
+      0x164E9C 0x00AAA853  0x164EA0 0x00000509  0x164EB4 0x00000177  0x164EB8 0x01555442
+
+total live dwords across all ranges: 718
+
+==== SECTION 2  transcoder timing blocks ====
+trans A     @0x60000  LIVE
+    HTOTAL        +0x000  0x081F077F  halves 1919 / 2079  (+1: 1920 / 2080)
+    HBLANK        +0x004  0x081F077F  halves 1919 / 2079  (+1: 1920 / 2080)
+    HSYNC         +0x008  0x081B07EB  halves 2027 / 2075  (+1: 2028 / 2076)
+    VTOTAL        +0x00C  0x049B0437  halves 1079 / 1179  (+1: 1080 / 1180)
+    VBLANK        +0x010  0x049B0437  halves 1079 / 1179  (+1: 1080 / 1180)
+    VSYNC         +0x014  0x043F043A  halves 1082 / 1087  (+1: 1083 / 1088)
+    PIPESRC       +0x01C  0x077F0437  raw 1919x1079  (+1: 1920x1080)
+    DATA_M1       +0x030  0x7E3EE5D4
+    LINK_M1       +0x040  0x00053DD1
+    DDI_FUNC_CTL  +0x400  0x8A000006
+    MSA_MISC      +0x410  0x00000021
+trans B     @0x61000  UNPROGRAMMED-OR-ABSENT
+    HTOTAL        +0x000  0x00000000
+    HBLANK        +0x004  0x00000000
+    HSYNC         +0x008  0x00000000
+    VTOTAL        +0x00C  0x00000000
+    VBLANK        +0x010  0x00000000
+    VSYNC         +0x014  0x00000000
+    PIPESRC       +0x01C  0x00000000
+    DATA_M1       +0x030  0x00000000
+    LINK_M1       +0x040  0x00000000
+    DDI_FUNC_CTL  +0x400  0x00000000
+    MSA_MISC      +0x410  0x00000000
+trans C     @0x62000  UNPROGRAMMED-OR-ABSENT
+    HTOTAL        +0x000  0x00000000
+    HBLANK        +0x004  0x00000000
+    HSYNC         +0x008  0x00000000
+    VTOTAL        +0x00C  0x00000000
+    VBLANK        +0x010  0x00000000
+    VSYNC         +0x014  0x00000000
+    PIPESRC       +0x01C  0x00000000
+    DATA_M1       +0x030  0x00000000
+    LINK_M1       +0x040  0x00000000
+    DDI_FUNC_CTL  +0x400  0x00000000
+    MSA_MISC      +0x410  0x00000000
+trans D     @0x63000  UNPROGRAMMED-OR-ABSENT
+    HTOTAL        +0x000  0x00000000
+    HBLANK        +0x004  0x00000000
+    HSYNC         +0x008  0x00000000
+    VTOTAL        +0x00C  0x00000000
+    VBLANK        +0x010  0x00000000
+    VSYNC         +0x014  0x00000000
+    PIPESRC       +0x01C  0x00000000
+    DATA_M1       +0x030  0x00000000
+    LINK_M1       +0x040  0x00000000
+    DDI_FUNC_CTL  +0x400  0x00000000
+    MSA_MISC      +0x410  0x00000000
+trans DSI0  @0x6B000  LIVE
+    HTOTAL        +0x000  0x00000000
+    HBLANK        +0x004  0x00000000
+    HSYNC         +0x008  0x00000000
+    VTOTAL        +0x00C  0x00000000
+    VBLANK        +0x010  0x00000000
+    VSYNC         +0x014  0x00000000
+    PIPESRC       +0x01C  0x00000000
+    DATA_M1       +0x030  0x00000000
+    LINK_M1       +0x040  0x00000000
+    DDI_FUNC_CTL  +0x400  0x00030000
+    MSA_MISC      +0x410  0x00000000
+trans DSI1  @0x6B800  LIVE
+    HTOTAL        +0x000  0x00000000
+    HBLANK        +0x004  0x00000000
+    HSYNC         +0x008  0x00000000
+    VTOTAL        +0x00C  0x00000000
+    VBLANK        +0x010  0x00000000
+    VSYNC         +0x014  0x00000000
+    PIPESRC       +0x01C  0x00000000
+    DATA_M1       +0x030  0x00000000
+    LINK_M1       +0x040  0x00000000
+    DDI_FUNC_CTL  +0x400  0x00030000
+    MSA_MISC      +0x410  0x00000000
+
+==== SECTION 3  pipe configuration ====
+pipe A     @0x70000  LIVE
+    CONF   +0x008  0xC0000024
+    MISC2  +0x02C  0x00808000
+    MISC   +0x030  0x00800100
+pipe B     @0x71000  UNPROGRAMMED-OR-ABSENT
+    CONF   +0x008  0x00000000
+    MISC2  +0x02C  0x00000000
+    MISC   +0x030  0x00000000
+pipe C     @0x72000  UNPROGRAMMED-OR-ABSENT
+    CONF   +0x008  0x00000000
+    MISC2  +0x02C  0x00000000
+    MISC   +0x030  0x00000000
+pipe D     @0x73000  UNPROGRAMMED-OR-ABSENT
+    CONF   +0x008  0x00000000
+    MISC2  +0x02C  0x00000000
+    MISC   +0x030  0x00000000
+pipe DSI0  @0x7B000  LIVE
+    CONF   +0x008  0x00000024
+    MISC2  +0x02C  0x00000000
+    MISC   +0x030  0x00000000
+pipe DSI1  @0x7B800  LIVE
+    CONF   +0x008  0x00000024
+    MISC2  +0x02C  0x00000000
+    MISC   +0x030  0x00000000
+
+==== SECTION 4  universal plane slots (Q3) ====
+pipe A     @0x70000  1 live slots
+  plane 1 @0x70180 CTL=0x82009000 enable=1 format=0x04
+      STRIDE +0x08 0x0000003C   POS +0x0C 0x00000000   SIZE +0x10 0x0437077F
+      PLANE_SIZE halves 1919 / 1079  (+1: 1920 / 1080) -- compare with PIPESRC above;
+      measured 2026-08-16 the two are BYTE-SWAPPED relative to each other
+      SURF +0x1C 0x01A7C000   OFFSET +0x24 0x00000000
+      +0x00 0x82009000  +0x04 0x00000000  +0x08 0x0000003C  +0x0C 0x00000000
+      +0x10 0x0437077F  +0x14 0x00000000  +0x18 0x00000000  +0x1C 0x01A7C000
+      +0x20 0xFF000000  +0x24 0x00000000  +0x28 0x00000000  +0x2C 0x01A7C000
+      +0x30 0x00000000  +0x34 0x00000000  +0x38 0x00000000  +0x3C 0x00000000
+      +0x40 0x007F8000  +0x44 0x00000000  +0x48 0x00000000  +0x4C 0x00002000
+      +0x50 0x000004C1  +0x54 0x00000000  +0x58 0x00000401  +0x5C 0x00FFA3FE
+      +0x60 0x00000000  +0x64 0x00000000  +0x68 0x00000000  +0x6C 0x00000000
+      +0x70 0x00000000  +0x74 0x00000000  +0x78 0x00000000  +0x7C 0x00000000
+      +0x80 0x00000000  +0x84 0x00000000  +0x88 0x00000000  +0x8C 0x00000000
+      +0x90 0x00000000  +0x94 0x00000000  +0x98 0x00000000  +0x9C 0x00000000
+      +0xA0 0x00000000  +0xA4 0x00000000  +0xA8 0x00000000  +0xAC 0x00000000
+      +0xB0 0x00000000  +0xB4 0x00000000  +0xB8 0x00000000  +0xBC 0x00000000
+      +0xC0 0x8001003E  +0xC4 0x800300B8  +0xC8 0x800300B8  +0xCC 0x800300B8
+      +0xD0 0x800300B8  +0xD4 0x800380D7  +0xD8 0x80058151  +0xDC 0x8006016F
+      +0xE0 0x0000043F  +0xE4 0x07097C00  +0xE8 0x80000089  +0xEC 0x00000000
+      +0xF0 0x00000000  +0xF4 0x00000000  +0xF8 0x00000000  +0xFC 0x07AD0000
+pipe B     @0x71000  UNPROGRAMMED-OR-ABSENT (no live plane slot)
+pipe C     @0x72000  UNPROGRAMMED-OR-ABSENT (no live plane slot)
+pipe D     @0x73000  UNPROGRAMMED-OR-ABSENT (no live plane slot)
+pipe DSI0  @0x7B000  UNPROGRAMMED-OR-ABSENT (no live plane slot)
+pipe DSI1  @0x7B800  UNPROGRAMMED-OR-ABSENT (no live plane slot)
+
+==== SECTION 5  DSI pages and the 0x800-vs-0x1000 stride (Q1/Q2) ====
+If DSI1 sits at 0x6B800 then 0x6C000 is DPCLKA, not a timing block. The
+two readings are separable ONLY if something programmed a DSI transcoder,
+and nothing on an eDP-only laptop ever will -- so a null here settles
+nothing either way. Recorded so the absence is documented rather than
+inferred.
+  0x6B000 DSI0 HTOTAL      0x00000000
+  0x6B800 DSI1 HTOTAL      0x00000000
+  0x6C000 DPCLKA-or-DSI1   0x00000000
+  0x7B000 pipe DSI0        0x00000000
+  0x7B800 pipe DSI1        0x00000000
+
+==== SECTION 6  clocks, PLLs, fuses, DDI ====
+  CDCLK_CTL                    @0x046000  0x0038017E
+  SKL_DFSM                     @0x051000  0x800C1240
+  DPCLKA (pre-Gen12 location)  @0x06C000  0x00000000
+  SOUTH_CHICKEN1               @0x0C2000  0x00000901
+  SFUSE_STRAP                  @0x0C2014  0x00000000
+  PCH_DREF_CONTROL             @0x0C6200  0xFFFFFFFF
+  _TRANS_DP_CTL_A              @0x0E0300  0xFFFFFFFF
+  ICL_DPCLKA_CFGCR0            @0x164280  0x01E17800
+  _TGL_DPLL0_CFGCR0            @0x164284  0x00E001A5
+  _TGL_DPLL0_CFGCR1            @0x164288  0x00000048
+  _DDI_BUF_CTL_A               @0x064000  0x80000087
+  _DP_TP_CTL_A                 @0x064040  0x00000000
+
+  DDI buffer control walk (0x64000 + n*0x100, unnamed beyond A):
+    DDI slot 0 @0x064000  0x80000087
+    DDI slot 1 @0x064100  0x00000080
+    DDI slot 2 @0x064200  0x00000080
+    DDI slot 3 @0x064300  0x00000000
+    DDI slot 4 @0x064400  0x00000000
+    DDI slot 5 @0x064500  0x00000000
+    DDI slot 6 @0x064600  0x00000000
+    DDI slot 7 @0x064700  0x00000000
+
+==== SECTION 7  PIPESRC +1 convention vs the lit panel (Q4) ====
+  drm card1-eDP-1        first mode 1920x1080
+  trans A     PIPESRC=0x077F0437  raw=1919x1079  +1=1920x1080
+  -> whichever of raw / +1 equals a mode above is the convention.
+     If NEITHER matches, say so. Do not pick the closer one.
+
+==== END OF MMIO ====
+
+
+================================================================
+READING NOTES added on the host after the run. Everything above this
+line is the machine's output verbatim; everything below is analysis and
+is NOT part of the capture.
+================================================================
+
+MACHINE: Tiger Lake mobile, PCI 8086:9a68 at 0000:00:02.0, i915 bound,
+eDP-1 connected and lit at 1920x1080 for the whole run. HDMI-A-1
+disconnected. Second and last silicon session this track will ever get.
+
+WHY THIS RUN EXISTS AND THE FIRST ONE DID NOT SUFFICE
+-----------------------------------------------------
+The 2026-08-18 18:54 UTC attempt of this same script produced the whole
+PROVENANCE half and then died at the mmap with
+
+    PermissionError: [Errno 1] Operation not permitted
+
+Everything after "==== MMIO ====" was absent. The cause is printed in
+that run's own provenance block two screens above the traceback:
+
+    lockdown   none [integrity] confidentiality
+    secureboot SecureBoot enabled
+
+Secure Boot puts the kernel in lockdown=integrity, and integrity
+lockdown refuses mmap of a PCI BAR through sysfs to root. Not a
+permissions problem, not a missing capability -- a policy refusal that
+CAP_SYS_RAWIO cannot lift. The operator disabled Secure Boot and re-ran;
+this run reports
+
+    lockdown   [none] integrity confidentiality
+    secureboot SecureBoot disabled
+
+and the mmap succeeded. Both lines were already in the script's
+provenance block before either run, which is the only reason the first
+failure was diagnosable at all rather than being "the script broke".
+
+READER PROVEN
+-------------
+transcoder A HTOTAL at 0x60000 read 0x081F077F, so the mapping is live
+and every null below is a fact about the block rather than a fact about
+the reader. 718 live dwords across 25 ranges.
+
+Q1/Q2 -- THE DSI 0x800 STRIDE IS NOW WITNESSED
+-----------------------------------------------
+This is the finding the previous capture could not reach, and it is the
+reason the ten added ranges were worth the disk.
+
+0x6B000 and 0x6B800 are BOTH decoding. Nine offsets are live in each
+page, and all nine are pairwise IDENTICAL:
+
+    +0x044 0xFFFF0000   +0x050 0x07F00FFF   +0x088 0x000007D0
+    +0x08C 0x00004E20    +0x090 0x000F0000   +0x09C 0x00000014
+    +0x0A0 0x00800000    +0x0D0 0x00001040   +0x400 0x00030000
+
+Two pages 0x800 apart holding identical non-trivial reset state is the
+signature of two instances of one block at a 0x800 stride. A 0x1000
+stride would put DSI1 at 0x6C000, and 0x6C000 does NOT look like this:
+it holds 159 live dwords of PLL/PHY content that mirrors 0x162000 (52 of
+68 live offsets in the low 0x400 are identical between the two). So
+0x6C000 is PHY/PLL territory on this silicon, not a second DSI timing
+block.
+
+What this does NOT establish: nothing programmed a DSI transcoder, so
+the TIMING registers in both pages are still zero and the decode path
+remains unexercised. What is now measured is the ADDRESSING -- the
+0x800 stride in IntelDisplay.hpp, previously sourced only to
+reference/i915/intel_display_device.c:79-80 and marked UNWITNESSED, has
+two decoding instances at that spacing on real silicon. Upgrade the
+provenance of the stride, not of the field decoders.
+
+Q3 -- PLANE COUNT STILL NOT SETTLED, AND STILL NOT SETTLEABLE HERE
+-------------------------------------------------------------------
+One live plane slot, plane 1A at 0x70180, CTL 0x82009000. Slots 2..7 on
+pipe A and every slot on pipes B/C/D read zero. debugfs independently
+reports seven OVL planes plus a cursor per pipe, all hidden -- so the
+slots exist and are merely disabled, which is exactly the ambiguity the
+2026-08-16 notes recorded. A disabled slot and an absent slot both read
+zero. Attaching an external display before this boot would have lit a
+second pipe and made this answerable; it was not done, and it cannot be
+done now.
+
+Q4 -- PIPESRC +1 CONFIRMED A SECOND TIME
+-----------------------------------------
+PIPESRC 0x077F0437 -> +1 = 1920x1080, equal to the panel's advertised
+mode and to debugfs "pipe src=1920x1080+0+0". PLANE_SIZE at 0x70190 is
+0x0437077F -- the same two halves, INVERTED. Second independent
+witnessing of the byte-swap first measured 2026-08-16. A decoder reused
+across the two transposes the axes and still programs cleanly.
+
+THE FINDING NOBODY WAS LOOKING FOR: TWO READS OF ONE OFFSET DISAGREED
+----------------------------------------------------------------------
+This capture reads several offsets twice -- once in the section 1 range
+sweep and again by name in sections 4 and 6. Five offsets returned
+DIFFERENT values in the two reads, within the same run, on the same
+mapping:
+
+    0x064000  section 1 0x80000007   section 6 0x80000087
+    0x0701D0  section 1 0x000004BF   section 4 0x000004C1
+    0x0701D8  section 1 0x0000043F   section 4 0x00000401
+    0x0701DC  section 1 0x04FFFBFF   section 4 0x00FFA3FE
+    0x070264  section 1 0x07097E00   section 4 0x07097C00
+
+The first one is diagnosable: bit 7 of DDI_BUF_CTL is DDI_BUF_IS_IDLE
+(reference/i915/i915_reg.h:3869). It is a live STATUS bit reporting
+whether the buffer is idle at the instant of the read, so 0x80000007 and
+0x80000087 are the same register in two different states, not a bad
+read. The other four sit in the plane watermark / buffer-allocation band
+around _PLANE_WM_1_A_0 = 0x70240
+(reference/i915/skl_universal_plane_regs.h:315) and carry the same
+character: counters and live allocation state.
+
+The durable consequence for this project: A REGISTER READ ON A RUNNING
+DISPLAY IS A SAMPLE, NOT A CONSTANT. Any value harvested from this file
+into phase0-kext/ as a *_OBSERVED_* constant must come from a register
+that is configuration, not status. The five offsets above are
+disqualified by measurement rather than by judgement, and the only
+reason we know is that the script happened to read them twice. Nothing
+in the tree asserts that a value pinned as observed was read more than
+once.
+
+WHAT IS SAFE TO HARVEST
+-----------------------
+Timing (0x60000..0x60014), PIPESRC (0x6001C), PLANE_SIZE/STRIDE/CTL,
+PIPE_CONF (0x70008), CDCLK_CTL (0x46000), SKL_DFSM (0x51000),
+SOUTH_CHICKEN1 (0xC2000), panel power sequencing (0xC7200..0xC720C) and
+backlight PWM (0xC8250..0xC8258) each read once and are configuration
+state. Two of the section 6 named reads are NOT anchored in this tree --
+PCH_DREF_CONTROL at 0xC6200 and _TRANS_DP_CTL_A at 0xE0300 both
+returned 0xFFFFFFFF while their whole enclosing pages read as zero or
+near-zero, which on this silicon means the individual dword did not
+decode. Do not read either as a value.
+
+SFUSE_STRAP at 0xC2014 read 0x00000000 while SOUTH_CHICKEN1 one page
+over read 0x00000901, so the page decodes and the fuse word is genuinely
+zero. No PCH display straps set on a laptop with no PCH-attached
+display.
+
+STILL UNANSWERABLE ON THIS MACHINE
+-----------------------------------
+Everything requiring a second lit pipe: plane count per pipe, transcoder
+B/C/D field layouts, TRANS_DP_CTL, the combo PHY A/B block at 0x160000
+(entirely zero -- eDP runs on PHY A through DDI A, and the block that
+lit up is 0x162000). These are not gaps in the script; they are gaps in
+the hardware configuration that existed during the only two boots this
+track will ever get.

@@ -1,0 +1,73 @@
+file            : reference\ga107-firmware\vbios-ga107.rom
+size            : 65024 bytes (0xfe00)
+
+=== DCB header ===
+pointer at 0x36 -> 0x58ba
+  version          +0x00  0x41
+  header_size      +0x01  0x23
+  entry_count      +0x02  0x00
+  entry_size       +0x03  0x08
+  ccb_block_ptr    +0x04  0x595d
+  dcb_signature    +0x06  0x4edcbdcb
+  gpio_table       +0x0a  0x3fb2  (offset in image)
+  input_devices    +0x0c  0x0000  (absent)
+  personal_cinema  +0x0e  0x0000  (absent)
+  spread_spectrum  +0x10  0x0000  (absent)
+  i2c_devices      +0x12  0x599f  (offset in image)
+  connectors       +0x14  0x5a24  (offset in image)
+  flags            +0x16  0xc1
+  hdtv             +0x17  0x0000  (absent)
+  switched_outputs +0x19  0x0000  (absent)
+  display_patch    +0x1b  0x00000000
+  connector_patch  +0x1f  0x00000000
+
+=== display path entries (0, 8 bytes each) ===
+  idx  offset  word0     word1     type         head or link boot
+
+=== connector table @0x5a24 (0 entries, 4 bytes each) ===
+
+=== PCI expansion ROM image chain ===
+  image @0x000000  vendor 0x10de device 0x25a2  code type 0
+      length 65024 bytes, ends at 0x00fe00, file ends at 0x00fe00 -> COMPLETE
+      last-image indicator: True
+  chain verdict           : complete
+
+=== sibling sub-table counts ===
+  ccb_block_ptr    0x595d  version 0x41  entries  15  entry_size  4  well formed
+  gpio_table       0x3fb2  version 0x41  entries  36  entry_size  6  well formed
+  i2c_devices      0x599f  version 0x40  entries  32  entry_size  4  well formed
+  connectors       0x5a24  version 0x40  entries   0  entry_size  4  well formed
+  spread_spectrum  0x0000  absent
+
+=== what this says about reaching a port ===
+  live display paths        : 0
+  external-capable (TMDS/DP): 0
+  internal panel (LVDS)     : 0
+
+  THIS IMAGE DECLARES NO DISPLAY PATHS AT ALL.
+  An absence is the one finding a decoder cannot report on its own
+  evidence: landing one field off, on the wrong table, or on a
+  truncated dump each produce this same reading. So each arm below is
+  positive evidence that the decode landed where it claims.
+    [yes] image chain complete (not truncated)
+    [yes] signature occurs exactly once in the image
+    [yes] pointer at 0x36 selected that one header
+    [yes] header version is a known DCB version
+    [yes] header_size matches the version-4x layout
+    [yes] entry_size holds two 32-bit words
+    [yes] at least two sibling sub-tables are populated
+  verdict                 : AUTHORED -- the zero is the board's own statement
+  signature occurrences   : 0x58ba
+  populated siblings      : ccb_block_ptr=15, gpio_table=36, i2c_devices=32
+
+  What it does NOT mean: not that the chip has no display hardware.
+  It means THIS BOARD's firmware describes no path from this chip to
+  any connector -- which is what a muxless laptop looks like from the
+  discrete GPU's side, and corroborates the muxless finding recorded
+  in section 1 of 3050-handoff27.md from the GPU's own firmware.
+  A driver cannot invent a path the board does not carry.
+
+  READ THIS AS FIRMWARE'S CLAIM ABOUT BOARD WIRING, NOT A MEASUREMENT.
+  A named connector is not a populated port, and on a muxless laptop a
+  path this table describes may still be routed to the Intel chip's
+  outputs at the board level. Nothing here has been driven.

@@ -1,0 +1,56 @@
+test_a_bogus_token_fails_under_every_resolution_base (test_documented_paths.DocumentedPathsTest.test_a_bogus_token_fails_under_every_resolution_base)
+DOCREL/DIRECT/PARENT are three chances; none may be a free pass. ... ok
+test_a_climb_that_stays_in_the_repo_resolves_normally (test_documented_paths.DocumentedPathsTest.test_a_climb_that_stays_in_the_repo_resolves_normally)
+`../STEPS.md` in tests/README.md is correct, not an escape. ... ok
+test_a_join_that_leaves_the_repo_is_reported_as_escaping (test_documented_paths.DocumentedPathsTest.test_a_join_that_leaves_the_repo_is_reported_as_escaping)
+An out-of-tree join gets its own verdict, not a bare MISSING. ... ok
+test_absent_directory_declarations_are_still_written (test_documented_paths.DocumentedPathsTest.test_absent_directory_declarations_are_still_written)
+The directory counterpart of the check above. ... ok
+test_allowlist_entries_are_still_referenced (test_documented_paths.DocumentedPathsTest.test_allowlist_entries_are_still_referenced)
+A stale exemption is how the next blind spot gets built. ... ok
+test_backslash_paths_normalise (test_documented_paths.DocumentedPathsTest.test_backslash_paths_normalise) ... ok
+test_direct_match_wins_for_a_qualified_path (test_documented_paths.DocumentedPathsTest.test_direct_match_wins_for_a_qualified_path) ... ok
+test_directories_documented_as_absent_are_still_absent (test_documented_paths.DocumentedPathsTest.test_directories_documented_as_absent_are_still_absent)
+The suppression is only correct while the directory really is gone. ... ok
+test_doc_relative_beats_root_relative_on_a_real_collision (test_documented_paths.DocumentedPathsTest.test_doc_relative_beats_root_relative_on_a_real_collision)
+DOCREL is tried before DIRECT, and that ordering is a CHOICE. ... ok
+test_docrel_resolves_a_sibling_of_the_doc (test_documented_paths.DocumentedPathsTest.test_docrel_resolves_a_sibling_of_the_doc)
+tools/README.md says `identify-gpu.py`, meaning tools/identify-gpu.py. ... ok
+test_docs_covers_every_root_md (test_documented_paths.DocumentedPathsTest.test_docs_covers_every_root_md)
+DOCS is hand-typed, and its failure mode is silent in one direction: ... ok
+test_documented_absences_are_still_absent (test_documented_paths.DocumentedPathsTest.test_documented_absences_are_still_absent) ... ok
+test_elision_reports_ambiguous_rather_than_picking_one (test_documented_paths.DocumentedPathsTest.test_elision_reports_ambiguous_rather_than_picking_one)
+`tests/.../README.md` matches more than one file; that must fail. ... ok
+test_elision_reports_missing_when_nothing_matches (test_documented_paths.DocumentedPathsTest.test_elision_reports_missing_when_nothing_matches) ... ok
+test_elision_resolves_when_exactly_one_thing_matches (test_documented_paths.DocumentedPathsTest.test_elision_resolves_when_exactly_one_thing_matches) ... ok
+test_every_doc_has_a_floor (test_documented_paths.DocumentedPathsTest.test_every_doc_has_a_floor)
+A doc in DOCS with no FLOORS entry is scanned but not guarded: if ... ok
+test_every_doc_is_readable_and_nonempty (test_documented_paths.DocumentedPathsTest.test_every_doc_is_readable_and_nonempty) ... ok
+test_every_documented_command_names_a_real_script (test_documented_paths.DocumentedPathsTest.test_every_documented_command_names_a_real_script)
+Across EVERY fence language, not just ```sh. ... ok
+test_every_documented_directory_exists (test_documented_paths.DocumentedPathsTest.test_every_documented_directory_exists) ... ok
+test_every_documented_file_path_resolves (test_documented_paths.DocumentedPathsTest.test_every_documented_file_path_resolves) ... ok
+test_extractors_clear_their_floors (test_documented_paths.DocumentedPathsTest.test_extractors_clear_their_floors) ... ok
+test_fence_parser_reads_every_language_and_ignores_prose (test_documented_paths.DocumentedPathsTest.test_fence_parser_reads_every_language_and_ignores_prose) ... ok
+test_index_covers_the_tree (test_documented_paths.DocumentedPathsTest.test_index_covers_the_tree) ... ok
+test_pair_expansion_splits_and_leaves_others_alone (test_documented_paths.DocumentedPathsTest.test_pair_expansion_splits_and_leaves_others_alone) ... ok
+test_pair_shorthand_names_two_real_files (test_documented_paths.DocumentedPathsTest.test_pair_shorthand_names_two_real_files)
+Both halves of every `X.hpp/.cpp` must exist, not just one. ... ok
+test_parent_resolves_the_docs_own_directory (test_documented_paths.DocumentedPathsTest.test_parent_resolves_the_docs_own_directory)
+`kextshim/` inside tests/kextshim/README.md is self-referential. ... ok
+test_payload_stage_is_excluded_from_the_index (test_documented_paths.DocumentedPathsTest.test_payload_stage_is_excluded_from_the_index)
+The staging copy must stay out of the index. ... ok
+test_resolver_reports_missing_for_a_bare_name_that_is_not_there (test_documented_paths.DocumentedPathsTest.test_resolver_reports_missing_for_a_bare_name_that_is_not_there) ... ok
+test_resolver_reports_missing_for_a_path_that_is_not_there (test_documented_paths.DocumentedPathsTest.test_resolver_reports_missing_for_a_path_that_is_not_there) ... ok
+test_tail_match_accepts_a_bare_basename_that_is_real (test_documented_paths.DocumentedPathsTest.test_tail_match_accepts_a_bare_basename_that_is_real) ... ok
+test_tail_match_is_anchored_at_a_separator (test_documented_paths.DocumentedPathsTest.test_tail_match_is_anchored_at_a_separator)
+`kext/NVDecode.hpp` must not resolve to `phase0-kext/NVDecode.hpp`. ... ok
+test_tail_match_reports_ambiguous_when_two_files_share_a_basename (test_documented_paths.DocumentedPathsTest.test_tail_match_reports_ambiguous_when_two_files_share_a_basename)
+A basename naming two files must fail, not silently pick one. ... ok
+test_the_four_gates_are_all_documented_and_real (test_documented_paths.DocumentedPathsTest.test_the_four_gates_are_all_documented_and_real)
+The gate list is the load-bearing part of CLAUDE.md; name it directly. ... ok
+
+----------------------------------------------------------------------
+Ran 33 tests in 0.126s
+
+OK

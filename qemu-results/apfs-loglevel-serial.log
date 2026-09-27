@@ -1,0 +1,339 @@
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01HBdsDxe: failed to load Boot0001 "UEFI QEMU HARDDISK QM00013 " from PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0): Not Found
+BdsDxe: loading Boot0002 "EFI Internal Shell" from Fv(7CB8BDC9-F8EB-4F34-AAEA-3EE4AF6516A1)/FvFile(7C04A583-9E3E-4F1C-AD65-E05268D0B4D1)
+BdsDxe: starting Boot0002 "EFI Internal Shell" from Fv(7CB8BDC9-F8EB-4F34-AAEA-3EE4AF6516A1)/FvFile(7C04A583-9E3E-4F1C-AD65-E05268D0B4D1)
+[2J[01;01H[01;01HUEFI Interactive Shell v2.2
+EDK II
+UEFI v2.70 (EDK II, 0x00010000)
+[1m[33m[40mMapping table[0m[37m[40m
+[1m[33m[40m      FS0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a1:;BLK1:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,29A79563-5185-42C4-9134-50CFD94E1526,0x28,0x64000)
+[1m[33m[40m      FS1:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0b65535a1:;BLK4:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)/HD(1,MBR,0xBE1AFDFA,0x3F,0xFBFC1)
+[1m[33m[40m     BLK0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)
+[1m[33m[40m     BLK3:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)
+[1m[33m[40m     BLK2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)
+[17;01HPress [1m[37m[40mESC[0m[37m[40m in 5 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[17;01HPress [1m[37m[40mESC[0m[37m[40m in 4 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[17;01HPress [1m[37m[40mESC[0m[37m[40m in 3 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[17;01HPress [1m[37m[40mESC[0m[37m[40m in 2 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[17;01HPress [1m[37m[40mESC[0m[37m[40m in 1 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.
+[1m[33m[40mShell> [0m[37m[40mecho "NSH-MARK-START"
+NSH-MARK-START
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5 fs6
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5 fs6
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40m    echo "NSH-MARK-FOUND-DRIVER-ON" %d
+NSH-MARK-FOUND-DRIVER-ON fs1
+[1m[33m[40mShell> [0m[37m[40m    load %d:\apfs.efi
+Image 'FS1:\apfs.efi' loaded at 7D944000 - Success
+apfs.efi: LocateProtocol(AppleLogging) failed
+APFSStart:1589: Mounting with apfs_efi_osx-2332.140.13.702.2
+efi_fusion_pairing:672: Container 8ac04a74-678d-4ec4-a092-b13cfb835351
+efi_fusion_pairing:677: fusion uuid: 00000000-0000-0000-0000-000000000000
+efi_container_create:914: LoadedImage->DeviceHandle = 0x7e7bba98
+efi_container_create:976: Volume attached is internal
+nx_dev_init:868: warning: superblock indicates jumpstart record but this driver was not loaded from that partition
+nx_mount:1308:  initializing cache w/hash_size 256 and cache size 4096
+nx_mount:1630: checkpoint search: largest xid 15491, best xid 15491 @ 190
+nx_mount:1632: reloading after unclean unmount, checkpoint xid 15491, superblock xid 12589
+nx_mount:1657: stable checkpoint indices: desc 189 data 19928
+er_state_obj_get_for_recovery:8420: No ER state object for volume Preboot - rolling is not happening, nothing to recover.
+er_state_obj_get_for_recovery:8420: No ER state object for volume Macintosh HD - Data - rolling is not happening, nothing to recover.
+er_state_obj_get_for_recovery:8420: No ER state object for volume Recovery - rolling is not happening, nothing to recover.
+er_state_obj_get_for_recovery:8420: No ER state object for volume Macintosh HD - rolling is not happening, nothing to recover.
+er_state_obj_get_for_recovery:8420: No ER state object for volume Update - rolling is not happening, nothing to recover.
+er_state_obj_get_for_recovery:8420: No ER state object for volume VM - rolling is not happening, nothing to recover.
+[1m[33m[40mShell> [0m[37m[40m  endif
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5 fs6
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5 fs6
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5 fs6
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5 fs6
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5 fs6
+[1m[33m[40mShell> [0m[37m[40m  if exist %d:\apfs.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %d in fs0 fs1 fs2 fs3 fs4 fs5 fs6
+[1m[33m[40mShell> [0m[37m[40mconnect -r
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m33[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m8C[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m8D[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m90[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m96[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m99[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m9D[0m[37m[40m] Result Success.
+[1m[37m[40mConnect[0m[37m[40m - Handle [[1m[37m[40m9E[0m[37m[40m] Result Success.
+[1m[33m[40mShell> [0m[37m[40mmap -r
+[1m[33m[40mMapping table[0m[37m[40m
+[1m[33m[40m      FS0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a1:;BLK1:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,29A79563-5185-42C4-9134-50CFD94E1526,0x28,0x64000)
+[1m[33m[40m      FS7:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0b65535a1:;BLK10:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)/HD(1,MBR,0xBE1AFDFA,0x3F,0xFBFC1)
+[1m[33m[40m      FS5:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK7:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,4D0347B17560A54FA308BC703EF149C7)
+[1m[33m[40m      FS2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK4:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,42C3AF31A094F745B65617768BEC7808)
+[1m[33m[40m      FS4:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK6:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,439CE579077A8441882E048E4C23F7F0)
+[1m[33m[40m      FS6:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK8:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,6A08BA32DC65E24893C5163E9B2DAED2)
+[1m[33m[40m      FS3:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK5:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,42E73643B27CDB4C960E53514BB489A2)
+[1m[33m[40m      FS1:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a2:;BLK3:
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)/VenMedia(BE74FCF7-0B7C-49F3-9147-01F4042E6842,2AFC63B4642F46459F4B473762783CAC)
+[1m[33m[40m     BLK0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)
+[1m[33m[40m     BLK9:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x1,0xFFFF,0x0)
+[1m[33m[40m     BLK2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
+          PciRoot(0x0)/Pci(0x1,0x0)/Sata(0x0,0xFFFF,0x0)/HD(2,GPT,5C616DAA-9155-413E-B48A-370BD1B775E0,0x64028,0xC79BFB0)
+[1m[33m[40mShell> [0m[37m[40mecho "NSH-MARK-DRIVER-READY"
+NSH-MARK-DRIVER-READY
+[1m[33m[40mShell> [0m[37m[40mecho "NSH-MARK-L1-BARE-START"
+NSH-MARK-L1-BARE-START
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40m    %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi
+#[EB|LOG:INIT] 2026-08-15T01:40:07
+#[EB|VERSION] <"boot.efi 583~2317 (Official), built 2025-07-20T20:18:15-0700">
+#[EB|BUILD] <"BUILD-INFO[395]:{"DisplayName":"boot.efi","DisplayVersion":"583~2317","RecordUuid":"E04BD364-5411-4549-AD87-B55F5D90F8CD","BuildTime":"2025-07-20T20:18:15-0700","ProjectName":"efiboot","ProductName":"boot.efi","SourceVersion":"583","BuildVersion":"2317","BuildConfiguration":"Release","BuildType":"Official","Compiler":"clang-1700.0.13.5","SdkVersion":"15.7","SdkBuild":"24G201t","TargetArchitectures":"x86_64"}">
+#[EB.CFG.DEV|!] Err(0xE) <- RT.GV booter-strict-xmlparser 7C436110-AB2A-4BBB-A880-FE41995C9F82
+#[EB|CFG:DEV] r5 0x0 0x0
+#[EB|GFWF!] Err(0xE) <- 5
+#[EB|GFWF!] Err(0xE) <- 33
+#[EB|GFWF!] Err(0xE) <- 23
+#[EB|H:IS] 0
+#[EB|WL:MODE] 0
+#[EB|CFG:ARG] boot-save-log 0x0000000000000002 (0x0000000000000002 < 0xFFFFFFFFFFFFFFFF) default
+#[EB|CFG:ARG] wake-save-log 0x0000000000000002 (0x0000000000000002 < 0x0000000000000002) default
+#[EB|CFG:ARG] console       0x0000000000000001 (0x0000000000000001 < 0x0000000000000001) default
+#[EB|CFG:ARG] serial        0x0000000000000001 (0x0000000000000001 < 0x0000000000000000) default
+#[EB|CFG:ARG] preoslog      0x0000000000000001 (0x0000000000000001 < 0xFFFFFFFFFFFFFFFF) default
+#[EB|CFG:ARG] timestamps    0x0000000000000000 (0x0000000000000000 < 0xFFFFFFFFFFFFFFFF) default
+#[EB|CFG:ARG] log-level     0x0000000000000001 (0x0000000000000001 & 0x0000000000000021) default
+#[EB|CFG:ARG] breakpoint    0x0000000000000000 (0x0000000000000000 & 0x0000000000000000) default
+#[EB|CFG:ARG] kc-read-size  0x0000000000100000 (0x0000000000100000 < 0xFFFFFFFFFFFFFFFF) default
+#[EB|CFG:ARG] force-error   0x0000000000000000 (0x0000000000000000 & 0x0000000000000000) default
+#[EB|H:IS] 0
+#[EB|WL] 0 0 0x01 0x01   0 0x00
+#[EB|WL] 0 0 0x01 0x01  41 0x0E
+#[EB.B.MN|!] Err(0xE) <- EB.G.ICM
+#[EB|STOP] 0x1
+#[EB|H:IS] 0
+#[EB.ERR.SBF|!] Err(0xE) <- EB.G.ICM
+#[EB|WL] 0 0 0x01 0x03  41 0x0E
+#[EB|EXIT]
+#[EB|LOG:EXIT] 2026-08-15T01:40:07
+[1m[33m[40mShell> [0m[37m[40m  endif
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40mecho "NSH-MARK-L1-BARE-DONE"
+NSH-MARK-L1-BARE-DONE
+[1m[33m[40mShell> [0m[37m[40mecho "NSH-MARK-SETVAR-ASCII"
+NSH-MARK-SETVAR-ASCII
+[1m[33m[40mShell> [0m[37m[40msetvar log-level -guid 7C436110-AB2A-4BBB-A880-FE41995C9F82 -nv -bs -rt ="0x21"
+[1m[33m[40mShell> [0m[37m[40msetvar booter-strict-xmlparser -guid 7C436110-AB2A-4BBB-A880-FE41995C9F82 -nv -bs -rt ="0"
+[1m[33m[40mShell> [0m[37m[40mdmpstore -guid 7C436110-AB2A-4BBB-A880-FE41995C9F82
+Variable [1m[37m[40mNV+RT+BS[0m[37m[40m '[1m[37m[40m7C436110-AB2A-4BBB-A880-FE41995C9F82[0m[37m[40m:[1m[37m[40mbooter-strict-xmlparser[0m[37m[40m' DataSize = 0x01
+  00000000: 30                                               *0*
+Variable [1m[37m[40mNV+RT+BS[0m[37m[40m '[1m[37m[40m7C436110-AB2A-4BBB-A880-FE41995C9F82[0m[37m[40m:[1m[37m[40mlog-level[0m[37m[40m' DataSize = 0x01
+  00000000: 21                                               *!*
+Variable [1m[37m[40mNV+RT+BS[0m[37m[40m '[1m[37m[40m7C436110-AB2A-4BBB-A880-FE41995C9F82[0m[37m[40m:[1m[37m[40mbootargs[0m[37m[40m' DataSize = 0x02
+  00000000: 2D 76                                            *-v*
+Variable [1m[37m[40mNV+RT+BS[0m[37m[40m '[1m[37m[40m7C436110-AB2A-4BBB-A880-FE41995C9F82[0m[37m[40m:[1m[37m[40mboot-args[0m[37m[40m' DataSize = 0x19
+  00000000: 2D 76 20 6B 65 65 70 73-79 6D 73 3D 31 20 64 65  *-v keepsyms=1 de*
+  00000010: 62 75 67 3D 30 78 31 34-34                       *bug=0x144*
+Variable [1m[37m[40mNV+RT+BS[0m[37m[40m '[1m[37m[40m7C436110-AB2A-4BBB-A880-FE41995C9F82[0m[37m[40m:[1m[37m[40mefi-boot-failure-reason-ca[0m[37m[40m' DataSize = 0x02
+  00000000: 01 20                                            *. *
+[1m[33m[40mShell> [0m[37m[40mecho "NSH-MARK-L2-ASCII-START"
+NSH-MARK-L2-ASCII-START
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40m    %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi
+#[EB|LOG:INIT] 2026-08-15T01:40:07
+#[EB|VERSION] <"boot.efi 583~2317 (Official), built 2025-07-20T20:18:15-0700">
+#[EB|BUILD] <"BUILD-INFO[395]:{"DisplayName":"boot.efi","DisplayVersion":"583~2317","RecordUuid":"E04BD364-5411-4549-AD87-B55F5D90F8CD","BuildTime":"2025-07-20T20:18:15-0700","ProjectName":"efiboot","ProductName":"boot.efi","SourceVersion":"583","BuildVersion":"2317","BuildConfiguration":"Release","BuildType":"Official","Compiler":"clang-1700.0.13.5","SdkVersion":"15.7","SdkBuild":"24G201t","TargetArchitectures":"x86_64"}">
+#[EB.CFG.DEV|VAR] booter-strict-xmlparser 7C436110-AB2A-4BBB-A880-FE41995C9F82 48
+#[EB|CFG:DEV] r5 0x0 0x2
+#[EB|GFWF!] Err(0xE) <- 5
+#[EB|GFWF!] Err(0xE) <- 33
+#[EB|GFWF!] Err(0xE) <- 23
+#[EB|H:IS] 0
+#[EB|WL:MODE] 0
+#[EB|CFG:ARG] boot-save-log 0x0000000000000002 (0x0000000000000002 < 0xFFFFFFFFFFFFFFFF) default
+#[EB|CFG:ARG] wake-save-log 0x0000000000000002 (0x0000000000000002 < 0x0000000000000002) default
+#[EB|CFG:ARG] console       0x0000000000000001 (0x0000000000000001 < 0x0000000000000001) default
+#[EB|CFG:ARG] serial        0x0000000000000001 (0x0000000000000001 < 0x0000000000000000) default
+#[EB|CFG:ARG] preoslog      0x0000000000000001 (0x0000000000000001 < 0xFFFFFFFFFFFFFFFF) default
+#[EB|CFG:ARG] timestamps    0x0000000000000000 (0x0000000000000000 < 0xFFFFFFFFFFFFFFFF) default
+#[EB|CFG:ARG] log-level     0x0000000000000001 (0x0000000000000001 & 0x0000000000000021) default
+#[EB|CFG:ARG] breakpoint    0x0000000000000000 (0x0000000000000000 & 0x0000000000000000) default
+#[EB|CFG:ARG] kc-read-size  0x0000000000100000 (0x0000000000100000 < 0xFFFFFFFFFFFFFFFF) default
+#[EB|CFG:ARG] force-error   0x0000000000000000 (0x0000000000000000 & 0x0000000000000000) default
+#[EB|H:IS] 0
+#[EB|WL] 0 0 0x01 0x01   0 0x00
+#[EB|WL] 0 0 0x01 0x01  41 0x0E
+#[EB.B.MN|!] Err(0xE) <- EB.G.ICM
+#[EB|STOP] 0x1
+#[EB|H:IS] 0
+#[EB.ERR.SBF|!] Err(0xE) <- EB.G.ICM
+#[EB|WL] 0 0 0x01 0x03  41 0x0E
+#[EB|EXIT]
+#[EB|LOG:EXIT] 2026-08-15T01:40:07
+[1m[33m[40mShell> [0m[37m[40m  endif
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40mecho "NSH-MARK-L2-ASCII-DONE"
+NSH-MARK-L2-ASCII-DONE
+[1m[33m[40mShell> [0m[37m[40mecho "NSH-MARK-SETVAR-RAW"
+NSH-MARK-SETVAR-RAW
+[1m[33m[40mShell> [0m[37m[40msetvar log-level -guid 7C436110-AB2A-4BBB-A880-FE41995C9F82
+7C436110-AB2A-4BBB-A880-FE41995C9F82 - log-level - 0001 Bytes
+21 
+[1m[33m[40mShell> [0m[37m[40msetvar log-level -guid 7C436110-AB2A-4BBB-A880-FE41995C9F82 -nv -bs -rt =21 00 00 00 00 00 00 00
+[1m[37m[40msetvar[0m[37m[40m: Invalid argument - '[1m[37m[40m00[0m[37m[40m'
+[1m[37m[40msetvar[0m[37m[40m: Unable to set - [1m[37m[40m7C436110-AB2A-4BBB-A880-FE41995C9F82[0m[37m[40m - [1m[37m[40mlog-level[0m[37m[40m
+[1m[33m[40mShell> [0m[37m[40mdmpstore -guid 7C436110-AB2A-4BBB-A880-FE41995C9F82
+Variable [1m[37m[40mNV+RT+BS[0m[37m[40m '[1m[37m[40m7C436110-AB2A-4BBB-A880-FE41995C9F82[0m[37m[40m:[1m[37m[40mbooter-strict-xmlparser[0m[37m[40m' DataSize = 0x01
+  00000000: 30                                               *0*
+Variable [1m[37m[40mNV+RT+BS[0m[37m[40m '[1m[37m[40m7C436110-AB2A-4BBB-A880-FE41995C9F82[0m[37m[40m:[1m[37m[40mlog-level[0m[37m[40m' DataSize = 0x01
+  00000000: 21                                               *!*
+Variable [1m[37m[40mNV+RT+BS[0m[37m[40m '[1m[37m[40m7C436110-AB2A-4BBB-A880-FE41995C9F82[0m[37m[40m:[1m[37m[40mbootargs[0m[37m[40m' DataSize = 0x02
+  00000000: 2D 76                                            *-v*
+Variable [1m[37m[40mNV+RT+BS[0m[37m[40m '[1m[37m[40m7C436110-AB2A-4BBB-A880-FE41995C9F82[0m[37m[40m:[1m[37m[40mboot-args[0m[37m[40m' DataSize = 0x19
+  00000000: 2D 76 20 6B 65 65 70 73-79 6D 73 3D 31 20 64 65  *-v keepsyms=1 de*
+  00000010: 62 75 67 3D 30 78 31 34-34                       *bug=0x144*
+Variable [1m[37m[40mNV+RT+BS[0m[37m[40m '[1m[37m[40m7C436110-AB2A-4BBB-A880-FE41995C9F82[0m[37m[40m:[1m[37m[40mefi-boot-failure-reason-ca[0m[37m[40m' DataSize = 0x02
+  00000000: 01 20                                            *. *
+[1m[33m[40mShell> [0m[37m[40mecho "NSH-MARK-L3-RAW-START"
+NSH-MARK-L3-RAW-START
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40m    %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi
+#[EB|LOG:INIT] 2026-08-15T01:40:08
+#[EB|VERSION] <"boot.efi 583~2317 (Official), built 2025-07-20T20:18:15-0700">
+#[EB|BUILD] <"BUILD-INFO[395]:{"DisplayName":"boot.efi","DisplayVersion":"583~2317","RecordUuid":"E04BD364-5411-4549-AD87-B55F5D90F8CD","BuildTime":"2025-07-20T20:18:15-0700","ProjectName":"efiboot","ProductName":"boot.efi","SourceVersion":"583","BuildVersion":"2317","BuildConfiguration":"Release","BuildType":"Official","Compiler":"clang-1700.0.13.5","SdkVersion":"15.7","SdkBuild":"24G201t","TargetArchitectures":"x86_64"}">
+#[EB.CFG.DEV|VAR] booter-strict-xmlparser 7C436110-AB2A-4BBB-A880-FE41995C9F82 48
+#[EB|CFG:DEV] r5 0x0 0x2
+#[EB|GFWF!] Err(0xE) <- 5
+#[EB|GFWF!] Err(0xE) <- 33
+#[EB|GFWF!] Err(0xE) <- 23
+#[EB|H:IS] 0
+#[EB|WL:MODE] 0
+#[EB|CFG:ARG] boot-save-log 0x0000000000000002 (0x0000000000000002 < 0xFFFFFFFFFFFFFFFF) default
+#[EB|CFG:ARG] wake-save-log 0x0000000000000002 (0x0000000000000002 < 0x0000000000000002) default
+#[EB|CFG:ARG] console       0x0000000000000001 (0x0000000000000001 < 0x0000000000000001) default
+#[EB|CFG:ARG] serial        0x0000000000000001 (0x0000000000000001 < 0x0000000000000000) default
+#[EB|CFG:ARG] preoslog      0x0000000000000001 (0x0000000000000001 < 0xFFFFFFFFFFFFFFFF) default
+#[EB|CFG:ARG] timestamps    0x0000000000000000 (0x0000000000000000 < 0xFFFFFFFFFFFFFFFF) default
+#[EB|CFG:ARG] log-level     0x0000000000000001 (0x0000000000000001 & 0x0000000000000021) default
+#[EB|CFG:ARG] breakpoint    0x0000000000000000 (0x0000000000000000 & 0x0000000000000000) default
+#[EB|CFG:ARG] kc-read-size  0x0000000000100000 (0x0000000000100000 < 0xFFFFFFFFFFFFFFFF) default
+#[EB|CFG:ARG] force-error   0x0000000000000000 (0x0000000000000000 & 0x0000000000000000) default
+#[EB|H:IS] 0
+#[EB|WL] 0 0 0x01 0x01   0 0x00
+#[EB|WL] 0 0 0x01 0x01  41 0x0E
+#[EB.B.MN|!] Err(0xE) <- EB.G.ICM
+#[EB|STOP] 0x1
+#[EB|H:IS] 0
+#[EB.ERR.SBF|!] Err(0xE) <- EB.G.ICM
+#[EB|WL] 0 0 0x01 0x03  41 0x0E
+#[EB|EXIT]
+#[EB|LOG:EXIT] 2026-08-15T01:40:08
+[1m[33m[40mShell> [0m[37m[40m  endif
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40m  if exist %v:\31AFC342-94A0-45F7-B656-17768BEC7808\System\Library\CoreServices\boot.efi then
+[1m[33m[40mShell> [0m[37m[40mendfor
+[1m[33m[40mShell> [0m[37m[40mfor %v in fs0 fs1 fs2 fs3 fs4 fs5 fs6 fs7 fs8 fs9
+[1m[33m[40mShell> [0m[37m[40mecho "NSH-MARK-L3-RAW-DONE"
+NSH-MARK-L3-RAW-DONE
+[1m[33m[40mShell> [0m[37m[40mecho "NSH-MARK-END"
+NSH-MARK-END
+[31;01H[1m[33m[40mShell> [0m[37m[40m

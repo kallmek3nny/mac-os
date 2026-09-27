@@ -1,0 +1,11 @@
+pid              : 32236
+exe              : C:\Python314\python.exe
+TokenIsRestricted: 1
+TokenSandBoxInert: 1
+TokenUIAccess    : 0
+TokenElevationType: 3
+BlockInput(FALSE): ret=False err=5  (err 5 on a restricted token is NOT proof another thread holds the block)
+SendInput        : sent=1 err=0  (2012, 423) -> (2012, 423)
+SetCursorPos     : ret=False err=0  -> (2012, 423)
+DELIVERED        : False
+VERDICT          : injection does NOT work from this process

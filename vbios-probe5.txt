@@ -1,0 +1,75 @@
+file      : reference/ga107-firmware/vbios-ga107.rom
+size      : 65024 bytes (0xfe00)
+md5       : 2299fa8b2b12518c475f1024a197091f
+sha256    : d56bbec55878ab38d6b3e0395837631a8a50c7b16031fac56bf29716816dc2fe
+
+=== PCIR @0x170 + NPDE @0x190 ===
+  000170  50 43 49 52 de 10 a2 25 00 00 18 00 00 00 02 03  PCIR...%........
+  000180  7f 00 01 00 00 80 00 00 2e 8b c0 2e 8b c0 8b c0  ................
+  000190  4e 50 44 45 01 01 14 00 7f 00 00 01 00 00 00 00  NPDE............
+  0001a0  62 14 2e 13 00 00 00 00 00 00 00 00 00 00 00 00  b...............
+
+=== tail cluster: PCIR @0xf37d / NPDS @0xf385 / NPDE @0xf3b4 ===
+  00f370  f0 b9 1c 00 e8 20 01 66 8b 46 e4 66 3d 50 43 49  ..... .f.F.f=PCI
+  00f380  52 74 10 66 3d 4e 50 44 53 74 08 66 3d 52 47 49  Rt.f=NPDSt.f=RGI
+  00f390  53 75 48 8b 56 f8 8b 5e f4 66 0f b7 46 ee 67 66  SuH.V..^.f..F.gf
+  00f3a0  8d 74 30 0f 66 83 e6 f0 b9 14 00 e8 e9 00 66 8b  .t0.f.........f.
+  00f3b0  46 e4 66 3d 4e 50 44 45 75 06 8b 5e ec 8a 76 ee  F.f=NPDEu..^..v.
+  00f3c0  66 0f b7 cb 66 c1 e1 09 80 fa e0 74 0e f6 c6 80  f...f......t....
+
+=== NPDE @0x190 decoded (nouveau nvbios_npdeTp layout) ===
+  signature      : b'NPDE'
+  u16 @+0x04     : 0x0101
+  u16 @+0x06     : 0x0014
+  image_size @+08: 127 blocks = 65024 bytes (0xfe00)
+  last @+0x0a    : 0x00  -> last_image=NO
+
+=== NPDE @0xf3b4 decoded (same layout) ===
+  image_size     : 35564 blocks = 18208768 bytes
+  last           : 0x76 -> NO
+
+=== BIT token 0x70 'p' FALCON_DATA -- raw bytes ===
+  token: ver=2 len=4 ptr=0x03f7
+  payload bytes  : 77 7f 07 00
+  u32 LE         : 0x00077f77 (491383)
+  in this file?  : False  (file ends at 0x00fe00)
+  plausible for  : 128KB=False 256KB=False 512KB=True 1MB=True
+
+=== BIT token 0x53 'S' string table -- payload + dereference ===
+  ver=2 len=24 ptr=0x03c8
+  payload        : 68 00 50 b9 00 19 d3 00 28 b4 4e 14 c8 4e 23 04 01 23 27 01 14 eb 4e 28
+    +00 ptr=0x0068 len=80  'E4736 SKU 10 VGA BIOS ..........................................................'
+    +03 ptr=0x00b9 len=25  'Version 94.07.4E.00.4B ..'
+    +06 ptr=0x00d3 len=40  'Copyright (C) 1996-2021 NVIDIA Corp.....'
+    +09 ptr=0x4eb4 len=20  'NVIDIA..............'
+    +12 ptr=0x4ec8 len=35  'NVIDIA Corporation.................'
+    +15 ptr=0x0104 len=35  'GPU Board..........................'
+    +18 ptr=0x0127 len=20  'Chip Rev   .........'
+    +21 ptr=0x4eeb len=40  'BIOS Certificate Check Failed!!!........'
+
+=== BIT token 0x42 'B' BIOSDATA version cross-check ===
+  raw u32        : 0x94074e00
+  as NVIDIA ver  : 94.07.4E.00.4B
+  README quotes  : Version 94.07.4E.00.4B
+
+=== container-magic absence checks ===
+  nvfw bin_magic 0x000010de LE  : absent
+  nvfw alt magic                : absent
+  NVGI                          : absent
+  NVDA                          : absent
+
+=== printable strings >= 12 chars ===
+  0x00001e  IBM VGA Compatible
+  0x000068  E4736 SKU 10 VGA BIOS 
+  0x0000b9  Version 94.07.4E.00.4B 
+  0x0000d3  Copyright (C) 1996-2021 NVIDIA Corp.
+  0x00043c  725M47360010
+  0x001587  Y}Y}Y}Y}Y}Y}#
+  0x002468  Build Date:    
+  0x00247a  Revision Date: 
+  0x002837  ~"6~#D~$R~<0tT`
+  0x00371f  d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}d}
+  0x003e43  PLEASE POWER DOWN AND CONNECT THE PCIe POWER CABLE(S) FOR THIS GRAPHICS CARD
+  0x004ec8  NVIDIA Corporation
+  0x004eeb  BIOS Certificate Check Failed!!!
+  (13 strings)

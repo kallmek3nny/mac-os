@@ -1,0 +1,11 @@
+target      : hwnd 67505164 'Sonoma - VMware Workstation' (pid 51692)
+foreground  : hwnd 67505164 'Sonoma - VMware Workstation' (pid 51692)
+iconic      : False
+---
+plain           SetForegroundWindow ret=True                               -> fg=67505164 TOOK_FOREGROUND=True
+altkey          alt sent=0 SetForegroundWindow ret=True                    -> fg=67505164 TOOK_FOREGROUND=True
+attach          attach=False fg_tid=12492 SetForegroundWindow ret=True     -> fg=67505164 TOOK_FOREGROUND=True
+minimize-trick  minimize/restore SetForegroundWindow ret=True              -> fg=67505164 TOOK_FOREGROUND=True
+switch          SwitchToThisWindow called                                  -> fg=67505164 TOOK_FOREGROUND=True
+---
+WORKING     : plain, altkey, attach, minimize-trick, switch

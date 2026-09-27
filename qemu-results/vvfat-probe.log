@@ -1,0 +1,21 @@
+NOTE: no --osk given. isa-applesmc will present an empty key and
+      Apple's AppleSMC kext is expected to reject it. A failed
+      boot here measures the missing key, not a broken image.
+
+probe command:
+  "C:\Program Files\qemu\qemu-system-x86_64.exe" -machine q35 -accel whpx -cpu Penryn,vendor=GenuineIntel,+invtsc,+hypervisor,kvm=on -m 4096 -smp 2 -drive "if=pflash,format=raw,readonly=on,file=C:\Program Files\qemu\share\edk2-x86_64-code.fd" -drive if=pflash,format=raw,file=F:\nv3050-qemu\OVMF_VARS.fd -device isa-applesmc -device ich9-ahci,id=ahci -drive if=none,id=macdisk,format=qcow2,file=F:\nv3050-qemu\sonoma-base.qcow2 -device ide-hd,bus=ahci.0,drive=macdisk -device nec-usb-xhci,id=xhci -device usb-kbd,bus=xhci.0 -device usb-tablet,bus=xhci.0 -device vmware-svga -nodefaults -no-reboot -serial "file:D:\nerd shit\other projects\mac os\qemu-results\apfs-load-serial.log" -drive if=none,id=vvfat,snapshot=on,file=fat:F:/nv3050-qemu/vvfat -device ide-hd,bus=ahci.1,drive=vvfat -display none -qmp stdio
+
+qmp banner  : {"QMP": {"version": {"qemu": {"micro": 0, "minor": 1, "major": 11}, "package": "v11.1.0-12130-ge470268ff4"}, "capabilities": []}}
+capabilities: {"return": {}}
+running headless for 150 s ...
+qemu alive after wait: yes
+screendump reply: {"timestamp": {"seconds": 1786755194, "microseconds": 176635}, "event": "RTC_CHANGE", "data": {"offset": -1, "qom-path": "/machine/unattached/device[3]/rtc"}}
+qemu did not exit on quit -- killed
+
+--- qemu stderr (203 bytes) ---
+  C:\Program Files\qemu\qemu-system-x86_64.exe: -device isa-applesmc: warning: Using AppleSMC with invalid key
+  C:\Program Files\qemu\qemu-system-x86_64.exe: warning: Ignoring request for interrupt vector 0
+
+SCREENSHOT: qemu-results/apfs-load.png (14265 bytes)
+            A PNG is evidence of a FRAMEBUFFER, not of a booted
+            macOS. Open it and read what is on the screen.
