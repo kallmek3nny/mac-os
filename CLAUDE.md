@@ -1738,7 +1738,12 @@ calls as evidence about the tree. These rules are standing, not per-session:
 1. **First action on a coding task is an edit**, not another survey. Read each
    file region once; what you already read is still in context, and re-reading
    it is prohibited. A turn that narrates a plan without producing a change is
-   a wasted turn.
+   a wasted turn. Use the dedicated tools, not Bash: Read (with offset/limit)
+   for file contents, Grep for searches, Glob to find files, Edit/Write for
+   every change -- Bash is only for commands that execute, build, or test. The
+   2026-09-26 run read the fence gate in four overlapping windows and §7 three
+   times via sed/Read mixes while narrating "quick update" between each; every
+   one of those turns should have been an Edit to the fence gate.
 2. **Confirm an item is still open before planning it.** The handoff §7 list
    goes stale the moment a session acts without updating it. One targeted grep
    (the MEASURED table, the named file, the named constant) is cheaper than
@@ -1748,6 +1753,13 @@ calls as evidence about the tree. These rules are standing, not per-session:
    must match, or "No such file" on a path you typed (the 2026-09-26 run
    grepped `test_intel_scanout.cp` for `.cpp` and moved on), means the CALL
    was wrong. Fix the call and re-issue; never record a conclusion from it.
+3b. **Diagnose once, then execute in the same turn.** The same run stated the
+   correct fix (derived subject set, handoff26 §2a), then mid-session
+   re-diagnosed the fence gate as "already refusing, bring the other five up
+   to that standard" -- which is the WRONG fix: refusing when the one named
+   method is missing does not catch a SECOND composer the gate never looks at
+   (§6 item 3). Plan revisions require a contradicting tool result, not a
+   fresh think.
 4. **Act on what you observe or write it down.** Missing `cl`/`clang`, stale
    `tests/build` binaries -- such facts are acted on the same turn or recorded
    in the handoff (§7 item 5 holds them as of 2026-09-26), never narrated and
