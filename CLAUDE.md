@@ -1728,3 +1728,33 @@ excluded deliberately.
 | `reference/` | Vendored NVIDIA `open-gpu-kernel-modules` and GA107 firmware |
 | `reference/i915/` | Vendored Linux i915 headers at v6.12 — the Intel track's only evidence |
 | `.claude-crew/` | Multi-terminal coordination state (task board, notes) |
+
+## Session discipline
+
+Two recorded sessions burned 30-45 minutes each re-surveying the same files,
+re-planning items that were already done, and treating their own broken tool
+calls as evidence about the tree. These rules are standing, not per-session:
+
+1. **First action on a coding task is an edit**, not another survey. Read each
+   file region once; what you already read is still in context, and re-reading
+   it is prohibited. A turn that narrates a plan without producing a change is
+   a wasted turn.
+2. **Confirm an item is still open before planning it.** The handoff §7 list
+   goes stale the moment a session acts without updating it. One targeted grep
+   (the MEASURED table, the named file, the named constant) is cheaper than
+   one wrong plan: item 2 of handoff40 §7 was planned twice from stale text
+   after the work was already done and re-measured.
+3. **A failed tool call is not evidence.** Zero matches for a pattern that
+   must match, or "No such file" on a path you typed (the 2026-09-26 run
+   grepped `test_intel_scanout.cp` for `.cpp` and moved on), means the CALL
+   was wrong. Fix the call and re-issue; never record a conclusion from it.
+4. **Act on what you observe or write it down.** Missing `cl`/`clang`, stale
+   `tests/build` binaries -- such facts are acted on the same turn or recorded
+   in the handoff (§7 item 5 holds them as of 2026-09-26), never narrated and
+   dropped.
+5. **Update the handoff before finishing.** Mark completed §7 items with
+   dates and record facts the next session needs. The handoff is the next
+   session's memory; leaving it stale re-costs every future session.
+6. **The root is a git repository as of 2026-09-26.** `git log` / `git diff`
+   before reconstructing history from handoffs; commit after each landed
+   change so the next session diffs instead of re-derives.

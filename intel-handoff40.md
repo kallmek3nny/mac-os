@@ -220,10 +220,13 @@ three of the last six images moved a hash with a size fixed.
    this once for publishers (a publisher is a method that BOTH calls
    `regRead32(` and `setProperty(`), so the pattern exists in this tree and has
    not been reached for since.
-2. `tests/test_intel_scanout.cpp` still has **no `MEASURED` entry**, so its
-   check count has no floor. Inherited unchanged since `intel-handoff34.md` §6
-   item 4, and it is the cheapest open item in either track. It was left alone
-   for two sessions because it was a peer's suite; that reason has expired.
+2. ~~`tests/test_intel_scanout.cpp` still has **no `MEASURED` entry**~~ **DONE
+   2026-09-26.** The entry exists in `tests/test_check_count_floor.py`
+   (`"test_intel_scanout": 61`, with a dated provenance comment beside the
+   table), and the binary was re-run the same day: 61 checks, 0 failures. Two
+   sessions planned this item from the stale text before re-measuring it;
+   CLAUDE.md §Session discipline rule 2 now requires confirming an item is
+   still open before planning it.
 3. The embedded Python in `tools/igpu-final-capture.sh` has still never RUN,
    and the machine that could run it is gone (`intel-handoff39.md` §6 item 1).
    Permanently unclosable; do not open it as work.
@@ -232,3 +235,12 @@ three of the last six images moved a hash with a size fixed.
    overrides, a `presentable()` guard and a shape gate over it. Grep the tree
    first -- `intel-handoff31.md` §0 and `intel-handoff32.md` §0 are the same
    finding filed twice because somebody nearly built it a third time.
+5. Environment, measured 2026-09-26: `cl` and `clang` are NOT on PATH (both
+   report "Could not find" from the build scripts); MinGW `g++` IS available
+   (WinGet mingw64). Some `tests/build` artifacts (`test_intel_display_names`,
+   `test_intel_fb_present`) date to Aug 19-20 while MEASURED cites runs
+   through Aug 30 -- check a binary's mtime against its source before
+   trusting a run, and resolve the actual working build path before planning
+   any item that requires building a suite. The project root is now a git
+   repository (baseline committed 2026-09-26); diff it instead of re-deriving
+   what the last session changed.
