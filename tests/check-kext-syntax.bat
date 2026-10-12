@@ -68,6 +68,14 @@ if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGpuId.hpp) else (echo   ok   In
 if errorlevel 1 (set FAILED=1 & echo   FAIL IntelFramebuffer.hpp) else (echo   ok   IntelFramebuffer.hpp)
 "!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelScanout.hpp
 if errorlevel 1 (set FAILED=1 & echo   FAIL IntelScanout.hpp) else (echo   ok   IntelScanout.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelSinkSurface.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelSinkSurface.hpp) else (echo   ok   IntelSinkSurface.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelSinkPublish.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelSinkPublish.hpp) else (echo   ok   IntelSinkPublish.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelSinkAlloc.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelSinkAlloc.hpp) else (echo   ok   IntelSinkAlloc.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelPlaneProgram.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelPlaneProgram.hpp) else (echo   ok   IntelPlaneProgram.hpp)
 REM IntelPixel.hpp is the SECOND header in this family with an #include, after
 REM IntelDisplayNames.hpp below, and for the same reason: it switches on the
 REM IG_FB_FORMAT_* codes IntelFramebuffer.hpp owns and takes them from their owner

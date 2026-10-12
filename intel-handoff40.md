@@ -244,3 +244,61 @@ three of the last six images moved a hash with a size fixed.
    any item that requires building a suite. The project root is now a git
    repository (baseline committed 2026-09-26); diff it instead of re-deriving
    what the last session changed.
+
+### 7a. Display topology gates how much Intel work the 3050 needs (recorded 2026-09-26)
+
+On a muxless Optimus laptop, the internal panel's eDP lines connect only to the
+Intel iGPU. The RTX 3050 cannot scan out to the panel by itself. Its frames must
+be copied into an iGPU-owned surface, and this track exists to supply that
+surface. Consequences:
+
+- **Minimum viable path:** use the firmware GOP linear framebuffer, which the
+  iGPU already scans out, as the copy target. That needs no Intel display-engine
+  programming. It gives up modesets, hotplug and page-flip/vsync.
+- **Proper path:** `IntelDisplay.hpp` / `IntelFramebuffer.hpp` own the plane.
+  The 3050 driver then writes into a GTT-mapped surface that this track
+  publishes.
+- **Unverified, and cheapest to check first:** which external ports are wired
+  to the dGPU, and whether the BIOS exposes a MUX / "dGPU only" mode. Either one
+  removes the Intel dependency for the first 3050 milestone. Record the answer
+  here before planning 3050 scanout work.
+- **Intel-side contract the 3050 needs (the "sink"), next code item:** on a
+  muxless panel the dGPU never touches the pipe; it copies finished frames over
+  PCIe into a linear surface the iGPU scans out. So the Intel driver owes the
+  3050 exactly three things, and nothing about 3D/GT execution:
+  1. **A scanout surface it owns:** a linear, 4 KiB-aligned (64 KiB preferred)
+     allocation mapped into the GGTT, with base, stride and extent validated by
+     the same rules `IntelScanout.hpp` already applies to the firmware plane.
+  2. **A plane flip to that surface:** write PLANE_SURF/stride on the pipe the
+     firmware lit, reusing the refusal/readback discipline of
+     `IntelFbPresent.hpp` (sample, refuse on `igReadRefused`, verify after write).
+  3. **A published physical address + stride** (IORegistry property) so the
+     3050 side can target it with a DMA copy. No fence, no GT ring, no reset
+     path is required for this; the GT work in `IntelGt*.hpp` is off the 3050
+     critical path.
+  Build order: (a) a pure-logic `igSinkSurfaceRefused(base, stride, w, h, bpp,
+  ggttSize)` in a new header, unit-tested like `tests/test_intel_scanout.cpp`
+  with a `MEASURED` entry from the real firmware plane; (b) the flip, gated
+  behind the existing present checks; (c) the publish. Until (a)-(c) exist, the
+  GOP framebuffer from the minimum viable path is the sink.
+  - **2026-08-29, (a) validation half DONE:** `phase0-kext/IntelSinkSurface.hpp`
+    decides whether a proposed sink (GGTT base, width, height, stride, bpp) is
+    a legal Gen12 scanout surface, refusing unaligned base, zero geometry, short
+    row, stride not a multiple of 64, 32-bit extent overflow, and running off
+    the GGTT, in that pinned order. Suite `tests/test_intel_sink_surface.cpp`:
+    20 checks, 0 failures (g++ -std=c++11 -Wall -Wextra -Werror). The first
+    draft had 19, one below `STATIC_CALL_FLOOR = 20`; the twentieth check,
+    "extent overflow beats aperture", pins the one adjacent refusal pair no
+    other doubly-bad input covered. Registered in `CMakeLists.txt`,
+    `check-kext-syntax.bat`, `test_check_count_floor.py` (`MEASURED` 20, with a
+    dated 2026-08-29 comment) and both lists in `test_check_count_last_line.py`.
+    **Still open for (a):** the actual GGTT allocation and a `MEASURED` entry
+    taken from the real firmware plane on hardware; then (b) and (c).
+  - **Later session, build verified:** the kext test suite (including
+    `test_intel_sink_publish`) builds and passes, ctest 23/23, 0 failed.
+    Environment note: the earlier `C1083: Cannot open include file: 'cstdio'`
+    was the shell lacking the MSVC environment, not a code defect; load
+    `vcvars64.bat` (from a Developer shell or via `cmd /c "call vcvars64.bat && ..."`)
+    before configuring/building.
+    `check-kext-syntax.bat` and the Python count tests were not run this
+    session.

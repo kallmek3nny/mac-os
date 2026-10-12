@@ -137,6 +137,37 @@ add_kext_test(test_intel_display_names test_intel_display_names.cpp)
 # cannot distinguish the order from any other.
 add_kext_test(test_intel_scanout test_intel_scanout.cpp)
 
+# Intel Gen12 driver-owned scanout SINK -- the surface the driver allocates in
+# the GGTT for a plane flip to target, so the 3050 side has a DMA destination
+# that is not the GOP framebuffer (intel-handoff40 section 7 (a)). Same refusal
+# discipline as the scanout extent: each arm reached by a singly-bad input, each
+# numeric test pinned at its last accepting value, order pinned by doubly-bad
+# inputs.
+add_kext_test(test_intel_sink_surface test_intel_sink_surface.cpp)
+
+# Intel sink PUBLISH -- a sound sink surface plus the caller's claim of one
+# contiguous page-aligned bus range turned into the descriptor the 3050 side
+# reads, or a refusal. Same discipline as the sink surface: each arm reached by
+# a singly-bad input, order pinned by doubly-bad inputs, and a range ending on
+# the last byte of the address space accepted rather than called a wrap.
+add_kext_test(test_intel_sink_publish test_intel_sink_publish.cpp)
+
+# Intel plane PROGRAM -- the register set that points a primary plane at a
+# driver-owned linear surface (the sink above), so a flip can retarget scanout
+# away from the GOP framebuffer. Inverse of test_intel_framebuffer's decode:
+# every encoded field must decode back through IntelFramebuffer.hpp. Each
+# refusal arm reached by a singly-bad input, order pinned by doubly-bad inputs,
+# and `out` proven untouched on every refusal.
+add_kext_test(test_intel_plane_program test_intel_plane_program.cpp)
+
+# Intel sink ALLOCATION -- where in the GGTT the driver-owned surface the 3050
+# renders into goes: base rounded up past the reserved (GOP/stolen) range to
+# 256 KiB, stride padded to 64 bytes, size = stride * height. Each refusal arm
+# reached by a singly-bad input, order pinned by doubly-bad inputs, `out`
+# proven untouched on every refusal, and a surface ending exactly at the GGTT
+# end accepted rather than called a wrap.
+add_kext_test(test_intel_sink_alloc test_intel_sink_alloc.cpp)
+
 # Intel Gen12 PIXEL description -- the format code a plane carries turned into the
 # fields IOPixelInformation holds, or a refusal. It sits between
 # test_intel_framebuffer (what does PLANE_CTL MEAN) and an eventual IOFramebuffer

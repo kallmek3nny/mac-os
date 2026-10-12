@@ -202,9 +202,9 @@ offer is exactly one: the source compiles, or here is the error.
 > edited -- so the fix belonged in the generator, not in the prose or the
 > assertion.
 >
-> Current image, measured 2026-08-30 after the FIFTY FIFTH rebuild: md5
-> `23ff4d89bdce142770f3cccf8ff27822`, 856064 bytes, carrying `kext-src.tar`
-> (778240 bytes, md5 `35994e7a4bcf6dcf1f233fcccc5e0d5c`) and
+> Current image, measured 2026-10-11 after the FIFTY SIXTH rebuild: md5
+> `349da2f2868ff9a5ab82c3dbabcddbcc`, 886784 bytes, carrying `kext-src.tar`
+> (808960 bytes, md5 `777c03a2487fbfa4d09ac21289dc5866`) and
 > `guest-build-kext.sh` (**12677** bytes, md5
 > `599b51eb31500c9ef9ff4b1f2dee0476`; was 11538, was 8115,
 > was 7596, was 6718) under vol ident `PAYLOAD`.
@@ -221,6 +221,24 @@ offer is exactly one: the source compiles, or here is the error.
 > beneath it composes work, delivers it, or reports its completion, and none of
 > them answers what happens when that report never arrives. Polling forever is
 > not a decision; it is a hang wearing the costume of one.
+>
+> The fifty sixth rebuild, 2026-10-11, moved both md5s AND both byte sizes --
+> tar 778240 -> 808960, ISO 856064 -> 886784, exactly THREE 10240-byte tar
+> blocks each, read off the disk in one measurement (`len()` and
+> `hashlib.md5()` over the same bytes). Reproducible: two consecutive
+> `python tools\build-step7-payload.py --skip-gate` runs hashed identically.
+> The script is unchanged at 12677 bytes.
+>
+> What changed is FOUR dependency-free headers, the Intel side of the 3050
+> sink: `phase0-kext/IntelSinkSurface.hpp` (is a proposed sink a legal
+> scanout surface), `phase0-kext/IntelSinkAlloc.hpp` (where in the GGTT it
+> goes), `phase0-kext/IntelSinkPublish.hpp` (the descriptor the 3050 aims a
+> DMA copy at) and `phase0-kext/IntelPlaneProgram.hpp` (the plane register
+> values that flip scanout onto it). None is included by a shipping `.cpp`
+> yet, so the kext binary this image builds should be unchanged; they ride
+> along so the guest tree matches the host tree. The fifty fifth image was
+> also already stale before them: its copy of `phase0-kext/IntelGtProbe.hpp`
+> differed from the committed tree, which this rebuild also corrects.
 >
 > The shell is UNCHANGED this rebuild. `IntelGtReset.hpp` has no caller in
 > `phase0-kext/IntelGtProbe.cpp` yet, so the payload carries a header the kext

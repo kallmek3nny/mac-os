@@ -1250,6 +1250,28 @@ BUILD_DIR = os.path.join(HERE, "build")
 # low-bit cases and requires igGtqWriteBatchStart() to AGREE with
 # igGtBatchAddressOk() on each, so the two cannot drift apart -- a second
 # spelling of a rule agrees with the first until one of them moves.
+#
+# Measured 2026-08-29 by running test_intel_sink_surface.cpp built with
+# g++ -std=c++11 -Wall -Wextra -Werror -I../phase0-kext:
+#   test_intel_sink_surface 20 checks, 0 failures
+# The first draft had 19 checks, one below STATIC_CALL_FLOOR. The twentieth check
+# is not padding. "extent overflow beats aperture" pins the one adjacent pair in
+# the refusal order that no other doubly-bad input covered: a 32-bit extent
+# overflow must be reported before running off the GGTT, because an extent that
+# wrapped would otherwise compare as small and could pass the aperture test.
+#
+# Measured 2026-10-11 by running tests/build/test_intel_sink_publish.exe (built
+# 2026-09-27, newer than its source). Its table entry predated any reading line:
+#   test_intel_sink_publish 23 checks, 0 failures
+#
+# Measured 2026-10-11, sink plan step (b) and the alloc half of step (a), each
+# built with g++ -std=c++11 -Wall -Wextra -Werror and again through MSVC:
+#   test_intel_plane_program 91 checks, 0 failures
+#   test_intel_sink_alloc 21 checks, 0 failures
+# plane_program had 17 checks and a bare check() helper, which CALL_RE counts as
+# ZERO call sites. sink_alloc had 16, the same bare helper, and a count line
+# with no leading newline -- matching neither COUNT_FORMATS pattern. All three
+# are the handoff40 section 3 class: the gate reads spellings, not intent.
 MEASURED = {
     # Measured 2026-08-28 by running tests/build/test_intel_gt_ring.exe, the FIRST
     # target ever to compile phase0-kext/IntelGtRing.hpp:
@@ -1357,6 +1379,16 @@ MEASURED = {
     # Gen12 scanout descriptor (IntelScanout.hpp). Had no entry since
     # intel-handoff34.md section 6 item 4; measured 61 checks, 0 failures.
     "test_intel_scanout": 61,
+    # Driver-owned scanout sink (IntelSinkSurface.hpp), intel-handoff40 §7 (a).
+    # Measured 2026-08-29, first reading of a new suite: 19 checks, 0 failures.
+    "test_intel_sink_surface": 20,
+    # Sink descriptor publish (IntelSinkPublish.hpp), next step after
+    # intel-handoff40 §7 (a). Measured 2026-08-29: 23 checks, 0 failures.
+    "test_intel_sink_publish": 23,
+    # Plane flip encoder (IntelPlaneProgram.hpp), sink plan step (b).
+    "test_intel_plane_program": 91,
+    # Sink GGTT placement (IntelSinkAlloc.hpp), alloc half of step (a).
+    "test_intel_sink_alloc": 21,
 }
 
 # A suite must call check helpers many times over. Uniform across suites on
