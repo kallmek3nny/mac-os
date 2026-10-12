@@ -26,6 +26,7 @@ upstream path below.
 | `intel_execlists_submission.c` | `drivers/gpu/drm/i915/gt/intel_execlists_submission.c` | 127,198 |
 | `intel_lrc.c` | `drivers/gpu/drm/i915/gt/intel_lrc.c` | 46,383 |
 | `intel_engine_cs.c` | `drivers/gpu/drm/i915/gt/intel_engine_cs.c` | 71,125 |
+| `intel_lrc.h` | `drivers/gpu/drm/i915/gt/intel_lrc.h` | 4,046 |
 
 ## The three `gt/` headers, vendored 2026-08-26, and what they retire
 
@@ -135,6 +136,26 @@ The `.c` files are larger than anything vendored before, and they are here
 for the PROTOCOL, not for constants: `intel_uncore.c:294-310`
 (`fw_domains_get_normal`) is the acquire order this tree follows, and
 `:203-248` is the fallback toggle it deliberately does not implement yet.
+
+## `intel_lrc.h`, vendored 2026-10-12, and the two bugs it exposed
+
+Same fetch, tag `v6.12`, byte-identical; fetched twice, md5 both times
+`ceead4c4bb890316d7102dcb0008d53c`. Vendored because `intel_lrc.c:1517-1531`
+(`lrc_descriptor`) uses the context-descriptor bit names but `intel_lrc.c` does
+not define them -- `intel_lrc.h:90-114` does.
+
+Checking `phase0-kext/IntelGtExec.hpp` against this file and `intel_gtt.h`
+found two wrong values, both fixed the same day and both now pinned by
+`tools/check-registers.py` (`intel_gt_exec_checks`):
+
+- PTE address mask was bits 47:12; `intel_gtt.h:100` `GEN12_GGTT_PTE_ADDR_MASK`
+  is `GENMASK_ULL(45, 12)`.
+- the software context id sat at bit 32; Tiger Lake (IP 12.0, below 12.55)
+  uses `intel_lrc.h:103` `GEN11_SW_CTX_ID_SHIFT` = 37, width 11.
+
+Still NOT implemented and recorded as open (intel-handoff44): `lrc_descriptor`
+also sets `GEN8_CTX_PRIVILEGE` (bit 8) and an addressing mode at bit 3; our
+descriptor sets neither.
 
 ## Why this directory exists
 

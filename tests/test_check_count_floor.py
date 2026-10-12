@@ -923,9 +923,16 @@ BUILD_DIR = os.path.join(HERE, "build")
 # parses, so IG_GT_SUBMIT_ gets no set-check from the register gate at all.
 # Measured 2026-08-26 by running tests/build/test_intel_gt_exec.exe, the FIRST
 # reading of a suite that did not exist before this date:
-#   test_intel_gt_exec 99 checks, 0 failures
-# A new suite rather than a movement, so there is no previous ceiling for the
-# upper edge to fire against and none is claimed.
+# (first reading: 99 checks). A new suite rather than a movement, so there was
+# no previous ceiling for the upper edge to fire against and none was claimed.
+#
+# Moved 2026-10-12, 99 -> 102, by a BUG FIX rather than growth: the PTE address
+# mask was 47:12 and is now GENMASK_ULL(45,12) (intel_gtt.h:100), and the
+# software context id moved from bit 32 to bit 37 (intel_lrc.h:103). Three
+# checks were added -- the old 47:12 ceiling and bit 46 are now REFUSED by both
+# igGtxPageTableEntry and igGtxPageAddressOk -- and three literals changed.
+# Measured by running the rebuilt suite:
+#   test_intel_gt_exec 102 checks, 0 failures
 #
 # The subject is phase0-kext/IntelGtExec.hpp, the execlist/GTT layer directly
 # above IntelGtCmd.hpp. Its evidence story is WEAKER than every other entry in
@@ -1375,7 +1382,7 @@ MEASURED = {
     "test_intel_gt_blt": 213,
     "test_intel_gt_image": 111,
     "test_intel_gt_context": 124,
-    "test_intel_gt_exec": 99,
+    "test_intel_gt_exec": 102,
     "test_intel_gt_cmd": 120,
     "test_intel_fb_present": 140,
     "test_decode": 186,

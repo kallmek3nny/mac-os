@@ -3134,6 +3134,84 @@ def intel_gt_forcewake_checks(rep):
         else:
             rep.passed(label, f"{len(up)} rows identical")
 
+def intel_gt_exec_checks(rep):
+    """
+    IntelGtExec.hpp against intel_gtt.h, intel_lrc.h and intel_engine_regs.h,
+    added 2026-10-12 after two values in that header were found WRONG
+    (PTE mask 47:12, software-id shift 32). FAIL, never skip, on a missing file.
+    """
+    def _read(p):
+        return p.read_text(encoding="utf-8", errors="replace") if p.is_file() else None
+    hdr_p = ROOT / "phase0-kext" / "IntelGtExec.hpp"
+    hdr = _read(hdr_p)
+    gtt = _read(I915 / "intel_gtt.h")
+    lrc = _read(I915 / "intel_lrc.h")
+    eng = _read(I915 / "intel_engine_regs.h")
+    for text, name in ((hdr, hdr_p.name), (gtt, "intel_gtt.h"),
+                       (lrc, "intel_lrc.h"), (eng, "intel_engine_regs.h")):
+        if text is None:
+            rep.failed("exec", f"{name} not found -- these checks measured "
+                               f"NOTHING, which is not the same as passing")
+            return
+
+    def hdr_val(name):
+        m = re.search(r"#define\s+%s\s+(0x[0-9A-Fa-f]+|\d+)u(?:ll)?\b" % name, hdr)
+        return int(m.group(1), 0) if m else None
+
+    def check(label, got, want):
+        if got is None or want is None or got != want:
+            rep.failed(label, f"kext {got if got is None else hex(got)}, "
+                              f"upstream {want if want is None else hex(want)}")
+        else:
+            rep.passed(label, hex(got))
+
+    m = re.search(r"#define\s+GEN12_GGTT_PTE_ADDR_MASK\s+GENMASK_ULL\((\d+),\s*(\d+)\)", gtt)
+    want = (((1 << (int(m.group(1)) + 1)) - 1) & ~((1 << int(m.group(2))) - 1)) if m else None
+    check("IG_GTX_PTE_ADDR_MASK_I915_45_12 vs GEN12_GGTT_PTE_ADDR_MASK",
+          hdr_val("IG_GTX_PTE_ADDR_MASK_I915_45_12"), want)
+    check("IG_GTX_PTE_ADDR_CEILING_I915_45_12 vs GEN12_GGTT_PTE_ADDR_MASK",
+          hdr_val("IG_GTX_PTE_ADDR_CEILING_I915_45_12"), want)
+    m = re.search(r"#define\s+GEN8_PAGE_PRESENT\s+BIT_ULL\((\d+)\)", gtt)
+    check("IG_GTX_PTE_PRESENT_BIT_POLICY_0x1 vs GEN8_PAGE_PRESENT",
+          hdr_val("IG_GTX_PTE_PRESENT_BIT_POLICY_0x1"), (1 << int(m.group(1))) if m else None)
+
+    m = re.search(r"#define\s+GEN11_SW_CTX_ID_SHIFT\s+(\d+)", lrc)
+    check("IG_GTX_CTXDESC_SWID_SHIFT_I915_37 vs GEN11_SW_CTX_ID_SHIFT",
+          hdr_val("IG_GTX_CTXDESC_SWID_SHIFT_I915_37"), int(m.group(1)) if m else None)
+    m = re.search(r"#define\s+GEN11_SW_CTX_ID_WIDTH\s+(\d+)", lrc)
+    check("IG_GTX_CTXDESC_SWID_MASK_POLICY_0x7FF vs GEN11_SW_CTX_ID_WIDTH",
+          hdr_val("IG_GTX_CTXDESC_SWID_MASK_POLICY_0x7FF"),
+          ((1 << int(m.group(1))) - 1) if m else None)
+    m = re.search(r"#define\s+GEN8_CTX_VALID\s+\(1\s*<<\s*(\d+)\)", lrc)
+    check("IG_GTX_CTXDESC_VALID_BIT_POLICY_0x1 vs GEN8_CTX_VALID",
+          hdr_val("IG_GTX_CTXDESC_VALID_BIT_POLICY_0x1"), (1 << int(m.group(1))) if m else None)
+    m = re.search(r"#define\s+CTX_GTT_ADDRESS_MASK\s+GENMASK\((\d+),\s*(\d+)\)", lrc)
+    want = (((1 << (int(m.group(1)) + 1)) - 1) & ~((1 << int(m.group(2))) - 1)) if m else None
+    check("IG_GTX_CTXDESC_LRCA_MASK_POLICY vs CTX_GTT_ADDRESS_MASK",
+          hdr_val("IG_GTX_CTXDESC_LRCA_MASK_POLICY"), want)
+
+    for kext, up in (("IG_GTX_EXECLIST_STATUS_POLICY_0x234", "RING_EXECLIST_STATUS_LO"),
+                     ("IG_GTX_EXECLIST_SQ_POLICY_0x510", "RING_EXECLIST_SQ_CONTENTS"),
+                     ("IG_GTX_EXECLIST_CONTROL_POLICY_0x550", "RING_EXECLIST_CONTROL")):
+        m = re.search(r"#define\s+%s\(base\)\s+_MMIO\(\(base\)\s*\+\s*(0x[0-9a-fA-F]+)\)" % up, eng)
+        check(f"{kext} vs {up}", hdr_val(kext), int(m.group(1), 16) if m else None)
+    m = re.search(r"#define\s+EL_CTRL_LOAD\s+REG_BIT\((\d+)\)", eng)
+    check("IG_GTX_EXECLIST_LOAD_BIT_POLICY_0x1 vs EL_CTRL_LOAD",
+          hdr_val("IG_GTX_EXECLIST_LOAD_BIT_POLICY_0x1"), (1 << int(m.group(1))) if m else None)
+
+    files = {"intel_gtt.h": gtt.splitlines(), "intel_lrc.h": lrc.splitlines()}
+    cites = re.findall(r"//\s*(intel_gtt\.h|intel_lrc\.h):(\d+)\s+([A-Z_][A-Z0-9_]+)", hdr)
+    if len(cites) < 3:
+        rep.failed("exec citations", f"expected >= 3 line citations, found {len(cites)}")
+    for fname, line, sym in cites:
+        lines = files[fname]
+        n = int(line)
+        label = f"citation {fname}:{line} {sym}"
+        if n < 1 or n > len(lines) or sym not in lines[n - 1]:
+            rep.failed(label, "cited line does not contain the symbol")
+        else:
+            rep.passed(label, "line matches")
+
 
 def intel_gt_citation_checks(rep, gt_cmd, gt_probe, gt_ctx,
                              engine_text, lrc_text, cmds_text):
@@ -3818,6 +3896,7 @@ def main():
     intel_gt_citation_checks(rep, gt_cmd, gt_probe, gt_ctx,
                              engine_text, lrc_text, cmds_text)
     intel_gt_forcewake_checks(rep)
+    intel_gt_exec_checks(rep)
 
     intel_verdict_set_checks(rep, intel, "IG_MODE_", 7, "igModeConsistent()")
     intel_verdict_set_checks(rep, intel, "IG_LINK_", 4, "igTransconfDdiLinked()")

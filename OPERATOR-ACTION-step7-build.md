@@ -202,12 +202,25 @@ offer is exactly one: the source compiles, or here is the error.
 > edited -- so the fix belonged in the generator, not in the prose or the
 > assertion.
 >
-> Current image, measured 2026-10-12 after the FIFTY EIGHTH rebuild: md5
-> `d853aba3fd2b82bfaa8072079dd19735`, 927744 bytes, carrying `kext-src.tar`
-> (849920 bytes, md5 `99209a3b0ef435eb13257d41fff2cdad`) and
+> Current image, measured 2026-10-12 after the FIFTY NINTH rebuild: md5
+> `3183e58ebf1c817a80a46521874106a3`, 927744 bytes, carrying `kext-src.tar`
+> (849920 bytes, md5 `4c9772c2e7a251038306a1740c4d8f71`) and
 > `guest-build-kext.sh` (**12677** bytes, md5
 > `599b51eb31500c9ef9ff4b1f2dee0476`; was 11538, was 8115,
 > was 7596, was 6718) under vol ident `PAYLOAD`.
+>
+> The fifty ninth rebuild, 2026-10-12, moved both md5s and NEITHER byte size
+> (tar 849920, ISO 927744, unchanged). Cause: `phase0-kext/IntelGtExec.hpp`
+> was corrected against `reference/i915/` -- PTE address mask 47:12 -> 45:12
+> (`intel_gtt.h:100`) and software context id bit 32 -> 37
+> (`intel_lrc.h:103`). Same file count, a few hundred bytes of change that fit
+> inside the existing tar blocks. Reproducible: two consecutive
+> `python tools\build-step7-payload.py --skip-gate` runs hashed identically
+> (sha256 prefix `5557aaef40010e51` both times). Kext binary behaviour is
+> unchanged: the probe publishes the descriptor but writes nothing.
+>
+> Fifty eighth image (superseded): md5 `d853aba3fd2b82bfaa8072079dd19735`,
+> 927744 bytes, tar md5 `99209a3b0ef435eb13257d41fff2cdad`.
 >
 > The fifty eighth rebuild, 2026-10-12, moved both md5s AND both byte sizes --
 > tar 819200 -> 849920, ISO 897024 -> 927744, exactly THREE 10240-byte tar

@@ -34,6 +34,27 @@
 //  was idle, so there is no MMIO evidence of a running execlist port anywhere
 //  in this tree.
 //
+//  CORRECTION, 2026-10-12. The paragraph above was true when written and is
+//  no longer. reference/i915/ now carries the gt/ files
+//  (reference/i915/PROVENANCE.md), and
+//  checking this header against them found TWO wrong values, both fixed here
+//  and both now spelled _I915_ with a `// file:LINE SYM` citation that
+//  tools/check-registers.py re-reads on every run:
+//
+//    - the page-table address mask was 47:12; Gen12 GGTT is GENMASK_ULL(45,12)
+//      (intel_gtt.h). The old mask would have accepted a physical address
+//      with bit 46 or 47 set and written it into the entry unchanged.
+//    - the software context id sat at bit 32; below IP 12.55 (Tiger Lake is
+//      12.0) it is GEN11_SW_CTX_ID_SHIFT = 37, 11 bits wide (intel_lrc.h). A
+//      descriptor composed at bit 32 lands the id in the GEN8_CTX_ID field's
+//      low bits instead.
+//
+//  The execlist offsets (0x234 / 0x510 / 0x550, load bit 0) were checked too
+//  and AGREE with intel_engine_regs.h; check-registers.py now pins them. Their
+//  *_POLICY_* names are kept on purpose: tests/test_intel_probe_submit_shape.py
+//  bans those exact tokens from IntelGtProbe.cpp, and a rename would quietly
+//  retire that ban. Everything not named above is still POLICY.
+//
 //  What a green test suite over this header establishes is that the
 //  COMPOSITION is self-consistent and that every refusal is reachable. It does
 //  not establish that the hardware wants these words.
@@ -103,7 +124,9 @@ static inline bool igGtxExeclistPortBusy(IGU32 statusWord)
 
 #define IG_GTX_CTXDESC_VALID_BIT_POLICY_0x1     0x1u
 #define IG_GTX_CTXDESC_LRCA_MASK_POLICY         0xFFFFF000u
-#define IG_GTX_CTXDESC_SWID_SHIFT_POLICY_32     32u
+// intel_lrc.h:103 GEN11_SW_CTX_ID_SHIFT
+// intel_lrc.h:104 GEN11_SW_CTX_ID_WIDTH
+#define IG_GTX_CTXDESC_SWID_SHIFT_I915_37       37u
 #define IG_GTX_CTXDESC_SWID_MASK_POLICY_0x7FF   0x7FFu
 
 // A descriptor that could not be composed. ZERO, deliberately, and this is the
@@ -153,7 +176,7 @@ static inline IGU64 igGtxContextDescriptor(IGU64 lrca, IGU32 contextId)
     IGU64 word = (IGU64)IG_GTX_CTXDESC_VALID_BIT_POLICY_0x1;
     word |= (lrca & (IGU64)IG_GTX_CTXDESC_LRCA_MASK_POLICY);
     word |= ((IGU64)(contextId & IG_GTX_CTXDESC_SWID_MASK_POLICY_0x7FF))
-            << IG_GTX_CTXDESC_SWID_SHIFT_POLICY_32;
+            << IG_GTX_CTXDESC_SWID_SHIFT_I915_37;
     return word;
 }
 
@@ -191,12 +214,14 @@ static inline IGU32 igGtxDescriptorHigh(IGU64 descriptor)
 // ---------------------------------------------------------------------------
 
 #define IG_GTX_PTE_PRESENT_BIT_POLICY_0x1       0x1u
-#define IG_GTX_PTE_ADDR_MASK_POLICY             0x0000FFFFFFFFF000ull
+// intel_gtt.h:100 GEN12_GGTT_PTE_ADDR_MASK
+#define IG_GTX_PTE_ADDR_MASK_I915_45_12         0x00003FFFFFFFF000ull
 #define IG_GTX_GTT_ENTRY_BYTES_POLICY_8         8u
 
-// The largest physical address the entry can describe: the mask is 36 bits of
-// page frame at bit 12, so the ceiling is the mask itself.
-#define IG_GTX_PTE_ADDR_CEILING_POLICY          0x0000FFFFFFFFF000ull
+// The largest physical address the entry can describe: bits 45:12 are 34 bits
+// of page frame, so the ceiling is the mask itself (64 TiB - 4 KiB). It WAS
+// 0x0000FFFFFFFFF000 until 2026-10-12, one nibble too wide -- see the banner.
+#define IG_GTX_PTE_ADDR_CEILING_I915_45_12      0x00003FFFFFFFF000ull
 
 // A refused entry is ZERO, not all-ones, for IG_GTX_CTXDESC_INVALID_POLICY_0's
 // reason one level down: bit 0 is the present bit, so zero is NOT PRESENT by
@@ -215,7 +240,7 @@ static inline bool igGtxPageAddressOk(IGU64 physAddr)
     if ((physAddr & (IGU64)(IG_GT_PAGE_POLICY_0x1000 - 1u)) != 0ull) {
         return false;
     }
-    return physAddr <= IG_GTX_PTE_ADDR_CEILING_POLICY;
+    return physAddr <= IG_GTX_PTE_ADDR_CEILING_I915_45_12;
 }
 
 static inline IGU64 igGtxPageTableEntry(IGU64 physAddr, bool present)
@@ -226,7 +251,7 @@ static inline IGU64 igGtxPageTableEntry(IGU64 physAddr, bool present)
     if (!present) {
         return IG_GTX_PTE_INVALID_POLICY_0;
     }
-    return (physAddr & IG_GTX_PTE_ADDR_MASK_POLICY)
+    return (physAddr & IG_GTX_PTE_ADDR_MASK_I915_45_12)
            | (IGU64)IG_GTX_PTE_PRESENT_BIT_POLICY_0x1;
 }
 
@@ -243,7 +268,7 @@ static inline IGU64 igGtxPteAddress(IGU64 entry)
     if (!igGtxPteIsPresent(entry)) {
         return 0ull;
     }
-    return entry & IG_GTX_PTE_ADDR_MASK_POLICY;
+    return entry & IG_GTX_PTE_ADDR_MASK_I915_45_12;
 }
 
 // The index is bounded BEFORE the multiply, never after. index * 8 in 32 bits

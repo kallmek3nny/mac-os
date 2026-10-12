@@ -110,14 +110,16 @@ int main(void)
 
     // -- Context descriptor composition --------------------------------------
     // Bare literals throughout: valid bit 0, LRCA at its natural position in
-    // bits 31:12, software id above bit 32.
+    // bits 31:12, software id at bit 37 (GEN11_SW_CTX_ID_SHIFT, intel_lrc.h).
+    // These literals were 0x0000000100001001 / 0x000007FFFFFFF001 while the
+    // id sat at bit 32; that position was wrong for Gen12 below IP 12.55.
     checkU64("ctxDesc(0x1000, 1)", igGtxContextDescriptor(0x1000ull, 1u),
-             0x0000000100001001ull);
+             0x0000002000001001ull);
     checkU64("ctxDesc(0, 0)", igGtxContextDescriptor(0ull, 0u),
              0x0000000000000001ull);
     checkU64("ctxDesc(0xFFFFF000, 0x7FF)",
              igGtxContextDescriptor(0xFFFFF000ull, 0x7FFu),
-             0x000007FFFFFFF001ull);
+             0x0000FFE0FFFFF001ull);
 
     // Every refusal answers ZERO rather than all-ones, because bit 0 is the
     // valid bit -- all-ones would be a VALID descriptor over a garbage address.
@@ -161,7 +163,7 @@ int main(void)
     {
         IGU64 desc = igGtxContextDescriptor(0x1000ull, 1u);
         checkU32("descLow(0x1000, 1)", igGtxDescriptorLow(desc), 0x00001001u);
-        checkU32("descHigh(0x1000, 1)", igGtxDescriptorHigh(desc), 0x00000001u);
+        checkU32("descHigh(0x1000, 1)", igGtxDescriptorHigh(desc), 0x00000020u);
     }
     checkU32("descLow refuses invalid", igGtxDescriptorLow(0ull), 0u);
     checkU32("descHigh refuses invalid", igGtxDescriptorHigh(0ull), 0u);
@@ -183,19 +185,27 @@ int main(void)
     checkU64("pte(0x1000, absent)", igGtxPageTableEntry(0x1000ull, false), 0ull);
     checkU64("pte refuses unaligned", igGtxPageTableEntry(0x1001ull, true), 0ull);
     checkU64("pte refuses 0x800", igGtxPageTableEntry(0x800ull, true), 0ull);
-    // Above the 36-bit page-frame field.
+    // Above the 45:12 page-frame field (GEN12_GGTT_PTE_ADDR_MASK).
     checkU64("pte refuses above ceiling",
              igGtxPageTableEntry(0x0001000000000000ull, true), 0ull);
     checkU64("pte accepts the ceiling",
-             igGtxPageTableEntry(0x0000FFFFFFFFF000ull, true),
-             0x0000FFFFFFFFF001ull);
+             igGtxPageTableEntry(0x00003FFFFFFFF000ull, true),
+             0x00003FFFFFFFF001ull);
+    // The OLD ceiling, 47:12. Accepting it was the bug fixed 2026-10-12: bits
+    // 46 and 47 are not address bits in a Gen12 GGTT entry.
+    checkU64("pte refuses the old 47:12 ceiling",
+             igGtxPageTableEntry(0x0000FFFFFFFFF000ull, true), 0ull);
+    checkU64("pte refuses bit 46",
+             igGtxPageTableEntry(0x0000400000000000ull, true), 0ull);
 
     checkBool("pageAddressOk(0)", igGtxPageAddressOk(0ull), true);
     checkBool("pageAddressOk(0x1000)", igGtxPageAddressOk(0x1000ull), true);
     checkBool("pageAddressOk(0xFFF)", igGtxPageAddressOk(0xFFFull), false);
     checkBool("pageAddressOk(0x1_0000_0800)", igGtxPageAddressOk(0x100000800ull), false);
     checkBool("pageAddressOk(ceiling)",
-              igGtxPageAddressOk(0x0000FFFFFFFFF000ull), true);
+              igGtxPageAddressOk(0x00003FFFFFFFF000ull), true);
+    checkBool("pageAddressOk(old 47:12 ceiling)",
+              igGtxPageAddressOk(0x0000FFFFFFFFF000ull), false);
     checkBool("pageAddressOk(above ceiling)",
               igGtxPageAddressOk(0x0001000000000000ull), false);
 
