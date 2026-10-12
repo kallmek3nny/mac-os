@@ -534,3 +534,11 @@ add_kext_test(test_intel_gt_fence test_intel_gt_fence.cpp)
 #      claimed in prose -- handoff37 section 3's construction. This layer
 #      DECIDES a reset is warranted; it does not perform one.
 add_kext_test(test_intel_gt_reset test_intel_gt_reset.cpp)
+
+# test_intel_gt_forcewake drives IntelGtForcewake.hpp, the first GT layer whose
+# output is meant to be WRITTEN to the hardware: which power well an offset
+# needs, the masked request words, and a step-wise acquire sequence fed ack
+# readings by the caller. The ordering it pins is all-ones BEFORE the kernel
+# bit, because 0xFFFFFFFF has FORCEWAKE_KERNEL set and would otherwise report
+# a dead BAR as an awake well.
+add_kext_test(test_intel_gt_forcewake test_intel_gt_forcewake.cpp)

@@ -122,6 +122,7 @@ INTEL_PIXEL_HEADER = ROOT / "phase0-kext" / "IntelPixel.hpp"
 GT_CMD_HEADER   = ROOT / "phase0-kext" / "IntelGtCmd.hpp"
 GT_CTX_HEADER   = ROOT / "phase0-kext" / "IntelGtContext.hpp"
 GT_PROBE_HEADER = ROOT / "phase0-kext" / "IntelGtProbe.hpp"
+GT_FW_HEADER = ROOT / "phase0-kext" / "IntelGtForcewake.hpp"
 
 I915 = ROOT / "reference" / "i915"
 
@@ -3016,6 +3017,124 @@ def _gt_find_hex(rep, label, pattern, name, text, filename):
     return int(m.group(1), 16)
 
 
+def intel_gt_forcewake_checks(rep):
+    """
+    IntelGtForcewake.hpp against reference/i915/intel_gt_regs.h and
+    intel_uncore.c, added 2026-10-12.
+
+    Three kinds of claim, all FAIL (never skip) on a missing file:
+      1. each cited register / bit value equals upstream's,
+      2. each `// file:LINE NAME` citation comment points at a line that
+         actually contains NAME (so a re-vendor that shifts lines reddens),
+      3. the 43-row range table equals __gen12_fw_ranges[] row for row,
+         including the row COUNT -- a dropped row would otherwise silently
+         widen its neighbour.
+    """
+    def _read(p):
+        return p.read_text(encoding="utf-8", errors="replace") if p.is_file() else None
+
+    hdr = _read(GT_FW_HEADER)
+    regs = _read(I915 / "intel_gt_regs.h")
+    unc = _read(I915 / "intel_uncore.c")
+    for text, name in ((hdr, GT_FW_HEADER.name), (regs, "intel_gt_regs.h"),
+                       (unc, "intel_uncore.c")):
+        if text is None:
+            rep.failed("forcewake", f"{name} not found -- these checks measured "
+                                    f"NOTHING, which is not the same as passing")
+            return
+
+    def hdr_hex(name):
+        m = re.search(r"#define\s+%s\s+(0x[0-9A-Fa-f]+)u" % name, hdr)
+        return int(m.group(1), 16) if m else None
+
+    def hdr_bit(name):
+        m = re.search(r"#define\s+%s\s+\(1u\s*<<\s*(\d+)\)" % name, hdr)
+        return int(m.group(1)) if m else None
+
+    # 1. values
+    for kext, up in (("IG_GTW_REQ_RENDER_I915_0xA278", "FORCEWAKE_RENDER_GEN9"),
+                     ("IG_GTW_ACK_RENDER_I915_0xD84", "FORCEWAKE_ACK_RENDER_GEN9"),
+                     ("IG_GTW_REQ_GT_I915_0xA188", "FORCEWAKE_GT_GEN9"),
+                     ("IG_GTW_ACK_GT_I915_0x130044", "FORCEWAKE_ACK_GT_GEN9")):
+        label = f"{kext} vs {up}"
+        m = re.search(r"#define\s+%s\s+_MMIO\((0x[0-9a-fA-F]+)\)" % up, regs)
+        got = hdr_hex(kext)
+        if not m:
+            rep.failed(label, f"{up} not found in intel_gt_regs.h")
+        elif got is None:
+            rep.failed(label, f"{kext} not defined in {GT_FW_HEADER.name}")
+        elif got != int(m.group(1), 16):
+            rep.failed(label, f"kext 0x{got:X}, upstream {m.group(1)}")
+        else:
+            rep.passed(label, f"0x{got:X}")
+
+    for kext, up in (("IG_GTW_KERNEL_I915_BIT0", "FORCEWAKE_KERNEL"),
+                     ("IG_GTW_KERNEL_FALLBACK_I915_BIT15", "FORCEWAKE_KERNEL_FALLBACK")):
+        label = f"{kext} vs {up}"
+        m = re.search(r"#define\s+%s\s+BIT\((\d+)\)" % up, regs)
+        got = hdr_bit(kext)
+        if not m or got is None or got != int(m.group(1)):
+            rep.failed(label, f"kext bit {got}, upstream "
+                              f"{m.group(1) if m else 'not found'}")
+        else:
+            rep.passed(label, f"BIT({got})")
+
+    label = "IG_GTW_RESET_BITS_GEN12_I915_0xEFFF vs fw_domain_reset()"
+    m = re.search(r">=\s*12\)\s*\n\s*fw_clear\(d,\s*(0x[0-9a-fA-F]+)\)", unc)
+    got = hdr_hex("IG_GTW_RESET_BITS_GEN12_I915_0xEFFF")
+    if not m or got is None or got != int(m.group(1), 16):
+        rep.failed(label, f"kext {got}, upstream {m.group(1) if m else 'not found'}")
+    else:
+        rep.passed(label, f"0x{got:X}")
+
+    label = "IG_GTW_ACK_TIMEOUT_MS_I915_50 vs FORCEWAKE_ACK_TIMEOUT_MS"
+    m = re.search(r"#define\s+FORCEWAKE_ACK_TIMEOUT_MS\s+(\d+)", unc)
+    m2 = re.search(r"#define\s+IG_GTW_ACK_TIMEOUT_MS_I915_50\s+(\d+)u", hdr)
+    if not m or not m2 or m.group(1) != m2.group(1):
+        rep.failed(label, "timeout differs or not found")
+    else:
+        rep.passed(label, f"{m.group(1)} ms")
+
+    # 2. line citations
+    files = {"intel_gt_regs.h": regs.splitlines(), "intel_uncore.c": unc.splitlines()}
+    for fname, line, sym in re.findall(
+            r"//\s*(intel_gt_regs\.h|intel_uncore\.c):(\d+)\s+([A-Z_][A-Z0-9_]+)", hdr):
+        lines = files[fname]
+        n = int(line)
+        label = f"citation {fname}:{line} {sym}"
+        if n < 1 or n > len(lines) or sym not in lines[n - 1]:
+            rep.failed(label, "cited line does not contain the symbol")
+        else:
+            rep.passed(label, "line matches")
+
+    # 3. the range table
+    label = "kIgGtwGen12Ranges vs __gen12_fw_ranges[]"
+    body = re.search(r"__gen12_fw_ranges\[\]\s*=\s*\{(.*?)\n\};", unc, re.S)
+    if not body:
+        rep.failed(label, "__gen12_fw_ranges[] not found in intel_uncore.c")
+        return
+    def _dom(s):
+        if s == "0":
+            return "NONE"
+        if s.startswith("FORCEWAKE_MEDIA"):
+            return "MEDIA"
+        return {"FORCEWAKE_RENDER": "RENDER", "FORCEWAKE_GT": "GT"}.get(s, "?" + s)
+    up = [(int(a, 16), int(b, 16), _dom(d)) for a, b, d in re.findall(
+        r"GEN_FW_RANGE\((0x[0-9a-fA-F]+),\s*(0x[0-9a-fA-F]+),\s*(\w+)\)", body.group(1))]
+    ours = [(int(a, 16), int(b, 16), d) for a, b, d in re.findall(
+        r"IG_GTW_ROW\((0x[0-9A-Fa-f]+)u,\s*(0x[0-9A-Fa-f]+)u,\s*IG_GTW_DOMAIN_(\w+)\)", hdr)]
+    if len(up) != len(ours):
+        rep.failed(label, f"row count: kext {len(ours)}, upstream {len(up)}")
+    else:
+        bad = [i for i, (x, y) in enumerate(zip(ours, up)) if x != y]
+        if bad:
+            i = bad[0]
+            rep.failed(label, f"{len(bad)} rows differ; first is row {i}: "
+                              f"kext {ours[i]}, upstream {up[i]}")
+        else:
+            rep.passed(label, f"{len(up)} rows identical")
+
+
 def intel_gt_citation_checks(rep, gt_cmd, gt_probe, gt_ctx,
                              engine_text, lrc_text, cmds_text):
     """
@@ -3698,6 +3817,7 @@ def main():
     #
     intel_gt_citation_checks(rep, gt_cmd, gt_probe, gt_ctx,
                              engine_text, lrc_text, cmds_text)
+    intel_gt_forcewake_checks(rep)
 
     intel_verdict_set_checks(rep, intel, "IG_MODE_", 7, "igModeConsistent()")
     intel_verdict_set_checks(rep, intel, "IG_LINK_", 4, "igTransconfDdiLinked()")

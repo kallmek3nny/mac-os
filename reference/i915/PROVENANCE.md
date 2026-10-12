@@ -18,6 +18,14 @@ upstream path below.
 | `intel_lrc_reg.h` | `drivers/gpu/drm/i915/gt/intel_lrc_reg.h` | 2,746 |
 | `intel_engine_regs.h` | `drivers/gpu/drm/i915/gt/intel_engine_regs.h` | 12,482 |
 | `intel_gpu_commands.h` | `drivers/gpu/drm/i915/gt/intel_gpu_commands.h` | 20,303 |
+| `intel_gt_regs.h` | `drivers/gpu/drm/i915/gt/intel_gt_regs.h` | 65,408 |
+| `intel_gtt.h` | `drivers/gpu/drm/i915/gt/intel_gtt.h` | 21,188 |
+| `intel_ggtt.c` | `drivers/gpu/drm/i915/gt/intel_ggtt.c` | 42,578 |
+| `intel_uncore.h` | `drivers/gpu/drm/i915/intel_uncore.h` | 16,830 |
+| `intel_uncore.c` | `drivers/gpu/drm/i915/intel_uncore.c` | 90,545 |
+| `intel_execlists_submission.c` | `drivers/gpu/drm/i915/gt/intel_execlists_submission.c` | 127,198 |
+| `intel_lrc.c` | `drivers/gpu/drm/i915/gt/intel_lrc.c` | 46,383 |
+| `intel_engine_cs.c` | `drivers/gpu/drm/i915/gt/intel_engine_cs.c` | 71,125 |
 
 ## The three `gt/` headers, vendored 2026-08-26, and what they retire
 
@@ -94,6 +102,39 @@ is the Intel-side instance of the same hazard `nvGspFalconReg()` /
 
 Licence is SPDX `MIT` on the display files and `MIT` on `i915_reg.h`; the
 headers carry their own notices and those are left intact.
+
+## The eight hardware-path files, vendored 2026-10-12
+
+The twelve files above can describe what the GT would execute; none of them
+describes how to make it executable. Greps of this tree on 2026-10-12 for
+`FORCEWAKE`, `GuC`, GGTT PTE writes and interrupt handling returned **zero**
+matches in `phase0-kext/`, and `reference/i915/` held no file that defines a
+forcewake register at all. These eight close that: power-well wake
+(`intel_gt_regs.h`, `intel_uncore.[ch]`), the GGTT page-table format
+(`intel_gtt.h`, `intel_ggtt.c`), and execlist submission
+(`intel_execlists_submission.c`, `intel_lrc.c`, `intel_engine_cs.c`).
+
+Same fetch as the rest: HTTPS from `raw.githubusercontent.com`, tag `v6.12`,
+byte-identical, unmodified. md5 at vendor time:
+
+- `intel_gt_regs.h` `abe340379c4cf30376e465701f01d38a`
+- `intel_gtt.h` `22201b32bafdb1d5ddd4699aa91b4deb`
+- `intel_ggtt.c` `5fd9e39eda585b6311d95de32aa81f04`
+- `intel_uncore.h` `b222462944c10c102f0e0b4cb2c2bec8`
+- `intel_uncore.c` `c288543091fdfdea71f27004a914070b`
+- `intel_execlists_submission.c` `18d6a8e9be7c04a9c40450b406ca019d`
+- `intel_lrc.c` `3750c37cc6cd8a5b62cce7aaea49fc2a`
+- `intel_engine_cs.c` `7678f8a9805f8d474cfa0482314be84e`
+
+First consumer: `phase0-kext/IntelGtForcewake.hpp`, whose register and bit
+constants and whose 43-row copy of `__gen12_fw_ranges[]`
+(`intel_uncore.c:1337-1436`) are re-derived from these files by
+`tools/check-registers.py` (`intel_gt_forcewake_checks`).
+
+The `.c` files are larger than anything vendored before, and they are here
+for the PROTOCOL, not for constants: `intel_uncore.c:294-310`
+(`fw_domains_get_normal`) is the acquire order this tree follows, and
+`:203-248` is the fallback toggle it deliberately does not implement yet.
 
 ## Why this directory exists
 

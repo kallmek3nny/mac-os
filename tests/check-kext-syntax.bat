@@ -238,6 +238,12 @@ REM tests/test_intel_gt_reset.cpp is what reads those, and it is the ONLY thing
 REM that does.
 "!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtReset.hpp
 if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtReset.hpp) else (echo   ok   IntelGtReset.hpp)
+REM IntelGtForcewake.hpp: one quoted sibling (IntelGtCmd.hpp). A parse cannot see
+REM the all-ones-before-bit ordering of igGtwAckVerdict(); test_intel_gt_forcewake
+REM is what reads that, and check-registers.py re-derives its constants and its
+REM 43-row range table from reference/i915/.
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtForcewake.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtForcewake.hpp) else (echo   ok   IntelGtForcewake.hpp)
 echo.
 
 echo === 2. section 1 covers every header ===

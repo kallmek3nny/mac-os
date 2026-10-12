@@ -202,12 +202,30 @@ offer is exactly one: the source compiles, or here is the error.
 > edited -- so the fix belonged in the generator, not in the prose or the
 > assertion.
 >
-> Current image, measured 2026-10-12 after the FIFTY SEVENTH rebuild: md5
-> `2792a35bc56fc5514e532e43ead4d2f6`, 897024 bytes, carrying `kext-src.tar`
-> (819200 bytes, md5 `ec7bc97fe1eeed144fd541026a44aef1`) and
+> Current image, measured 2026-10-12 after the FIFTY EIGHTH rebuild: md5
+> `d853aba3fd2b82bfaa8072079dd19735`, 927744 bytes, carrying `kext-src.tar`
+> (849920 bytes, md5 `99209a3b0ef435eb13257d41fff2cdad`) and
 > `guest-build-kext.sh` (**12677** bytes, md5
 > `599b51eb31500c9ef9ff4b1f2dee0476`; was 11538, was 8115,
 > was 7596, was 6718) under vol ident `PAYLOAD`.
+>
+> The fifty eighth rebuild, 2026-10-12, moved both md5s AND both byte sizes --
+> tar 819200 -> 849920, ISO 897024 -> 927744, exactly THREE 10240-byte tar
+> blocks each, read off the disk in one measurement. Reproducible: two
+> consecutive `python tools\build-step7-payload.py --skip-gate` runs hashed
+> identically (sha256 prefix `cad34f2a5f12978f` both times). The script is
+> unchanged at 12677 bytes.
+>
+> What changed is ONE new dependency-free header,
+> `phase0-kext/IntelGtForcewake.hpp` -- the GT power-well wake layer, the first
+> prerequisite for ever writing to an engine. Nothing in the shipping kext
+> includes it yet, so **the kext binary this image builds is UNCHANGED** from the
+> fifty seventh's; the header rides in the tar so the guest build sees the same
+> tree the host gates do. See `intel-handoff43.md`.
+>
+> Fifty seventh image (superseded): md5 `2792a35bc56fc5514e532e43ead4d2f6`,
+> 897024 bytes, carrying `kext-src.tar` (819200 bytes, md5
+> `ec7bc97fe1eeed144fd541026a44aef1`). Its notes follow and stay as written.
 >
 > The fifty seventh rebuild, 2026-10-12, moved both md5s AND both byte sizes --
 > tar 808960 -> 819200, ISO 886784 -> 897024, exactly ONE 10240-byte tar

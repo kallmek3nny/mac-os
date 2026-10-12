@@ -1364,6 +1364,13 @@ MEASURED = {
     # it. Read a drop of twenty as a deleted loop bound; a deleted group of
     # hand-written ordering assertions moves it by less.
     "test_intel_gt_reset": 139,
+    # Measured 2026-10-12 by running tests/build/test_intel_gt_forcewake.exe,
+    # first reading of a new suite:
+    #   test_intel_gt_forcewake 188 checks, 0 failures
+    # Dominated by the three
+    # pairwise-distinct verdict-name walks and the per-domain accessor walk; a
+    # drop of ~30 is a deleted loop bound.
+    "test_intel_gt_forcewake": 188,
     "test_intel_gt_batch": 289,
     "test_intel_gt_blt": 213,
     "test_intel_gt_image": 111,
