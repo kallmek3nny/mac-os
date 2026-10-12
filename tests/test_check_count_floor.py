@@ -1272,6 +1272,11 @@ BUILD_DIR = os.path.join(HERE, "build")
 # ZERO call sites. sink_alloc had 16, the same bare helper, and a count line
 # with no leading newline -- matching neither COUNT_FORMATS pattern. All three
 # are the handoff40 section 3 class: the gate reads spellings, not intent.
+#
+# Measured 2026-10-12, the sink rehearsal (handoff41 section 5 item 1), built
+# with g++ -std=c++11 -Wall -Wextra -Werror:
+#   test_intel_sink_rehearse 60 checks, 0 failures
+# A first measurement: the header is new, so there is no prior number.
 MEASURED = {
     # Measured 2026-08-28 by running tests/build/test_intel_gt_ring.exe, the FIRST
     # target ever to compile phase0-kext/IntelGtRing.hpp:
@@ -1389,6 +1394,8 @@ MEASURED = {
     "test_intel_plane_program": 91,
     # Sink GGTT placement (IntelSinkAlloc.hpp), alloc half of step (a).
     "test_intel_sink_alloc": 21,
+    # Step (b) composed over a firmware plane read (IntelSinkRehearse.hpp).
+    "test_intel_sink_rehearse": 60,
 }
 
 # A suite must call check helpers many times over. Uniform across suites on

@@ -202,12 +202,34 @@ offer is exactly one: the source compiles, or here is the error.
 > edited -- so the fix belonged in the generator, not in the prose or the
 > assertion.
 >
-> Current image, measured 2026-10-11 after the FIFTY SIXTH rebuild: md5
-> `349da2f2868ff9a5ab82c3dbabcddbcc`, 886784 bytes, carrying `kext-src.tar`
-> (808960 bytes, md5 `777c03a2487fbfa4d09ac21289dc5866`) and
+> Current image, measured 2026-10-12 after the FIFTY SEVENTH rebuild: md5
+> `2792a35bc56fc5514e532e43ead4d2f6`, 897024 bytes, carrying `kext-src.tar`
+> (819200 bytes, md5 `ec7bc97fe1eeed144fd541026a44aef1`) and
 > `guest-build-kext.sh` (**12677** bytes, md5
 > `599b51eb31500c9ef9ff4b1f2dee0476`; was 11538, was 8115,
 > was 7596, was 6718) under vol ident `PAYLOAD`.
+>
+> The fifty seventh rebuild, 2026-10-12, moved both md5s AND both byte sizes --
+> tar 808960 -> 819200, ISO 886784 -> 897024, exactly ONE 10240-byte tar
+> block each, read off the disk in one measurement (`len()` and
+> `hashlib.md5()` over the same bytes). Reproducible: two consecutive
+> `python tools\build-step7-payload.py --skip-gate` runs hashed identically.
+> The script is unchanged at 12677 bytes.
+>
+> What changed is ONE new dependency-free header, `phase0-kext/IntelSinkRehearse.hpp`,
+> and the FIRST shipping consumer of the sink headers: `IntelDisplayProbe.cpp`
+> now calls `publishSinkRehearsal()` from `start()`. It reads plane 1 on pipe
+> A (CTL, STRIDE, SIZE, SURF, AUX_DIST) and BAR2's length, composes the
+> alloc plan and the plane words a flip WOULD write, and publishes them as
+> `IGSinkRehearsal*`, `IGSinkPlan*` and `IGSinkPlane*`. **The kext binary this
+> image builds is therefore CHANGED**, unlike the fifty sixth. It still writes
+> ZERO registers: `IGSinkRehearsalWroteRegisters` is the literal `false`, and
+> `tests/test_intel_sink_rehearsal_shape.py` reddens on any write path in the
+> method. What to read on hardware is in `intel-handoff42.md` section 4.
+>
+> Fifty sixth image (superseded): md5 `349da2f2868ff9a5ab82c3dbabcddbcc`,
+> 886784 bytes, carrying `kext-src.tar` (808960 bytes, md5
+> `777c03a2487fbfa4d09ac21289dc5866`). Its notes follow and stay as written.
 >
 > The fifty fifth rebuild moved both md5s AND both byte sizes -- tar 757760 ->
 > 778240, ISO 835584 -> 856064, exactly TWO 10240-byte tar blocks each. Both

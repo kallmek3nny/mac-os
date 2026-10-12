@@ -135,6 +135,7 @@ bool IntelDisplayProbe::start(IOService *provider)
     publishIdentity();
     scanTranscoders();
     scanPlanes();
+    publishSinkRehearsal();
 
     registerService();
 
@@ -636,4 +637,112 @@ void IntelDisplayProbe::publishPlane(UInt32 pipe)
                                                igFbSizeHeight(size)),
                     64);
     }
+}
+
+//
+// ---- the 3050 sink rehearsal -----------------------------------------------
+//
+// Step (b) of the sink plan, composed and PUBLISHED, never written. Five reads
+// of pipe A plane 1, one call into IntelSinkRehearse.hpp, and the answer laid
+// out in the IORegistry so an operator can check the plan against the live
+// plane before any code that writes a plane register exists.
+//
+// It writes NOTHING. There is no write accessor in this class and this method
+// does not acquire one: igPlaneWriteOffset() is never walked here, and
+// IGSinkRehearsalWroteRegisters is published false on every path so its
+// ABSENCE can never be read as "wrote". tests/test_intel_sink_rehearsal_shape.py
+// pins all of that structurally, because no host suite can compile this file.
+//
+// The five words are a SECOND sample of the plane publishPlane() just read.
+// That is deliberate: the rehearsal publishes its own inputs beside its own
+// verdict, so the evidence for every composed word sits next to it and nobody
+// has to assume two samples of a running display agreed (handoff28 SS4d).
+//
+void IntelDisplayProbe::publishSinkRehearsal(void)
+{
+    //
+    // The locals carry an in- prefix on purpose: they are the INPUTS of the
+    // rehearsal, published as IGSinkRehearsalIn*, and the prefix keeps them
+    // textually distinct from scanPlanes()'s ctl/stride/size/surf group, which
+    // test_intel_publisher_sample_shape.py mutates by exact anchor.
+    //
+    UInt32 inCtl     = regRead32(igPlaneReg(IG_SINK_REHEARSE_PIPE, 0u, IG_PLANE_CTL));
+    UInt32 inStride  = regRead32(igPlaneReg(IG_SINK_REHEARSE_PIPE, 0u, IG_PLANE_STRIDE));
+    UInt32 inSize    = regRead32(igPlaneReg(IG_SINK_REHEARSE_PIPE, 0u, IG_PLANE_SIZE));
+    UInt32 inSurf    = regRead32(igPlaneReg(IG_SINK_REHEARSE_PIPE, 0u, IG_PLANE_SURF));
+    UInt32 inAuxDist = regRead32(igPlaneReg(IG_SINK_REHEARSE_PIPE, 0u, IG_PLANE_AUX_DIST));
+
+    const UInt32 sampled[] = { inCtl, inStride, inSize, inSurf, inAuxDist };
+    UInt32 inSample = igSampleVerdict(sampled,
+                                   (UInt32) (sizeof(sampled) / sizeof(sampled[0])));
+
+    //
+    // The bound. getDeviceMemoryWithIndex() hands back the provider's own
+    // range, unretained, and only its length is taken. A missing BAR measures
+    // as zero, which igSinkRehearse() refuses as NO_BOUND rather than planning
+    // against an aperture nobody measured.
+    //
+    IODeviceMemory *aperture =
+        fPCIDevice->getDeviceMemoryWithIndex(IG_SINK_REHEARSE_APERTURE_INDEX);
+    IGU64 apertureBytes = aperture ? (IGU64) aperture->getLength() : 0;
+
+    IgSinkRehearsal rehearsal;
+    UInt32 verdict = igSinkRehearse(inCtl, inStride, inSize, inSurf, inAuxDist,
+                                    apertureBytes, &rehearsal);
+
+    IGLOG("sink rehearsal: sample=%s verdict=%s alloc=%u plane=%u "
+          "aperture=%llu base=0x%08x",
+          igSampleVerdictName(inSample),
+          igSinkRehearseVerdictName(verdict),
+          rehearsal.allocResult, rehearsal.planeVerdict,
+          (unsigned long long) apertureBytes, rehearsal.plan.base);
+
+    //
+    // FIRST and unconditional: the sample verdict, the rehearsal verdict, and
+    // the statement that nothing was written. An absent key is a question, not
+    // an answer (handoff18 SS1d).
+    //
+    setProperty("IGSinkRehearsalSample", igSampleVerdictName(inSample));
+    setProperty("IGSinkRehearsalVerdict", igSinkRehearseVerdictName(verdict));
+    setProperty("IGSinkRehearsalWroteRegisters", false);
+
+    //
+    // The inputs, on every path: they are the evidence every composed word
+    // below is derived from, and a refusal is only checkable against them.
+    //
+    setProperty("IGSinkRehearsalInCtl",     (UInt64) inCtl,     32);
+    setProperty("IGSinkRehearsalInStride",  (UInt64) inStride,  32);
+    setProperty("IGSinkRehearsalInSize",    (UInt64) inSize,    32);
+    setProperty("IGSinkRehearsalInSurf",    (UInt64) inSurf,    32);
+    setProperty("IGSinkRehearsalInAuxDist", (UInt64) inAuxDist, 32);
+    setProperty("IGSinkRehearsalInApertureBytes", (UInt64) apertureBytes, 64);
+
+    //
+    // The stage results, on every path, as NUMBERS: IG_SINK_REHEARSE_NOT_REACHED
+    // (all-ones) for a stage the rehearsal never got to, never a zero that
+    // would read as IG_SINK_ALLOC_OK.
+    //
+    setProperty("IGSinkRehearsalAllocResult",  (UInt64) rehearsal.allocResult,  32);
+    setProperty("IGSinkRehearsalPlaneVerdict", (UInt64) rehearsal.planeVerdict, 32);
+
+    //
+    // Everything below is COMPOSED, and every one of them is behind the guard:
+    // setProperty() with a NOT_REACHED word is byte-identical to setProperty()
+    // with a planned base. The guard is a conjunction of two equalities, never a
+    // negation of one error arm.
+    //
+    if (!(inSample == IG_SAMPLE_OK && igSinkRehearseUsable(verdict))) {
+        IGLOG("sink rehearsal: publishing the inputs and no composition");
+        return;
+    }
+
+    setProperty("IGSinkRehearsalReservedEnd", (UInt64) rehearsal.reservedEnd, 64);
+    setProperty("IGSinkPlanBase",   (UInt64) rehearsal.plan.base,   32);
+    setProperty("IGSinkPlanStride", (UInt64) rehearsal.plan.stride, 32);
+    setProperty("IGSinkPlanBytes",  (UInt64) rehearsal.plan.size,   32);
+    setProperty("IGSinkPlaneCtl",    (UInt64) rehearsal.regs.ctl,    32);
+    setProperty("IGSinkPlaneStride", (UInt64) rehearsal.regs.stride, 32);
+    setProperty("IGSinkPlanePos",    (UInt64) rehearsal.regs.pos,    32);
+    setProperty("IGSinkPlaneSize",   (UInt64) rehearsal.regs.size,   32);
+    setProperty("IGSinkPlaneSurf",   (UInt64) rehearsal.regs.surf,   32);
 }

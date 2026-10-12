@@ -114,6 +114,7 @@ SUITES = (
     "test_intel_scanout.cpp",
     "test_intel_sink_alloc.cpp",
     "test_intel_sink_publish.cpp",
+    "test_intel_sink_rehearse.cpp",
     "test_intel_sink_surface.cpp",
     "test_riscv_ucode.cpp",
 )
@@ -305,6 +306,7 @@ class BothFormatsStillInUseTests(unittest.TestCase):
              "test_intel_scanout.cpp",
              "test_intel_sink_alloc.cpp",
              "test_intel_sink_publish.cpp",
+             "test_intel_sink_rehearse.cpp",
              "test_intel_sink_surface.cpp",
              "test_riscv_ucode.cpp"],
             users)

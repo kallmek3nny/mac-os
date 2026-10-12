@@ -88,6 +88,14 @@
 #include "IntelDisplayNames.hpp"
 
 //
+// The 3050 sink rehearsal (intel-handoff42): one sample of the firmware plane
+// in, a sink plan and five plane words out, NONE of them written. Every number
+// is composed in IntelSinkRehearse.hpp, which tests/test_intel_sink_rehearse.cpp
+// executes on the host; this class only reads, calls, and publishes.
+//
+#include "IntelSinkRehearse.hpp"
+
+//
 // BAR0 is the MMIO/GTT aperture on Gen12, and BAR2 is the stolen-memory
 // aperture. Every register this class reads is a BAR0 offset.
 //
@@ -121,6 +129,22 @@
 // this machine and silently wrong on any other.
 //
 #define IG_TRANS_SCAN_COUNT         4u
+
+//
+// The pipe the sink rehearsal samples, and the BAR whose LENGTH bounds the plan.
+//
+// Pipe A for IntelFbPresentProbe.hpp's reason: it is the only pipe an eDP-only
+// machine can have programmed, and a rehearsal per pipe would publish three
+// PLANE_DISABLED refusals per boot that mean nothing.
+//
+// BAR2 is the graphics aperture. Only its LENGTH is read, never mapped: it is
+// the one bound on the sink this class can measure rather than assume, and a
+// sink inside it is reachable through it -- which is what a peer write from the
+// 3050 would target. It is NOT the GGTT size (intel-handoff41 section 5 item
+// 2), and the published keys say Aperture, not Ggtt.
+//
+#define IG_SINK_REHEARSE_PIPE           IG_TRANSCODER_A
+#define IG_SINK_REHEARSE_APERTURE_INDEX 2
 
 class IntelDisplayProbe : public IOService
 {
@@ -170,6 +194,8 @@ private:
 
     void   publishTranscoder(UInt32 trans);
     void   publishPlane(UInt32 pipe);
+
+    void   publishSinkRehearsal(void);
 };
 
 #endif // INTEL_DISPLAY_PROBE_HPP

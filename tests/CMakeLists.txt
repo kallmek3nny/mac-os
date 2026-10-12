@@ -168,6 +168,14 @@ add_kext_test(test_intel_plane_program test_intel_plane_program.cpp)
 # end accepted rather than called a wrap.
 add_kext_test(test_intel_sink_alloc test_intel_sink_alloc.cpp)
 
+# Intel sink REHEARSAL -- step (b) composed over a firmware plane read: the
+# reserved end (main surface, plus the AUX surface when the plane is
+# compressed), the alloc plan past it, and the plane words a flip would write.
+# Pure; IntelDisplayProbe publishes it and writes nothing. Sentinels on every
+# refusal, each arm reached by a singly-bad input, and an agreement sweep that
+# pins PLANE_REFUSED as unreachable from a sound plan.
+add_kext_test(test_intel_sink_rehearse test_intel_sink_rehearse.cpp)
+
 # Intel Gen12 PIXEL description -- the format code a plane carries turned into the
 # fields IOPixelInformation holds, or a refusal. It sits between
 # test_intel_framebuffer (what does PLANE_CTL MEAN) and an eventual IOFramebuffer
