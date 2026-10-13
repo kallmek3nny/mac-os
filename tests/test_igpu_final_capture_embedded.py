@@ -281,16 +281,35 @@ class EmbeddedProgramTests(unittest.TestCase):
 class ShellHalfTests(unittest.TestCase):
     """Property 6. The outer shell must parse -- and must SKIP loudly."""
 
-    def test_the_shell_half_parses(self):
+    def parse_shell(self, source):
         shell = shutil.which("sh") or shutil.which("bash")
         if shell is None:
             self.skipTest("no sh/bash on this host -- the shell half is "
                           "UNCHECKED on this run, not proven")
-        proc = subprocess.run([shell, "-n", SUBJECT],
+        # WSL cannot open a Windows drive path. Feed the real source on stdin:
+        # no copying, path conversion or skipped syntax coverage is needed.
+        return subprocess.run([shell, "-n"],
+                              input=source.encode("utf-8"),
                               stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT)
+                              stderr=subprocess.STDOUT, timeout=30)
+
+    def test_the_shell_half_parses(self):
+        proc = self.parse_shell(read(SUBJECT))
         self.assertEqual(proc.returncode, 0,
                          proc.stdout.decode("utf-8", "replace"))
+
+    def test_stdin_syntax_error_is_not_hidden(self):
+        proc = self.parse_shell("if true; then\necho broken\n")
+        self.assertNotEqual(proc.returncode, 0, proc.stdout)
+
+    def test_stdin_is_parsed_not_executed(self):
+        # Executing this would exit 73; syntax checking must return zero.
+        proc = self.parse_shell("exit 73\n")
+        self.assertEqual(proc.returncode, 0, proc.stdout)
+
+    def test_stdin_handles_spaces_and_quoted_heredoc(self):
+        proc = self.parse_shell("cat <<'EOF'\nD:\\a path\\not-a-command\nEOF\n")
+        self.assertEqual(proc.returncode, 0, proc.stdout)
 
 
 class NegativeControlTests(unittest.TestCase):

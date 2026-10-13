@@ -180,6 +180,54 @@ static inline IGU64 igGtxContextDescriptor(IGU64 lrca, IGU32 contextId)
     return word;
 }
 
+// Explicit render-engine descriptor composition for a future writer. The
+// original two-argument composer above is retained for the read-only probe's
+// rehearsal, NOT as a submission-ready descriptor. RCS0 has class/instance 0;
+// other engines need their own upper-dword identity fields before submission.
+//
+// intel_lrc.h:95 GEN8_CTX_PRIVILEGE
+#define IG_GTX_CTXDESC_PRIVILEGE_I915_0x100     0x100u
+// intel_lrc.h:93 GEN8_CTX_FORCE_RESTORE
+#define IG_GTX_CTXDESC_FORCE_RESTORE_I915_0x4   0x4u
+// intel_lrc.h:96 GEN8_CTX_ADDRESSING_MODE_SHIFT
+#define IG_GTX_CTXDESC_ADDRESS_MODE_SHIFT_I915_3 3u
+// intel_lrc.h:78 INTEL_LEGACY_32B_CONTEXT
+#define IG_GTX_CTXDESC_LEGACY32_I915_1         1u
+// intel_lrc.h:80 INTEL_LEGACY_64B_CONTEXT
+#define IG_GTX_CTXDESC_LEGACY64_I915_3         3u
+
+static inline bool igGtxContextAddressModeSupported(IGU32 mode)
+{
+    // Only modes used by intel_lrc.c:lrc_descriptor. No masking of an invalid
+    // selector: 5 must not silently become 1. These are context addressing
+    // modes, not permission to omit GPU page tables. Even a GGTT-backed context
+    // goes through vm_alias() and init_ppgtt_regs() in Linux.
+    return mode == IG_GTX_CTXDESC_LEGACY32_I915_1
+        || mode == IG_GTX_CTXDESC_LEGACY64_I915_3;
+}
+
+static inline IGU64 igGtxRenderContextDescriptor(IGU64 lrca,
+                                                IGU32 contextId,
+                                                IGU32 addressMode,
+                                                bool forceRestore)
+{
+    if (!igGtxContextAddressModeSupported(addressMode)) {
+        return IG_GTX_CTXDESC_INVALID_POLICY_0;
+    }
+    IGU64 word = igGtxContextDescriptor(lrca, contextId);
+    if (word == IG_GTX_CTXDESC_INVALID_POLICY_0) {
+        return IG_GTX_CTXDESC_INVALID_POLICY_0;
+    }
+    // intel_lrc.c:1521-1526 selects mode, shifts it and sets privilege.
+    word |= (IGU64)IG_GTX_CTXDESC_PRIVILEGE_I915_0x100;
+    word |= (IGU64)addressMode << IG_GTX_CTXDESC_ADDRESS_MODE_SHIFT_I915_3;
+    // intel_lrc.c:1569 forces restore after updating the context image.
+    if (forceRestore) {
+        word |= (IGU64)IG_GTX_CTXDESC_FORCE_RESTORE_I915_0x4;
+    }
+    return word;
+}
+
 static inline bool igGtxContextDescriptorValid(IGU64 descriptor)
 {
     return (descriptor & (IGU64)IG_GTX_CTXDESC_VALID_BIT_POLICY_0x1) != 0ull;

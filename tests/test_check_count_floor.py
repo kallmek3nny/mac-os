@@ -933,6 +933,8 @@ BUILD_DIR = os.path.join(HERE, "build")
 # igGtxPageTableEntry and igGtxPageAddressOk -- and three literals changed.
 # Measured by running the rebuilt suite:
 #   test_intel_gt_exec 102 checks, 0 failures
+# Re-measured 2026-10-12 after explicit render descriptor composition:
+#   test_intel_gt_exec 123 checks, 0 failures (21 new checks).
 #
 # The subject is phase0-kext/IntelGtExec.hpp, the execlist/GTT layer directly
 # above IntelGtCmd.hpp. Its evidence story is WEAKER than every other entry in
@@ -1382,7 +1384,7 @@ MEASURED = {
     "test_intel_gt_blt": 213,
     "test_intel_gt_image": 111,
     "test_intel_gt_context": 124,
-    "test_intel_gt_exec": 102,
+    "test_intel_gt_exec": 123,
     "test_intel_gt_cmd": 120,
     "test_intel_fb_present": 140,
     "test_decode": 186,

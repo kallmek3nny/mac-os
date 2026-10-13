@@ -3199,10 +3199,36 @@ def intel_gt_exec_checks(rep):
     check("IG_GTX_EXECLIST_LOAD_BIT_POLICY_0x1 vs EL_CTRL_LOAD",
           hdr_val("IG_GTX_EXECLIST_LOAD_BIT_POLICY_0x1"), (1 << int(m.group(1))) if m else None)
 
+    # Descriptor flags and mode selectors: derive from the vendored header,
+    # never from the kext constants that this gate is supposed to challenge.
+    for kext, up in (("IG_GTX_CTXDESC_PRIVILEGE_I915_0x100", "GEN8_CTX_PRIVILEGE"),
+                     ("IG_GTX_CTXDESC_FORCE_RESTORE_I915_0x4", "GEN8_CTX_FORCE_RESTORE")):
+        m = re.search(r"#define\s+%s\s+\(1\s*<<\s*(\d+)\)" % up, lrc)
+        check(f"{kext} vs {up}", hdr_val(kext), (1 << int(m.group(1))) if m else None)
+    m = re.search(r"#define\s+GEN8_CTX_ADDRESSING_MODE_SHIFT\s+(\d+)", lrc)
+    check("IG_GTX_CTXDESC_ADDRESS_MODE_SHIFT_I915_3 vs GEN8_CTX_ADDRESSING_MODE_SHIFT",
+          hdr_val("IG_GTX_CTXDESC_ADDRESS_MODE_SHIFT_I915_3"), int(m.group(1)) if m else None)
+    m = re.search(r"enum\s*\{([^}]*INTEL_ADVANCED_CONTEXT[^}]*)\}", lrc)
+    modes = {}
+    if m:
+        next_value = 0
+        for member in m.group(1).split(","):
+            item = re.fullmatch(r"\s*([A-Z][A-Z0-9_]*)(?:\s*=\s*(\d+))?\s*", member)
+            if not item:
+                modes = {}
+                break
+            if item.group(2) is not None:
+                next_value = int(item.group(2))
+            modes[item.group(1)] = next_value
+            next_value += 1
+    for kext, up in (("IG_GTX_CTXDESC_LEGACY32_I915_1", "INTEL_LEGACY_32B_CONTEXT"),
+                     ("IG_GTX_CTXDESC_LEGACY64_I915_3", "INTEL_LEGACY_64B_CONTEXT")):
+        check(f"{kext} vs {up}", hdr_val(kext), modes.get(up))
+
     files = {"intel_gtt.h": gtt.splitlines(), "intel_lrc.h": lrc.splitlines()}
     cites = re.findall(r"//\s*(intel_gtt\.h|intel_lrc\.h):(\d+)\s+([A-Z_][A-Z0-9_]+)", hdr)
-    if len(cites) < 3:
-        rep.failed("exec citations", f"expected >= 3 line citations, found {len(cites)}")
+    if len(cites) < 8:
+        rep.failed("exec citations", f"expected >= 8 line citations, found {len(cites)}")
     for fname, line, sym in cites:
         lines = files[fname]
         n = int(line)

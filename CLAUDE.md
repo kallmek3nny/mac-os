@@ -61,7 +61,14 @@ superseded banner explaining what actually blocked it — not the CD delivery
 channel every card was built around, but the guest having no toolchain at all.
 Do not open a card assuming its premise still holds.
 
-- `intel-handoff40.md` — most recent state on the Intel track, and the one to read
+- `intel-handoff45.md` — latest Intel continuation from handoff44/commit cbcfa70.
+  Explicit render descriptor composition and WSL stdin syntax checking are
+  implemented; exec suite 123 checks and register gate 300 checks. The sixtieth
+  payload matches the checkout. No writer, GPU submission or new hardware boot
+  exists. Linux's context mode does not establish a GGTT-only shortcut: its
+  initialization still populates PPGTT state. Read this handoff before choosing
+  the submission address-space setup.
+- `intel-handoff40.md` — earlier Intel state, with the section to read
   first on this side. It lands the **COMPLETION** layer:
   `phase0-kext/IntelGtFence.hpp` is the ninth GT header,
   `tests/test_intel_gt_fence.cpp` (**73** checks) drives it on Windows,

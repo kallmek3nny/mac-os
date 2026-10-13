@@ -15,15 +15,8 @@
 //    2. No fixture, no journal, no simulated register file. The header touches
 //       no hardware, so a test that builds one would be testing the test.
 //
-//  WHAT THIS SUITE DOES NOT ESTABLISH, AND IT IS MORE THAN USUAL: every single
-//  constant in IntelGtExec.hpp is POLICY. reference/i915/ holds seven files and
-//  all seven are display -- greps for EXECLIST, ELSP, LRC, CTX_DESC, GEN8_PDE,
-//  GEN8_PTE, PPAT and GGTT across that directory return ZERO matches. i915 keeps
-//  the execlist port, the context descriptor layout and the page-table entry
-//  format in gt/ headers that were never vendored here. So unlike its sibling
-//  IntelGtCmd.hpp -- which has a cited half -- this header has none at all, and
-//  a green run says the composition is self-consistent and says NOTHING about
-//  whether the hardware wants these words.
+//  i915 gt/ sources are now vendored. check-registers.py pins cited constants;
+//  these tests pin composition and refusal. Neither proves hardware execution.
 //
 
 #include <cstdio>
@@ -67,7 +60,7 @@ static void checkBool(const char *label, bool got, bool want)
 int main(void)
 {
     std::printf("IntelGtExec.hpp -- Gen12 execlist submission and GTT entries\n");
-    std::printf("EVERY constant here is POLICY: i915 gt/ headers are not vendored.\n");
+    std::printf("Cited constants are pinned to i915; other values remain POLICY.\n");
     std::printf("A green run proves composition, never that the hardware agrees.\n");
 
     // -- Execlist port register composition ---------------------------------
@@ -174,6 +167,52 @@ int main(void)
              0xFFFFFFFFu);
     checkU32("descHigh(all-ones) splits", igGtxDescriptorHigh(0xFFFFFFFFFFFFFFFFull),
              0xFFFFFFFFu);
+
+    // -- Explicit render descriptor (Linux lrc_descriptor + restore) ---------
+    checkU64("render desc legacy32 no restore",
+             igGtxRenderContextDescriptor(0x1000ull, 1u, 1u, false),
+             0x0000002000001109ull);
+    checkU64("render desc legacy32 first restore",
+             igGtxRenderContextDescriptor(0x1000ull, 1u, 1u, true),
+             0x000000200000110Dull);
+    checkU64("render desc legacy64 no restore",
+             igGtxRenderContextDescriptor(0x1000ull, 1u, 3u, false),
+             0x0000002000001119ull);
+    checkU64("render desc legacy64 first restore",
+             igGtxRenderContextDescriptor(0x1000ull, 1u, 3u, true),
+             0x000000200000111Dull);
+    checkU64("render desc largest LRCA/id",
+             igGtxRenderContextDescriptor(0xFFFFF000ull, 0x7FFu, 3u, true),
+             0x0000FFE0FFFFF11Dull);
+    checkU64("render desc zero LRCA/id",
+             igGtxRenderContextDescriptor(0ull, 0u, 1u, false), 0x109ull);
+    checkU64("render desc refuses mode 0",
+             igGtxRenderContextDescriptor(0x1000ull, 1u, 0u, true), 0ull);
+    checkU64("render desc refuses mode 2",
+             igGtxRenderContextDescriptor(0x1000ull, 1u, 2u, true), 0ull);
+    checkU64("render desc refuses mode 5 without masking",
+             igGtxRenderContextDescriptor(0x1000ull, 1u, 5u, true), 0ull);
+    checkU64("render desc refuses all-ones mode",
+             igGtxRenderContextDescriptor(0x1000ull, 1u, 0xFFFFFFFFu, true), 0ull);
+    checkU64("render desc refuses unaligned LRCA",
+             igGtxRenderContextDescriptor(0x1001ull, 1u, 1u, true), 0ull);
+    checkU64("render desc refuses LRCA overflow",
+             igGtxRenderContextDescriptor(0x100000000ull, 1u, 1u, true), 0ull);
+    checkU64("render desc refuses id overflow",
+             igGtxRenderContextDescriptor(0x1000ull, 0x800u, 1u, true), 0ull);
+    checkBool("address mode 1 supported", igGtxContextAddressModeSupported(1u), true);
+    checkBool("address mode 3 supported", igGtxContextAddressModeSupported(3u), true);
+    checkBool("address mode 0 refused", igGtxContextAddressModeSupported(0u), false);
+    checkBool("address mode 2 refused", igGtxContextAddressModeSupported(2u), false);
+    checkBool("address mode 5 refused", igGtxContextAddressModeSupported(5u), false);
+    checkU32("render descriptor low",
+             igGtxDescriptorLow(igGtxRenderContextDescriptor(0x1000ull, 1u, 3u, true)),
+             0x111Du);
+    checkU32("render descriptor high",
+             igGtxDescriptorHigh(igGtxRenderContextDescriptor(0x1000ull, 1u, 3u, true)),
+             0x20u);
+    checkU64("render descriptor refused remains invalid after flags",
+             igGtxRenderContextDescriptor(0x1001ull, 0x800u, 3u, true), 0ull);
 
     // -- Page-table entries ---------------------------------------------------
     checkU64("pte(0x1000, present)", igGtxPageTableEntry(0x1000ull, true),

@@ -202,12 +202,24 @@ offer is exactly one: the source compiles, or here is the error.
 > edited -- so the fix belonged in the generator, not in the prose or the
 > assertion.
 >
-> Current image, measured 2026-10-12 after the FIFTY NINTH rebuild: md5
-> `3183e58ebf1c817a80a46521874106a3`, 927744 bytes, carrying `kext-src.tar`
-> (849920 bytes, md5 `4c9772c2e7a251038306a1740c4d8f71`) and
+> Current image, measured 2026-10-12 after the SIXTIETH rebuild: md5
+> `56da2252b3a2de80322eb764dcad4cd3`, 927744 bytes, carrying `kext-src.tar`
+> (849920 bytes, md5 `f1a0f15cf0106f5875fe97a3fddf639b`) and
 > `guest-build-kext.sh` (**12677** bytes, md5
 > `599b51eb31500c9ef9ff4b1f2dee0476`; was 11538, was 8115,
 > was 7596, was 6718) under vol ident `PAYLOAD`.
+>
+> The sixtieth rebuild, 2026-10-12, includes the explicit render-context
+> descriptor composer in `phase0-kext/IntelGtExec.hpp`: privilege, caller-selected
+> addressing mode and optional force restore. Two consecutive verified rebuilds
+> were byte-identical (ISO sha256 prefix `7fb6437c87db1948`, tar prefix
+> `ecb02565857d291b`). Both byte sizes stayed unchanged. No VMware VM process
+> was running at replacement. This is a source/build payload, not a new hardware
+> trace image: the read-only probe is unchanged, no writer was added and no boot
+> is requested. See `intel-handoff45.md`.
+>
+> Fifty ninth image (superseded): md5 `3183e58ebf1c817a80a46521874106a3`,
+> 927744 bytes, tar md5 `4c9772c2e7a251038306a1740c4d8f71`.
 >
 > The fifty ninth rebuild, 2026-10-12, moved both md5s and NEITHER byte size
 > (tar 849920, ISO 927744, unchanged). Cause: `phase0-kext/IntelGtExec.hpp`
