@@ -15,22 +15,13 @@ MACOS_DIR    := $(CONTENTS)/MacOS
 INSTALL_DIR  := /Library/Extensions
 
 #
-# Four shells, one bundle. NV3050Probe.cpp is the NVIDIA track's IOKit shell;
-# the three Intel ones are the Gen12 display track's (IntelDisplayProbe.cpp),
-# its inherited-framebuffer presenter (IntelFbPresentProbe.cpp), and the render
-# engine consumer (IntelGtProbe.cpp). They share no code and match on different
-# vendors, but they link into the same kext because a bundle is the unit macOS
-# loads -- two bundles would mean two Info.plists, two signatures and two
-# kextload steps for what is one project.
-#
-# Every Intel shell is READ-ONLY against the GPU by construction; see
-# IntelDisplayProbe.hpp for why that asymmetry with the NVIDIA shell is
-# deliberate rather than unfinished. IntelGtProbe.cpp carries the strongest form
-# of it: it composes a context image and submits nothing, because this tree
-# cannot cite the page layout it composes.
+# The existing probes remain read-only. IntelGtBringup is a separate,
+# explicitly opt-in Tiger Lake hardware writer (iggt-bringup=1/2/3).
+# No boot argument means it declines start before touching PCI/MMIO.
+# This is an experimental BCS0 execution backend, not a Metal driver.
 #
 SOURCES      := NV3050Probe.cpp IntelDisplayProbe.cpp IntelFbPresentProbe.cpp \
-	IntelGtProbe.cpp
+	IntelGtProbe.cpp IntelGtBringup.cpp
 OBJECTS      := $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 
 SDK          := $(shell xcrun --sdk macosx --show-sdk-path)
