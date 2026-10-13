@@ -1,0 +1,64 @@
+name: cross-platform build
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    name: host tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: toolchain info
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cmake --version
+          c++ --version || true
+          python3 --version
+
+      - name: configure host tests
+        run: cmake -S tests -B build/host -DCMAKE_BUILD_TYPE=Release
+
+      - name: build host tests
+        run: cmake --build build/host --config Release --parallel 2
+
+      - name: run host tests
+        run: ctest --test-dir build/host -C Release --output-on-failure
+
+  macos-kext:
+    name: macos kext + userspace build
+    runs-on: macos-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: apple toolchain info
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sw_vers
+          xcodebuild -version
+          xcrun --sdk macosx --show-sdk-path
+          xcrun --sdk macosx --find clang++
+
+      - name: build kext
+        run: make -C phase0-kext clean all
+
+      - name: build userspace blit client
+        run: make -C phase0-kext gt-blit-tool
