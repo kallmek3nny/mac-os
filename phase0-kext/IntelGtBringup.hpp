@@ -7,6 +7,8 @@
 #include <IOKit/IODMACommand.h>
 #include <IOKit/IOMemoryDescriptor.h>
 #include <IOKit/IOLib.h>
+#include <IOKit/IOLocks.h>
+#include <IOKit/IOUserClient.h>
 class IntelGtBringup : public IOService {
     OSDeclareDefaultStructors(IntelGtBringup)
 public:
@@ -14,8 +16,16 @@ public:
     bool start(IOService *provider) override;
     void stop(IOService *provider) override;
     void free(void) override;
+    IOReturn newUserClient(task_t task, void *securityID, UInt32 type,
+                          OSDictionary *properties, IOUserClient **handler) override;
+    // Kernel-client entry point; staged CPU buffers, synchronous GPU copy.
+    // It deliberately exposes no arbitrary commands, MMIO or GPU addresses.
+    IOReturn copySurface32(const void *source, void *destination,
+                          UInt32 width, UInt32 height, UInt32 pitch,
+                          UInt32 sourceBytes, UInt32 destinationBytes);
 private:
     enum { PoolBytes = 128 * 1024, PoolPages = PoolBytes / 4096 };
+    IOLock *fQueueLock;
     IOPCIDevice *fPCI;
     IOMemoryMap *fBarMap, *fPoolMap;
     IOBufferMemoryDescriptor *fPool;
@@ -25,6 +35,8 @@ private:
     UInt64 fBarBytes, fBusAddress, fSavedPtes[PoolPages];
     UInt32 fGGTTBase, fGGTTEntries, fStage, fTrace, fPteCount;
     UInt32 fOldRingMode, fOldMiMode, fOldHws, fPatIndex;
+    UInt32 fOldCsbPointer, fCsbHead, fContextId, fSequence, fRingTail;
+    bool fRetired, fFaulted;
     UInt16 fOldPCICommand;
     bool fOpened, fPrepared, fDMABound, fPCIChanged;
     bool fRenderWake, fGTWake, fEngineChanged;
@@ -39,6 +51,8 @@ private:
     bool installGGTT(void);
     bool buildContext(void);
     bool submitCopy(void);
+    bool submitBatch(UInt32 sequence);
+    bool waitForRetirement(void);
     void restoreGGTT(void);
     void cleanup(void);
     void fail(const char *reason);

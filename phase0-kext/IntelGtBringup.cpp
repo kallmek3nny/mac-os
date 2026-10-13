@@ -3,13 +3,15 @@
 // Register-state layout derives from the vendored Linux v6.12 intel_lrc.c
 // gen12_xcs_offsets; descriptor fields from intel_lrc.h. No probe is modified.
 #include "IntelGtBringup.hpp"
+#include "IntelGtBlitter.hpp"
+#include "IntelGtBlitUserClient.hpp"
 #include <pexpert/pexpert.h>
 #include <mach/task.h>
 #include <libkern/libkern.h>
 #include <IOKit/IORegistryEntry.h>
 
 #define GTLOG(fmt, ...) IOLog("IntelGtBringup: " fmt "\n", ##__VA_ARGS__)
-OSDefineMetaClassAndStructors(IntelGtBringup, IOService)
+OSDefineMetaClassAndStructors(IntelGtBringup, IOService);
 namespace {
 constexpr UInt32 BCS = 0x22000;
 constexpr UInt32 GttTable = 0x800000;
@@ -29,7 +31,8 @@ void group(UInt32 *r, UInt32 &pos, const UInt16 *offsets, UInt32 n) {
 }
 
 bool IntelGtBringup::init(OSDictionary *dict) {
-    if (!super::init(dict)) return false;
+    if (!IOService::init(dict)) return false;
+    fQueueLock=nullptr;
     fPCI=nullptr; fBarMap=nullptr; fPoolMap=nullptr; fPool=nullptr; fDMA=nullptr;
     fMMIO=nullptr; fCPU=nullptr; fBarBytes=0; fBusAddress=0;
     bzero(fSavedPtes,sizeof(fSavedPtes));
@@ -38,7 +41,10 @@ bool IntelGtBringup::init(OSDictionary *dict) {
     fOpened=false; fPrepared=false; fDMABound=false; fPCIChanged=false;
     fRenderWake=false; fGTWake=false; fEngineChanged=false;
     fSubmissionPending=false; fCompleted=false; fQuarantined=false;
-    return true;
+    fOldCsbPointer=0; fCsbHead=11; fContextId=0; fSequence=Cookie; fRingTail=0;
+    fRetired=true; fFaulted=false;
+    fQueueLock=IOLockAlloc();
+    return fQueueLock!=nullptr;
 }
 
 UInt32 IntelGtBringup::read32(UInt32 o) {
@@ -89,6 +95,8 @@ bool IntelGtBringup::claimEngine() {
         fail("BCS0 already configured/busy; no takeover or reset attempted");
         return false;
     }
+    fOldCsbPointer=read32(BCS+0x3a0);
+    if (fOldCsbPointer==0xffffffff) return false;
     fOldRingMode=mode; fOldMiMode=mi; fOldHws=read32(BCS+0x80);
     if (fOldHws==0xffffffff) return false;
     // Select an existing UC PAT entry, rather than changing a global table
@@ -187,23 +195,13 @@ bool IntelGtBringup::buildContext() {
     UInt32 *src=reinterpret_cast<UInt32 *>(fCPU+Source);
     for (UInt32 i=0; i<1024; ++i) src[i]=0xff000000u|((i*0x10203u)&0xffffffu);
     UInt32 *b=reinterpret_cast<UInt32 *>(fCPU+Batch);
-    // Gen9+ XY_FAST_COPY_BLT, ten dwords, linear source/destination, 32 bpp.
-    b[0]=(2u<<29)|(0x42u<<22)|8;
-    b[1]=(3u<<24)|128; b[2]=0; b[3]=(32u<<16)|32;
-    b[4]=Dest; b[5]=0; b[6]=0; b[7]=128; b[8]=Source; b[9]=0;
-    // Flush the blitter and GPU-store the fence in private PPGTT (not GGTT).
-    b[10]=(0x26u<<23)|(1u<<14)|2;
-    b[11]=Fence; b[12]=0; b[13]=Cookie;
-    b[14]=(0x0au<<23); b[15]=0;
-    UInt32 *ring=reinterpret_cast<UInt32 *>(fCPU+Ring);
-    ring[0]=(0x31u<<23)|(1u<<8)|1; ring[1]=Batch; ring[2]=0; ring[3]=0;
-    r[0x07]=16;
+    const GTBlitSurface32 source={Source,4096,128}, dest={Dest,4096,128};
+    if (!gtEncodeCopy32(b,16,source,dest,32,32,Fence,fSequence)) return false;
     barrier();
     return true;
 }
 
 bool IntelGtBringup::submitCopy() {
-    // Changes below are limited to a cold BCS0. No render/display resets.
     fOldPCICommand=fPCI->configRead16(0x04);
     if (fOldPCICommand==0xffff) return false;
     fPCIChanged=true;
@@ -212,44 +210,137 @@ bool IntelGtBringup::submitCopy() {
     GTLOG("PCI COMMAND %04x -> %04x",fOldPCICommand,command);
     if ((command & 6)!=6) return false;
     fEngineChanged=true;
+    // Cold BCS0 only: initialise CSB pointers as Linux reset_csb_pointers does.
+    // Twelve Gen11+ entries; index 11 precedes the first hardware write at 0.
     if (!write32(BCS+0x80,fGGTTBase) || read32(BCS+0x80)!=fGGTTBase ||
+        !write32(BCS+0x3a0,0xffff0b0b) ||
         !write32(BCS+0x29c,0x00080008) || !wait32(BCS+0x29c,8,8,50) ||
         !write32(BCS+0x9c,0x01000000) || !wait32(BCS+0x9c,0x100,0,50)) return false;
-    // COPY_CLASS=1, instance 0; software context id 1 at bit 37. Both
-    // addressing mode (legacy 64-bit) and privileged bit are explicit.
-    UInt64 desc=(1ULL<<61)|(1ULL<<37)|fGGTTBase|0x11dULL;
-    // Clear port 1 first, then port 0, exactly the Gen12 ELSQ order.
-    if (!write32(BCS+0x518,0) || !write32(BCS+0x51c,0) ||
-        !write32(BCS+0x510,(UInt32)desc) || !write32(BCS+0x514,(UInt32)(desc>>32))) return false;
-    fSubmissionPending=true;
-    // Pin the service/module BEFORE hardware can acquire a DMA reference.
-    // There is no reset/retirement manager yet. Even a completed fence does
-    // not prove the final context save is finished, so keep DMA until reboot.
-    fQuarantined=true; retain();
-    GTLOG("BCS0 submit descriptor=%llx",(unsigned long long)desc);
-    if (!write32(BCS+0x550,1)) return false;
-    volatile UInt32 *fence=reinterpret_cast<volatile UInt32 *>(fCPU+Fence);
-    for (UInt32 i=0; i<1000; ++i) {
-        barrier();
-        if (*fence==Cookie) {
-            volatile UInt32 *src=reinterpret_cast<volatile UInt32 *>(fCPU+Source);
-            volatile UInt32 *dst=reinterpret_cast<volatile UInt32 *>(fCPU+Dest);
-            for (UInt32 n=0; n<1024; ++n) {
-                if (src[n]!=dst[n]) { fail("GPU fence arrived but copy data differs"); return false; }
+    if (!submitBatch(fSequence)) return false;
+    volatile UInt32 *src=reinterpret_cast<volatile UInt32 *>(fCPU+Source);
+    volatile UInt32 *dst=reinterpret_cast<volatile UInt32 *>(fCPU+Dest);
+    for (UInt32 n=0; n<1024; ++n) {
+        if (src[n]!=dst[n]) { fFaulted=true; fail("GPU copy destination differs"); return false; }
+    }
+    fCompleted=true;
+    setProperty("GTBlitterCopyCompleted",true);
+    setProperty("GTBlitterCopyBytes",4096,32);
+    GTLOG("GPU COPIED 4096 bytes; fence and context retirement received");
+    return true;
+}
+
+bool IntelGtBringup::waitForRetirement() {
+    // Gen12 CSB lower DW names context switched TO; upper DW names context
+    // switched AWAY (intel_execlists_submission.c::gen12_csb_parse).
+    // A fence alone is not a context-save completion and cannot retire DMA.
+    for (UInt32 poll=0; poll<1000; ++poll) {
+        UInt32 pointer=read32(BCS+0x3a0);
+        if (pointer==0xffffffff || (pointer & 15)>=12) return false;
+        UInt32 tail=pointer & 15;
+        while (fCsbHead!=tail) {
+            UInt32 slot=(fCsbHead+1)%12;
+            UInt32 offset=BCS+(slot<6 ? 0x370+slot*8 : 0x3c0+(slot-6)*8);
+            // TGL has CSB ordering errata. Never advance past an unavailable
+            // entry; retry a stable MMIO read rather than treating stale data
+            // as completion. Unexpected IDs quarantine the queue.
+            UInt32 lo=read32(offset), hi=read32(offset+4);
+            if (lo==0xffffffff && hi==0xffffffff) break;
+            if (hi!=read32(offset+4) || lo!=read32(offset)) break;
+            UInt32 to=(lo>>15)&0x7ff, away=(hi>>15)&0x7ff;
+            bool newQueue=(lo & 1)!=0;
+            if (to!=fContextId && to!=0x7ff) return false;
+            if (away!=fContextId && away!=0x7ff) return false;
+            fCsbHead=slot;
+            if (!write32(BCS+0x3a0,0x0f000000|(slot<<8))) return false;
+            if (away==fContextId && to==0x7ff && !newQueue && (hi & 15)==0) {
+                fRetired=true; fSubmissionPending=false;
+                return true;
             }
-            fCompleted=true; fSubmissionPending=false;
-            setProperty("GTBlitterCopyCompleted",true);
-            setProperty("GTBlitterCopyBytes",4096,32);
-            GTLOG("GPU COPIED 4096 bytes; GPU fence=%08x; resources pinned until reboot",*fence);
-            read32(BCS+0x34); read32(BCS+0x30); read32(BCS+0x234); read32(BCS+0x238);
-            return true;
         }
         IOSleep(1);
     }
-    read32(BCS+0x64); read32(BCS+0x68); read32(BCS+0xb0);
-    read32(BCS+0x234); read32(BCS+0x238);
-    fail("GPU copy timed out; DMA/GT ownership retained, reboot without boot argument");
     return false;
+}
+
+bool IntelGtBringup::submitBatch(UInt32 sequence) {
+    if (!fRetired || fFaulted || !fCPU || !sequence) return false;
+    UInt32 *r=reinterpret_cast<UInt32 *>(fCPU+4096);
+    UInt32 *ring=reinterpret_cast<UInt32 *>(fCPU+Ring);
+    UInt32 word=fRingTail/4;
+    ring[word]=(0x31u<<23)|(1u<<8)|1;
+    ring[word+1]=Batch; ring[word+2]=0; ring[word+3]=0;
+    UInt32 nextTail=(fRingTail+16)&4095;
+    if (fContextId) r[0x03]=0x00090008; // restore saved state on later requests
+    r[0x07]=nextTail;
+    fContextId=(fContextId%2046)+1;
+    UInt64 desc=(1ULL<<61)|((UInt64)fContextId<<37)|fGGTTBase|0x11dULL;
+    *reinterpret_cast<volatile UInt32 *>(fCPU+Fence)=0; // NOT the sequence
+    barrier();
+    if (!write32(BCS+0x518,0) || !write32(BCS+0x51c,0) ||
+        !write32(BCS+0x510,(UInt32)desc) || !write32(BCS+0x514,(UInt32)(desc>>32))) return false;
+    if (!fQuarantined) { fQuarantined=true; retain(); }
+    fRetired=false; fSubmissionPending=true; fRingTail=nextTail;
+    GTLOG("BCS0 submit id=%u tail=%u sequence=%08x",fContextId,fRingTail,sequence);
+    if (!write32(BCS+0x550,1)) { fFaulted=true; return false; }
+    volatile UInt32 *fence=reinterpret_cast<volatile UInt32 *>(fCPU+Fence);
+    bool completed=false;
+    for (UInt32 poll=0; poll<1000; ++poll) {
+        barrier();
+        if (*fence==sequence) { completed=true; break; }
+        IOSleep(1);
+    }
+    if (!completed || !waitForRetirement()) {
+        fFaulted=true;
+        read32(BCS+0x64); read32(BCS+0x68); read32(BCS+0xb0);
+        fail("GPU fence/retirement timeout; queue disabled and DMA retained until reboot");
+        return false;
+    }
+    return true;
+}
+
+IOReturn IntelGtBringup::newUserClient(task_t task, void *securityID, UInt32 type,
+                                     OSDictionary *properties, IOUserClient **handler) {
+    if (!handler) return kIOReturnBadArgument;
+    *handler=nullptr;
+    if (type || !fCompleted || fFaulted || fStage!=3) return kIOReturnNotReady;
+    IntelGtBlitUserClient *client=new IntelGtBlitUserClient;
+    if (!client) return kIOReturnNoMemory;
+    if (!client->initWithTask(task,securityID,type,properties)) {
+        client->release(); return kIOReturnNotPermitted;
+    }
+    if (!client->attach(this)) { client->release(); return kIOReturnError; }
+    if (!client->start(this)) { client->detach(this); client->release(); return kIOReturnError; }
+    *handler=client;
+    return kIOReturnSuccess;
+}
+
+IOReturn IntelGtBringup::copySurface32(const void *source, void *destination,
+                                     UInt32 width, UInt32 height, UInt32 pitch,
+                                     UInt32 sourceBytes, UInt32 destinationBytes) {
+    // Kernel callers only; no physical addresses or untrusted batch buffers.
+    if (!source || !destination || !width || !height || width>1024 || height>1024 ||
+        !pitch || pitch>4096 || (pitch & 3) || (UInt64)width*4>pitch) return kIOReturnBadArgument;
+    UInt64 needed=(UInt64)(height-1)*pitch+(UInt64)width*4;
+    if (needed>4096 || sourceBytes<needed || destinationBytes<needed) return kIOReturnBadArgument;
+    IOLockLock(fQueueLock);
+    IOReturn result=kIOReturnNotReady;
+    if (fStage==3 && fCompleted && fRetired && !fFaulted && fCPU) {
+        bzero(fCPU+Source,4096); bzero(fCPU+Dest,4096);
+        memcpy(fCPU+Source,source,(size_t)needed);
+        GTBlitSurface32 src={Source,4096,pitch}, dst={Dest,4096,pitch};
+        if (++fSequence==0) ++fSequence;
+        if (!gtEncodeCopy32(reinterpret_cast<UInt32 *>(fCPU+Batch),16,src,dst,width,height,Fence,fSequence)) {
+            result=kIOReturnBadArgument;
+        } else if (!submitBatch(fSequence)) {
+            fFaulted=true; result=kIOReturnIOError;
+        } else {
+            // Return pixels only after the GPU copy AND CSB context retirement.
+            memcpy(destination,fCPU+Dest,(size_t)needed);
+            result=kIOReturnSuccess;
+        }
+    }
+    IOLockUnlock(fQueueLock);
+    return result;
 }
 
 void IntelGtBringup::restoreGGTT() {
@@ -267,7 +358,8 @@ void IntelGtBringup::cleanup() {
     if (fEngineChanged) {
         write32(BCS+0x9c,0x01000000|(fOldMiMode&0x100));
         write32(BCS+0x29c,0x00080000|(fOldRingMode&8));
-        write32(BCS+0x80,fOldHws); fEngineChanged=false;
+        write32(BCS+0x80,fOldHws);
+        write32(BCS+0x3a0,0xffff0000|(fOldCsbPointer & 0xffff)); fEngineChanged=false;
     }
     restoreGGTT();
     if (fDMABound) { fDMA->clearMemoryDescriptor(); fDMABound=false; }
@@ -288,7 +380,7 @@ bool IntelGtBringup::start(IOService *provider) {
     int stage=0;
     // No boot argument = no PCI open, no MMIO map and no hardware write.
     if (!PE_parse_boot_argn("iggt-bringup",&stage,sizeof(stage)) || stage<1 || stage>3) return false;
-    if (!super::start(provider)) return false;
+    if (!IOService::start(provider)) return false;
     fStage=(UInt32)stage;
     fPCI=OSDynamicCast(IOPCIDevice,provider);
     if (!fPCI) return false;
@@ -332,5 +424,12 @@ bool IntelGtBringup::start(IOService *provider) {
     registerService();
     return true;
 }
-void IntelGtBringup::stop(IOService *provider) { cleanup(); super::stop(provider); }
-void IntelGtBringup::free() { cleanup(); super::free(); }
+void IntelGtBringup::stop(IOService *provider) {
+    IOLockLock(fQueueLock); fFaulted=true; cleanup(); IOLockUnlock(fQueueLock);
+    IOService::stop(provider);
+}
+void IntelGtBringup::free() {
+    cleanup();
+    if (fQueueLock) { IOLockFree(fQueueLock); fQueueLock=nullptr; }
+    IOService::free();
+}

@@ -21,7 +21,7 @@ INSTALL_DIR  := /Library/Extensions
 # This is an experimental BCS0 execution backend, not a Metal driver.
 #
 SOURCES      := NV3050Probe.cpp IntelDisplayProbe.cpp IntelFbPresentProbe.cpp \
-	IntelGtProbe.cpp IntelGtBringup.cpp
+	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtBlitter.cpp IntelGtBlitUserClient.cpp
 OBJECTS      := $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 
 SDK          := $(shell xcrun --sdk macosx --show-sdk-path)
@@ -98,8 +98,8 @@ CXXFLAGS += -DPANIC_TEST
 endif
 
 #
-# make PHASE4_ALLOW_WRITES=1 -- the ONLY way to build a kext that can write to
-# the GPU. Without it NV3050Probe::regWrite32() refuses every store and the
+# make PHASE4_ALLOW_WRITES=1 -- enables NVIDIA hardware writes.
+# IntelGtBringup writes are separately gated by the iggt-bringup boot argument. Without it NV3050Probe::regWrite32() refuses every store and the
 # Phase 4 state machine stops at ERR_WRITES_DISABLED, reporting which write it
 # would have issued.
 #
@@ -122,7 +122,7 @@ ifdef PANIC_TEST
 endif
 ifdef PHASE4_ALLOW_WRITES
 	@echo "*** PHASE4_ALLOW_WRITES build -- this kext CAN WRITE to the GPU ***"
-	@echo "*** Every other build is read-only by construction.            ***"
+	@echo "*** Intel GT hardware writes require iggt-bringup separately. ***"
 endif
 
 $(MACOS_DIR)/$(KEXT_NAME): $(OBJECTS)
@@ -183,3 +183,11 @@ check:
 	@echo -n "boot-args   : "; nvram boot-args 2>/dev/null || echo "(none set)"
 	@echo -n "KDK         : "; ls -d /Library/Developer/KDKs/* 2>/dev/null || echo "none installed"
 	@echo -n "NVIDIA PCI  : "; ioreg -p IOService -n pci10de,* -w0 2>/dev/null | head -1 || echo "none found"
+
+# Optional macOS userspace client; distinct flags from the kernel build.
+.PHONY: gt-blit-tool
+gt-blit-tool: $(BUILD_DIR)/iggt-blit
+$(BUILD_DIR)/iggt-blit: iggt-blit.cpp IntelGtBlitABI.h
+	@mkdir -p $(BUILD_DIR)
+	$(CXX) $(ARCH) -isysroot $(SDK) -std=c++17 -O2 -Wall -Wextra \
+		-framework IOKit -framework CoreFoundation -o $@ iggt-blit.cpp

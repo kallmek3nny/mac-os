@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: MIT
+#include "IntelGtBlitUserClient.hpp"
+#include "IntelGtBringup.hpp"
+#include "IntelGtBlitABI.h"
+OSDefineMetaClassAndStructors(IntelGtBlitUserClient, IOUserClient);
+bool IntelGtBlitUserClient::initWithTask(task_t task, void *securityID,
+                                      UInt32 type, OSDictionary *properties) {
+    fOwner=nullptr;
+    // Experimental privileged GPU backend is administrator-only. Kernel
+    // validates the fixed ABI again; no entitlement grants arbitrary MMIO.
+    if (type!=0 || clientHasPrivilege(task,kIOClientPrivilegeAdministrator)!=kIOReturnSuccess) return false;
+    return IOUserClient::initWithTask(task,securityID,type,properties);
+}
+bool IntelGtBlitUserClient::start(IOService *provider) {
+    if (!IOUserClient::start(provider)) return false;
+    fOwner=OSDynamicCast(IntelGtBringup,provider);
+    if (!fOwner) return false;
+    fOwner->retain();
+    return true;
+}
+void IntelGtBlitUserClient::free() {
+    if (fOwner) { fOwner->release(); fOwner=nullptr; }
+    IOUserClient::free();
+}
+IOReturn IntelGtBlitUserClient::clientClose() {
+    terminate();
+    return kIOReturnSuccess;
+}
+IOReturn IntelGtBlitUserClient::externalMethod(UInt32 selector,
+    IOExternalMethodArguments *args, IOExternalMethodDispatch *, OSObject *, void *) {
+    if (selector!=IGGT_COPY32_SELECTOR) return kIOReturnUnsupported;
+    if (!fOwner || !args || args->scalarInputCount || args->scalarOutputCount ||
+        args->structureInputSize!=sizeof(IgGtCopy32Request) ||
+        args->structureOutputSize!=sizeof(IgGtCopy32Response) ||
+        !args->structureInput || !args->structureOutput || args->asyncWakePort ||
+        args->structureInputDescriptor || args->structureOutputDescriptor) return kIOReturnBadArgument;
+    const auto *req=static_cast<const IgGtCopy32Request *>(args->structureInput);
+    auto *response=static_cast<IgGtCopy32Response *>(args->structureOutput);
+    if (!req->width || !req->height || !req->pitch || req->bytes>IGGT_COPY32_MAX_BYTES) return kIOReturnBadArgument;
+    UInt64 row=(UInt64)req->width*4;
+    UInt64 used=(UInt64)(req->height-1)*req->pitch+row;
+    if (row>req->pitch || used>req->bytes || used>IGGT_COPY32_MAX_BYTES) return kIOReturnBadArgument;
+    bzero(response,sizeof(*response));
+    return fOwner->copySurface32(req->pixels,response->pixels,req->width,req->height,
+                                req->pitch,req->bytes,IGGT_COPY32_MAX_BYTES);
+}
