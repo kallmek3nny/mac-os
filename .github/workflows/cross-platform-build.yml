@@ -195,6 +195,17 @@ jobs:
       - name: run GSP-RM queue layout test
         run: ./build/host/test_nv_gsp_queue_plan_manual
 
+      - name: build GSP-RM RPC frame test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_rpc_frame.cpp \
+            -o build/host/test_nv_gsp_rpc_frame_manual
+
+      - name: run GSP-RM RPC frame test
+        run: ./build/host/test_nv_gsp_rpc_frame_manual
+
   macos-kext:
     name: macos kext + userspace build
     runs-on: macos-latest
