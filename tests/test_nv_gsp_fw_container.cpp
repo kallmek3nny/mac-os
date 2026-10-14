@@ -146,9 +146,13 @@ static void testTableRefusals(void) {
     f=makeElf(true); put32(section(f,2u),0x1000u);
     checkU32("name offset",nvGspFindFwImageSection(f.b.data(),f.b.size(),&s),NV_GSP_FW_CONTAINER_BAD_NAME);
     f=makeElf(true);
-    // Point .fwimage's name at the last byte and make it non-NUL.
-    put32(section(f,2u),(NVGspFwU32)(sizeof("\0.shstrtab\0.fwimage\0.other\0")-2u));
-    f.b[f.strOff+sizeof("\0.shstrtab\0.fwimage\0.other\0")-2u]='X';
+    // Point at the explicit final NUL, replace it with X, and exclude the
+    // compiler-added implicit NUL from the string-table size. Now there truly
+    // is no terminator inside the declared string table.
+    const unsigned namesBytes=(unsigned)sizeof("\0.shstrtab\0.fwimage\0.other\0");
+    put32(section(f,2u),namesBytes-2u);
+    f.b[f.strOff+namesBytes-2u]='X';
+    setSectionSize(f,1u,namesBytes-1u);
     checkU32("unterminated name",nvGspFindFwImageSection(f.b.data(),f.b.size(),&s),NV_GSP_FW_CONTAINER_BAD_NAME);
 }
 
