@@ -4,7 +4,7 @@
 // gen12_xcs_offsets; descriptor fields from intel_lrc.h. No probe is modified.
 #include "IntelGtBringup.hpp"
 #include "IntelGtBlitter.hpp"
-#include "IntelGtPpgtt.hpp"
+#include "IntelGtLrc.hpp"
 #include "IntelGtBlitUserClient.hpp"
 #include <pexpert/pexpert.h>
 #include <mach/task.h>
@@ -24,11 +24,6 @@ constexpr UInt32 Pdp = 21 * 4096, Pd = 22 * 4096, Pt = 23 * 4096;
 constexpr UInt32 Batch = 24 * 4096;
 constexpr UInt32 Cookie = 0x47544350; // GTCP; CPU never stores this to Fence.
 inline void barrier() { __asm__ volatile("mfence" ::: "memory"); }
-inline UInt32 lri(UInt32 n) { return (0x22u << 23) | (1u << 19) | (1u << 12) | (2*n-1); }
-void group(UInt32 *r, UInt32 &pos, const UInt16 *offsets, UInt32 n) {
-    r[pos++] = lri(n);
-    for (UInt32 i=0; i<n; ++i) { r[pos++] = BCS + offsets[i]; r[pos++] = 0; }
-}
 }
 
 bool IntelGtBringup::init(OSDictionary *dict) {
@@ -190,10 +185,18 @@ bool IntelGtBringup::installGGTT() {
 
 bool IntelGtBringup::buildContext() {
     UInt32 *r=reinterpret_cast<UInt32 *>(fCPU+4096);
-    static const UInt16 common[]={0x244,0x034,0x030,0x038,0x03c,0x168,0x140,
-                                 0x110,0x1c0,0x1c4,0x1c8,0x180,0x2b4};
-    UInt32 pos=1;
-    group(r,pos,common,13);
+
+    // The first Gen12 XCS register-state block carries context control and ring
+    // geometry. Compose it through the same dependency-free code executed by
+    // the Linux/macOS host tests instead of respelling slots and masked bits in
+    // this macOS-only shell.
+    UInt32 firstWords=0;
+    UInt32 firstVerdict=igGtLrcWriteFirstBlock(
+        r,4096/sizeof(UInt32),IG_GT_ENGINE_BLT,4096u,
+        (UInt64)fGGTTBase+(UInt64)Ring,0u,0u,true,&firstWords);
+    setProperty("GTBringupLrcFirstVerdict",firstVerdict,32);
+    setProperty("GTBringupLrcFirstWords",firstWords,32);
+    if (!igGtLrcWriteSucceeded(firstVerdict)) return false;
 
     // The second Gen12 logical-context block contains the PPGTT root slots.
     // Compose it through the same source-backed helper exercised on Linux and
@@ -207,10 +210,7 @@ bool IntelGtBringup::buildContext() {
     setProperty("GTBringupPpgttContextWords",rootWords,32);
     if (!igGtPpgttRootSucceeded(rootVerdict)) return false;
 
-    r[IG_GTPG_LRC_REQUIRED_DWORDS_I915_0x34]=(0x0au<<23)|1; // close Gen12 register-state stream
-    r[0x03]=0x00090009; // mask+enable inhibit sync and first restore inhibit
-    r[0x05]=0; r[0x07]=0; r[0x09]=fGGTTBase+Ring; r[0x0b]=1;
-    r[0x23]=0;
+    r[IG_GTPG_LRC_REQUIRED_DWORDS_I915_0x34]=igGtLrcCloseWord();
     // The copy surface is 32 x 32 x 4 bytes, linear, entirely in owned pages.
     UInt32 *src=reinterpret_cast<UInt32 *>(fCPU+Source);
     for (UInt32 i=0; i<1024; ++i) src[i]=0xff000000u|((i*0x10203u)&0xffffffu);
@@ -290,14 +290,23 @@ bool IntelGtBringup::submitBatch(UInt32 sequence) {
     ring[word]=(0x31u<<23)|(1u<<8)|1;
     ring[word+1]=Batch; ring[word+2]=0; ring[word+3]=0;
     UInt32 nextTail=(fRingTail+16)&4095;
-    if (fContextId) r[0x03]=0x00090008; // restore saved state on later requests
-    r[0x07]=nextTail;
+    if (fContextId) {
+        r[IG_GTLRC_CONTEXT_CONTROL_VALUE_SLOT_I915_0x03]=igGtLrcContextControl(false);
+    }
+    r[IG_GTLRC_RING_TAIL_VALUE_SLOT_I915_0x07]=nextTail;
     fContextId=(fContextId%2046)+1;
-    UInt64 desc=(1ULL<<61)|((UInt64)fContextId<<37)|fGGTTBase|0x11dULL;
+    UInt64 desc=igGtLrcBcs0Descriptor(fGGTTBase,fContextId,
+                                      IG_GTX_CTXDESC_LEGACY64_I915_3,true);
+    if (!igGtxContextDescriptorValid(desc)) {
+        fail("BCS0 context descriptor composition refused");
+        return false;
+    }
+    setProperty("GTBringupContextDescriptor",desc,64);
     *reinterpret_cast<volatile UInt32 *>(fCPU+Fence)=0; // NOT the sequence
     barrier();
     if (!write32(BCS+0x518,0) || !write32(BCS+0x51c,0) ||
-        !write32(BCS+0x510,(UInt32)desc) || !write32(BCS+0x514,(UInt32)(desc>>32))) return false;
+        !write32(BCS+0x510,igGtxDescriptorLow(desc)) ||
+        !write32(BCS+0x514,igGtxDescriptorHigh(desc))) return false;
     if (!fQuarantined) { fQuarantined=true; retain(); }
     fRetired=false; fSubmissionPending=true; fRingTail=nextTail;
     GTLOG("BCS0 submit id=%u tail=%u sequence=%08x",fContextId,fRingTail,sequence);
