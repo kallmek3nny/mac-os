@@ -26,6 +26,21 @@ public:
     IOReturn fillSurface32(void *destination,
                           UInt32 width, UInt32 height, UInt32 pitch,
                           UInt32 destinationBytes, UInt32 color);
+protected:
+    // Narrow hooks for the derived persistent-surface extension. They expose
+    // only the already-owned private PT and lifecycle facts, never MMIO or a
+    // userspace-visible GPU address. The base queue remains the sole submitter.
+    IOPCIDevice *surfaceOwnedProvider(void) const { return fPCI; }
+    UInt64 *surfacePrivatePt(void) const {
+        return fCPU ? reinterpret_cast<UInt64 *>(fCPU + 23u * 4096u) : nullptr;
+    }
+    UInt32 surfaceLivePatIndex(void) const { return fPatIndex; }
+    IOLock *surfaceQueueLock(void) const { return fQueueLock; }
+    bool surfaceExtensionReady(void) const {
+        return fStage == 3u && fOpened && fPCI && fCPU && fRetired &&
+               !fFaulted && fQuarantined;
+    }
+    void surfaceMarkFault(const char *reason) { fFaulted=true; fail(reason); }
 private:
     enum { PoolBytes = 128 * 1024, PoolPages = PoolBytes / 4096 };
     IOLock *fQueueLock;
@@ -33,23 +48,17 @@ private:
     IOMemoryMap *fBarMap, *fPoolMap;
     IOBufferMemoryDescriptor *fPool;
     IODMACommand *fDMA;
-    IOBufferMemoryDescriptor *fSurfaceBacking;
-    IODMACommand *fSurfaceDMA;
     volatile UInt8 *fMMIO;
-    UInt8 *fCPU, *fSurfaceCPU;
-    UInt64 *fSurfaceSavedPtes;
+    UInt8 *fCPU;
     UInt64 fBarBytes, fBusAddress, fSavedPtes[PoolPages];
     UInt32 fGGTTBase, fGGTTEntries, fStage, fTrace, fPteCount;
     UInt32 fOldRingMode, fOldMiMode, fOldHws, fPatIndex;
     UInt32 fOldCsbPointer, fCsbHead, fContextId, fSequence, fRingTail;
-    UInt32 fSurfaceInstallCount;
     bool fRetired, fFaulted;
     UInt16 fOldPCICommand;
     bool fOpened, fPrepared, fDMABound, fPCIChanged;
     bool fRenderWake, fGTWake, fEngineChanged;
     bool fSubmissionPending, fCompleted, fQuarantined;
-    bool fSurfaceRequested, fSurfaceDMABound, fSurfaceInstalled;
-    bool fSurfaceRestoreFailed;
     UInt32 read32(UInt32 offset);
     bool write32(UInt32 offset, UInt32 value);
     bool wait32(UInt32 offset, UInt32 mask, UInt32 wanted, UInt32 polls);
@@ -57,9 +66,6 @@ private:
     void releaseWake(void);
     bool claimEngine(void);
     bool allocateMemory(void);
-    bool stageSurfaceArena(void);
-    bool restoreSurfaceArena(void);
-    void releaseSurfaceArena(void);
     bool installGGTT(void);
     bool buildContext(void);
     bool submitCopy(void);
