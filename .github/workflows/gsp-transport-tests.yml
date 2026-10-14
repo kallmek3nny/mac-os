@@ -249,3 +249,14 @@ jobs:
 
       - name: run WPR boot-ucode staging plan
         run: ./test_nv_gsp_wpr_boot_ucode
+
+      - name: build GA107 cold-boot WPR policy test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_wpr_ga107.cpp \
+            -o test_nv_gsp_wpr_ga107
+
+      - name: run GA107 cold-boot WPR policy test
+        run: ./test_nv_gsp_wpr_ga107
