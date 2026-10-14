@@ -18,11 +18,14 @@ public:
     void free(void) override;
     IOReturn newUserClient(task_t task, void *securityID, UInt32 type,
                           OSDictionary *properties, IOUserClient **handler) override;
-    // Kernel-client entry point; staged CPU buffers, synchronous GPU copy.
-    // It deliberately exposes no arbitrary commands, MMIO or GPU addresses.
+    // Kernel-client entry points; staged CPU buffers, synchronous GPU work.
+    // They deliberately expose no arbitrary commands, MMIO or GPU addresses.
     IOReturn copySurface32(const void *source, void *destination,
                           UInt32 width, UInt32 height, UInt32 pitch,
                           UInt32 sourceBytes, UInt32 destinationBytes);
+    IOReturn fillSurface32(void *destination,
+                          UInt32 width, UInt32 height, UInt32 pitch,
+                          UInt32 destinationBytes, UInt32 color);
 private:
     enum { PoolBytes = 128 * 1024, PoolPages = PoolBytes / 4096 };
     IOLock *fQueueLock;
