@@ -26,6 +26,9 @@ INSTALL_DIR  := /Library/Extensions
 # NVGspQueueObserver is independently gated by nvgsp-queue-observe=1 and only
 # reads the four PGSP RM queue pointer registers; it never changes PCI command
 # state, shared queue memory or GPU MMIO.
+# NVGspWprFactsObserver is independently gated by nvgsp-wpr-facts-observe=1 and
+# only reads the GA107 usable-FB, display-fuse and VGA-workspace registers. It
+# never opens the PCI device, changes command state, or writes GPU/MMIO state.
 # NVGspQueueBackingService is independently gated by nvgsp-queue-memory=1. It
 # allocates and DMA-maps brand-new sysmem, then writes only that owned memory to
 # rehearse NVIDIA's page table + command-queue header. It does not install GSP
@@ -48,7 +51,7 @@ INSTALL_DIR  := /Library/Extensions
 # This is an experimental BCS0 execution backend, not a Metal driver.
 #
 SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp NVGspQueueObserver.cpp \
-	NVGspQueueBackingService.cpp NVGspBootArgsRehearsalService.cpp \
+	NVGspWprFactsObserver.cpp NVGspQueueBackingService.cpp NVGspBootArgsRehearsalService.cpp \
 	NVGspRmImageStageService.cpp NVGspWprBootUcodeStageService.cpp \
 	IntelDisplayProbe.cpp IntelFbPresentProbe.cpp IntelSinkCandidateService.cpp \
 	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtBlitter.cpp IntelGtBlitUserClient.cpp
