@@ -18,6 +18,13 @@ INSTALL_DIR  := /Library/Extensions
 # The existing probes remain read-only. IntelGtBringup is a separate,
 # explicitly opt-in Tiger Lake hardware writer (iggt-bringup=1/2/3).
 # No boot argument means it declines start before touching PCI/MMIO.
+# IntelGtSurfaceBringup preserves that exact base behavior by default. The
+# additional iggt-surface-arena=1 gate is accepted only with iggt-bringup=3;
+# after the bootstrap batch has fenced and CSB-retired it installs a 448-page
+# noncontiguous Intel-IOMMU mapping into the already-owned private PPGTT leaves
+# 64..511 with exact readback and reversible rollback. It deliberately does not
+# mark that arena GPU-use-ready until a later source-backed PPGTT/TLB invalidate
+# stage exists.
 # IntelGtSurfaceStageService is independently gated by iggt-surface-stage=1.
 # It allocates noncontiguous owned sysmem, maps it through the exact Tiger Lake
 # device IOMapper, flattens the Intel-domain segments into 4 KiB pages, and
@@ -62,7 +69,7 @@ SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp NVGspQueueObserver.cpp \
 	NVGspWprFactsObserver.cpp NVGspQueueBackingService.cpp NVGspBootArgsRehearsalService.cpp \
 	NVGspRmImageStageService.cpp NVGspWprBootUcodeStageService.cpp NVGspWprMetaStageService.cpp \
 	IntelDisplayProbe.cpp IntelFbPresentProbe.cpp IntelSinkCandidateService.cpp \
-	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtSurfaceStageService.cpp IntelGtBlitter.cpp IntelGtFill.cpp IntelGtBlitUserClient.cpp
+	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtSurfaceBringup.cpp IntelGtSurfaceStageService.cpp IntelGtBlitter.cpp IntelGtFill.cpp IntelGtBlitUserClient.cpp
 OBJECTS      := $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 
 SDK          := $(shell xcrun --sdk macosx --show-sdk-path)
