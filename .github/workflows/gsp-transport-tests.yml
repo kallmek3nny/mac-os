@@ -205,3 +205,14 @@ jobs:
 
       - name: run cold-boot WPR metadata image test
         run: ./test_nv_gsp_wpr_image
+
+      - name: build GSP Radix3 firmware image test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_radix3.cpp \
+            -o test_nv_gsp_radix3
+
+      - name: run GSP Radix3 firmware image test
+        run: ./test_nv_gsp_radix3
