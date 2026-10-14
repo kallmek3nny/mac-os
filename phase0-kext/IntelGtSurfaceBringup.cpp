@@ -243,7 +243,6 @@ bool IntelGtSurfaceBringup::stageSurfaceArena(void)
     setProperty("GTSurfaceArenaDmaMapped",true);
     setProperty("GTSurfaceArenaInstalled",true);
     setProperty("GTSurfaceArenaRestoreVerified",false);
-    setProperty("GTSurfaceArenaGpuBase",(UInt64)IG_GTS_ARENA_GPU_BASE_0x40000,32);
     setProperty("GTSurfaceArenaBytes",(UInt64)ArenaBytes,32);
     setProperty("GTSurfaceArenaLeaves",(UInt64)ArenaPages,32);
     setProperty("GTSurfaceArenaPatIndex",(UInt64)surfaceLivePatIndex(),32);
