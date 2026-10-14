@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstring>
 #include "IntelGtBlitter.hpp"
+#include "IntelGtBlitABI.h"
 
 static int failures=0;
 static void check(bool ok,const char *what) {
@@ -14,8 +15,17 @@ static void checkU32(unsigned int got,unsigned int want,const char *what) {
     }
 }
 
+static void testAbi() {
+    std::puts("1. fixed fill ABI");
+    checkU32(IGGT_FILL32_SELECTOR,1u,"fill selector");
+    checkU32(IGGT_FILL32_ABI_VERSION,1u,"fill ABI version");
+    checkU32(IGGT_FILL32_MAX_BYTES,65536u,"fill ABI byte ceiling");
+    check(sizeof(IgGtFill32Request)==5u*sizeof(unsigned int),"fill request stays pointer-free/fixed");
+    check(sizeof(IgGtFill32Response)==IGGT_FILL32_MAX_BYTES,"fill response is exact fixed surface span");
+}
+
 static void testGoldenFill() {
-    std::puts("1. exact fenced XY_COLOR_BLT image");
+    std::puts("2. exact fenced XY_COLOR_BLT image");
     unsigned int batch[16];
     for (auto &v:batch) v=0xdeadbeefu;
     const GTBlitSurface32 dst={0x00012000u,4096u,256u};
@@ -54,7 +64,7 @@ static void expectAtomicRefusal(const GTBlitSurface32 &dst,unsigned int width,
 }
 
 static void testRefusals() {
-    std::puts("2. atomic refusal edges");
+    std::puts("3. atomic refusal edges");
     const GTBlitSurface32 good={0x00012000u,4096u,256u};
     expectAtomicRefusal(good,64u,8u,0x00013004u,1u,16u,"unaligned fence refused");
     expectAtomicRefusal(good,64u,8u,0x00013000u,0u,16u,"zero sequence refused");
@@ -67,6 +77,7 @@ static void testRefusals() {
 }
 
 int main() {
+    testAbi();
     testGoldenFill();
     testRefusals();
     if (failures) {
