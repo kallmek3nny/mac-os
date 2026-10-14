@@ -4,6 +4,7 @@
 // gen12_xcs_offsets; descriptor fields from intel_lrc.h. No probe is modified.
 #include "IntelGtBringup.hpp"
 #include "IntelGtBlitter.hpp"
+#include "IntelGtPpgtt.hpp"
 #include "IntelGtBlitUserClient.hpp"
 #include <pexpert/pexpert.h>
 #include <mach/task.h>
@@ -131,14 +132,22 @@ bool IntelGtBringup::allocateMemory() {
         (seg.fIOVMAddr & 4095) || seg.fIOVMAddr>((1ULL<<46)-PoolBytes)) return false;
     fBusAddress=seg.fIOVMAddr;
     GTLOG("owned DMA %llu bytes, bus=%llx",(unsigned long long)PoolBytes,(unsigned long long)fBusAddress);
-    // Four-level private address space. No user-supplied GPU address exists.
+
+    // Four-level private address space. The entry encoding is shared with the
+    // dependency-free host-tested layer instead of being respelled here in the
+    // macOS-only shell. No user-supplied GPU address exists.
     UInt64 *pml4=reinterpret_cast<UInt64 *>(fCPU+Pml4);
     UInt64 *pdp=reinterpret_cast<UInt64 *>(fCPU+Pdp);
     UInt64 *pd=reinterpret_cast<UInt64 *>(fCPU+Pd);
     UInt64 *pt=reinterpret_cast<UInt64 *>(fCPU+Pt);
-    pml4[0]=(fBusAddress+Pdp)|3; pdp[0]=(fBusAddress+Pd)|3; pd[0]=(fBusAddress+Pt)|3;
-    UInt64 pat=((fPatIndex&1)?(1ULL<<3):0)|((fPatIndex&2)?(1ULL<<4):0)|((fPatIndex&4)?(1ULL<<7):0);
-    for (UInt32 i=0; i<PoolPages; ++i) pt[i]=(fBusAddress+4096*i)|3|pat;
+    pml4[0]=igGtPpgttTableEntry(fBusAddress+Pdp);
+    pdp[0]=igGtPpgttTableEntry(fBusAddress+Pd);
+    pd[0]=igGtPpgttTableEntry(fBusAddress+Pt);
+    if (!pml4[0] || !pdp[0] || !pd[0]) return false;
+    for (UInt32 i=0; i<PoolPages; ++i) {
+        pt[i]=igGtPpgttLeafEntry(fBusAddress+4096*i,fPatIndex);
+        if (!pt[i]) return false;
+    }
     barrier();
     return true;
 }
@@ -183,14 +192,25 @@ bool IntelGtBringup::buildContext() {
     UInt32 *r=reinterpret_cast<UInt32 *>(fCPU+4096);
     static const UInt16 common[]={0x244,0x034,0x030,0x038,0x03c,0x168,0x140,
                                  0x110,0x1c0,0x1c4,0x1c8,0x180,0x2b4};
-    static const UInt16 pdp[]={0x3a8,0x28c,0x288,0x284,0x280,0x27c,0x278,0x274,0x270};
-    UInt32 pos=1; group(r,pos,common,13); pos+=5; group(r,pos,pdp,9);
-    r[pos]=(0x0au<<23)|1; // close Gen12 register-state stream
+    UInt32 pos=1;
+    group(r,pos,common,13);
+
+    // The second Gen12 logical-context block contains the PPGTT root slots.
+    // Compose it through the same source-backed helper exercised on Linux and
+    // macOS host compilers, then publish the verdict for a hardware trace.
+    const UInt64 pml4Root=fBusAddress+Pml4;
+    UInt32 rootWords=0;
+    UInt32 rootVerdict=igGtPpgttWriteLrcRootBlock(
+        r,4096/sizeof(UInt32),IG_GT_ENGINE_BLT,
+        IG_GTX_CTXDESC_LEGACY64_I915_3,&pml4Root,1u,&rootWords);
+    setProperty("GTBringupPpgttContextVerdict",rootVerdict,32);
+    setProperty("GTBringupPpgttContextWords",rootWords,32);
+    if (!igGtPpgttRootSucceeded(rootVerdict)) return false;
+
+    r[IG_GTPG_LRC_REQUIRED_DWORDS_I915_0x34]=(0x0au<<23)|1; // close Gen12 register-state stream
     r[0x03]=0x00090009; // mask+enable inhibit sync and first restore inhibit
     r[0x05]=0; r[0x07]=0; r[0x09]=fGGTTBase+Ring; r[0x0b]=1;
     r[0x23]=0;
-    r[0x31]=(UInt32)((fBusAddress+Pml4)>>32);
-    r[0x33]=(UInt32)(fBusAddress+Pml4);
     // The copy surface is 32 x 32 x 4 bytes, linear, entirely in owned pages.
     UInt32 *src=reinterpret_cast<UInt32 *>(fCPU+Source);
     for (UInt32 i=0; i<1024; ++i) src[i]=0xff000000u|((i*0x10203u)&0xffffffu);
