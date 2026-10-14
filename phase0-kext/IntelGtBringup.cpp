@@ -5,6 +5,7 @@
 #include "IntelGtBringup.hpp"
 #include "IntelGtBlitter.hpp"
 #include "IntelGtLrc.hpp"
+#include "IntelGtDispatch.hpp"
 #include "IntelGtBlitUserClient.hpp"
 #include <pexpert/pexpert.h>
 #include <mach/task.h>
@@ -286,10 +287,25 @@ bool IntelGtBringup::submitBatch(UInt32 sequence) {
     if (!fRetired || fFaulted || !fCPU || !sequence) return false;
     UInt32 *r=reinterpret_cast<UInt32 *>(fCPU+4096);
     UInt32 *ring=reinterpret_cast<UInt32 *>(fCPU+Ring);
-    UInt32 word=fRingTail/4;
-    ring[word]=(0x31u<<23)|(1u<<8)|1;
-    ring[word+1]=Batch; ring[word+2]=0; ring[word+3]=0;
-    UInt32 nextTail=(fRingTail+16)&4095;
+
+    // Context retirement above is the ownership boundary for this synchronous
+    // queue: when a new request reaches here the previous batch is consumed, so
+    // the logical ring is empty at the current tail. The dependency-free writer
+    // preserves the live path's PPGTT selector (bit 8), handles wrap, emits the
+    // qword-alignment NOOP and computes the same 16-byte next-tail step.
+    UInt32 batchVerdict=IG_GTQ_BATCH_NOT_ATTEMPTED;
+    UInt32 nextTail=fRingTail;
+    UInt32 ringVerdict=igGtdWritePpgttBatchStartToEmptyRing(
+        ring,4096/sizeof(UInt32),IG_GT_ENGINE_BLT,fRingTail,(UInt64)Batch,
+        &batchVerdict,&nextTail);
+    setProperty("GTBringupBatchVerdict",batchVerdict,32);
+    setProperty("GTBringupRingVerdict",ringVerdict,32);
+    setProperty("GTBringupRingTailNext",nextTail,32);
+    if (!igGtqBatchSucceeded(batchVerdict) || !igGtrRingSucceeded(ringVerdict)) {
+        fail("BCS0 private-PPGTT ring dispatch composition refused");
+        return false;
+    }
+
     if (fContextId) {
         r[IG_GTLRC_CONTEXT_CONTROL_VALUE_SLOT_I915_0x03]=igGtLrcContextControl(false);
     }

@@ -63,6 +63,17 @@ jobs:
       - name: run Gen12 LRC test
         run: ./build/host/test_intel_gt_lrc_manual
 
+      - name: build private-PPGTT dispatch test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_intel_gt_dispatch.cpp \
+            -o build/host/test_intel_gt_dispatch_manual
+
+      - name: run private-PPGTT dispatch test
+        run: ./build/host/test_intel_gt_dispatch_manual
+
   macos-kext:
     name: macos kext + userspace build
     runs-on: macos-latest
