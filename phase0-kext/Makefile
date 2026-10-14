@@ -18,6 +18,10 @@ INSTALL_DIR  := /Library/Extensions
 # The existing probes remain read-only. IntelGtBringup is a separate,
 # explicitly opt-in Tiger Lake hardware writer (iggt-bringup=1/2/3).
 # No boot argument means it declines start before touching PCI/MMIO.
+# IntelGtSurfaceStageService is independently gated by iggt-surface-stage=1.
+# It allocates noncontiguous owned sysmem, maps it through the exact Tiger Lake
+# device IOMapper, flattens the Intel-domain segments into 4 KiB pages, and
+# stops before any BAR mapping, PPGTT mutation, command submission or user ABI.
 # IntelSinkCandidateService is also staged: igsink-candidate=1 permits the
 # backing allocation, igsink-ggtt-map=1 additionally permits reversible Intel
 # GGTT PTE writes, and igsink-peer-map=1 additionally permits mapping that SAME
@@ -58,7 +62,7 @@ SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp NVGspQueueObserver.cpp \
 	NVGspWprFactsObserver.cpp NVGspQueueBackingService.cpp NVGspBootArgsRehearsalService.cpp \
 	NVGspRmImageStageService.cpp NVGspWprBootUcodeStageService.cpp NVGspWprMetaStageService.cpp \
 	IntelDisplayProbe.cpp IntelFbPresentProbe.cpp IntelSinkCandidateService.cpp \
-	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtBlitter.cpp IntelGtFill.cpp IntelGtBlitUserClient.cpp
+	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtSurfaceStageService.cpp IntelGtBlitter.cpp IntelGtFill.cpp IntelGtBlitUserClient.cpp
 OBJECTS      := $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 
 SDK          := $(shell xcrun --sdk macosx --show-sdk-path)

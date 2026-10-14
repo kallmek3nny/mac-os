@@ -1,0 +1,27 @@
+name: Intel surface stage tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  stage-shape:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+      - name: run stage shape test
+        timeout-minutes: 2
+        run: python3 -c 'import subprocess; subprocess.run(["python3","tests/test_intel_gt_surface_stage_shape.py"], check=True, timeout=30)'
