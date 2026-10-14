@@ -30,11 +30,16 @@ INSTALL_DIR  := /Library/Extensions
 # allocates and DMA-maps brand-new sysmem, then writes only that owned memory to
 # rehearse NVIDIA's page table + command-queue header. It does not install GSP
 # cached args, publish PGSP HEAD/TAIL, or issue any GPU/MMIO write.
+# NVGspBootArgsRehearsalService is independently gated by
+# nvgsp-bootargs-memory=1. It allocates only private RMARGS/LibOS-list pages,
+# maps them through the GA107 device mapper, composes the source-backed boot
+# argument images and publishes the would-be mailbox values. It contains no
+# BAR0 mapping and no mailbox/MMIO write path.
 # None of these gates submit NVIDIA GPU work or program the display plane.
 # This is an experimental BCS0 execution backend, not a Metal driver.
 #
 SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp NVGspQueueObserver.cpp \
-	NVGspQueueBackingService.cpp \
+	NVGspQueueBackingService.cpp NVGspBootArgsRehearsalService.cpp \
 	IntelDisplayProbe.cpp IntelFbPresentProbe.cpp IntelSinkCandidateService.cpp \
 	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtBlitter.cpp IntelGtBlitUserClient.cpp
 OBJECTS      := $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)
