@@ -11,12 +11,17 @@ using IGGgttU64 = unsigned long long;
 //   reference/i915/intel_gtt.h: GEN8_PAGE_PRESENT = BIT_ULL(0)
 //   reference/i915/intel_ggtt.c: gen8_ggtt_pte_encode() = addr | PRESENT for
 //   system-memory pages (PTE_LM is not set, PAT index is ignored on this path).
+// The GGC GGMS 1/2/3 encodings correspond to 2/4/8 MiB of GGTT PTE storage,
+// the same formula already used by IntelGtBringup's source-backed path.
 #define IG_SINK_GGTT_PAGE_BYTES_I915_4096          4096u
 #define IG_SINK_GGTT_PTE_BYTES_I915_8              8u
 #define IG_SINK_GGTT_PTE_PRESENT_I915_0x1          0x1ull
 #define IG_SINK_GGTT_PTE_ADDR_MASK_I915_45_12      0x00003FFFFFFFF000ull
 #define IG_SINK_GGTT_ADDR_CEILING_I915_45_12       0x00003FFFFFFFFFFFull
 #define IG_SINK_GGTT_TABLE_BAR0_OFFSET_I915_0x800000 0x00800000u
+#define IG_SINK_GGTT_GGC_GGMS_SHIFT_I915_6         6u
+#define IG_SINK_GGTT_GGC_GGMS_MASK_I915_0x3        0x3u
+#define IG_SINK_GGTT_MIB_BYTES_POLICY_0x100000      0x00100000u
 
 #define IG_SINK_GGTT_PLAN_NOT_ATTEMPTED             0u
 #define IG_SINK_GGTT_PLAN_OK                        1u
@@ -78,6 +83,21 @@ static inline IGGgttU64 igSinkGgttRoundUpBytes(IGGgttU64 bytes)
     const IGGgttU64 add=(IGGgttU64)IG_SINK_GGTT_PAGE_BYTES_I915_4096-1ull;
     if (bytes > ~0ull-add) return 0ull;
     return (bytes+add) & ~add;
+}
+
+static inline IGGgttU32 igSinkGgttTableBytesFromGgc(IGGgttU32 ggc)
+{
+    if ((ggc & 0xFFFFu)==0xFFFFu) return 0u;
+    const IGGgttU32 ggms=(ggc>>IG_SINK_GGTT_GGC_GGMS_SHIFT_I915_6) &
+                          IG_SINK_GGTT_GGC_GGMS_MASK_I915_0x3;
+    if (!ggms) return 0u;
+    return (1u<<ggms)*IG_SINK_GGTT_MIB_BYTES_POLICY_0x100000;
+}
+
+static inline IGGgttU32 igSinkGgttEntriesFromGgc(IGGgttU32 ggc)
+{
+    const IGGgttU32 bytes=igSinkGgttTableBytesFromGgc(ggc);
+    return bytes/IG_SINK_GGTT_PTE_BYTES_I915_8;
 }
 
 static inline bool igSinkGgttPtePresent(IGGgttU64 pte)
