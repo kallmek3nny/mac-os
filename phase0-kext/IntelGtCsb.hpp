@@ -120,6 +120,17 @@ static inline IGU32 igGtCsbReadPointerAckWord(IGU32 slot)
     return (mask << 16) | value;
 }
 
+// Linux reset_csb_pointers() seeds both read and write pointers to the last
+// Gen11+ entry and masks both fields with 0xFFFF in the upper half. Keeping the
+// reset word here removes another raw scheduler constant from the IOKit shell.
+static inline IGU32 igGtCsbResetPointerWord(void)
+{
+    const IGU32 reset = IG_GTCSB_ENTRIES_I915_12 - 1u;
+    return 0xFFFF0000u |
+           (reset << IG_GTCSB_READ_PTR_SHIFT_I915_8) |
+           reset;
+}
+
 // Decode one stable Tiger Lake CSB qword. Refusals are atomic: `out` is not
 // touched unless the entire event belongs to the currently submitted context
 // (or to the hardware's idle context) and the switch-detail value is one of the
