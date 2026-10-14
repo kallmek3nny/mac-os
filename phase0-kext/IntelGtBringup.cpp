@@ -464,7 +464,7 @@ bool IntelGtBringup::start(IOService *provider) {
     }
     fOpened=true;
     IOMemoryDescriptor *bar=fPCI->getDeviceMemoryWithIndex(0);
-    if (bar) fBarMap=bar->map(kIOMapAnywhere|kIOMemoryInhibitCache);
+    if (bar) fBarMap=bar->map(kIOMapAnywhere|kIOMapInhibitCache);
     if (!fBarMap) { cleanup(); return false; }
     fMMIO=reinterpret_cast<volatile UInt8 *>(fBarMap->getVirtualAddress());
     fBarBytes=fBarMap->getLength();
