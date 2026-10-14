@@ -33,6 +33,17 @@ private:
     IOMemoryMap *fBarMap, *fPoolMap;
     IOBufferMemoryDescriptor *fPool;
     IODMACommand *fDMA;
+
+    // Optional persistent surface arena. Its private-PPGTT leaves are installed
+    // before the first BCS0 submission and never mutated while the engine runs.
+    IOBufferMemoryDescriptor *fSurfacePool;
+    IODMACommand *fSurfaceDMA;
+    UInt8 *fSurfaceCPU;
+    UInt32 fSurfaceArenaInstalledPages;
+    bool fSurfaceArenaRequested;
+    bool fSurfaceDMABound;
+    bool fSurfaceArenaInstalled;
+
     volatile UInt8 *fMMIO;
     UInt8 *fCPU;
     UInt64 fBarBytes, fBusAddress, fSavedPtes[PoolPages];
@@ -51,6 +62,8 @@ private:
     void releaseWake(void);
     bool claimEngine(void);
     bool allocateMemory(void);
+    bool allocateSurfaceArena(void);
+    void releaseSurfaceArena(void);
     bool installGGTT(void);
     bool buildContext(void);
     bool submitCopy(void);
