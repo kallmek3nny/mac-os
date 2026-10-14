@@ -103,7 +103,6 @@ static void testHappy(void)
     checkU32("manifest offset",p.manifestOffset,0x0100u);
     checkU32("structural ucode verdict",(NVU32)p.ucodeVerdict,(NVU32)NV_RISCV_UCODE_OK);
 
-    // The old Phase-5 transfer slice is intentionally NOT this WPR image.
     checkBool("WPR source is larger than IMEM transfer slice",
               p.sourceBytes>NV_RISCV_GA107_BL_BOOTLOADER_SIZE,true);
     checkBool("monitor code precedes old transfer slice",
@@ -162,8 +161,6 @@ static void testDmaContract(void)
     checkU64("DMA exact source bytes",p.sourceBytes,0x5801ull);
     checkU64("DMA allocation bytes",p.allocationBytes,0x6000ull);
 
-    // This path is AT_GPU/device-domain, not Falcon DMATRFBASE. Do not inherit
-    // the unrelated 41-bit Phase-5 transfer policy without source evidence.
     checkU32("above Phase-5 41-bit policy remains admissible",
              nvGspPlanWprBootDma(0x0000040000000000ull,0x6000ull,
                                  0x5801ull,0x6000ull,&p),
@@ -183,10 +180,15 @@ static void testDmaContract(void)
              NV_GSP_WPR_BOOT_DMA_BAD_ALIGNMENT);
     checkSame("bad DMA alignment atomic",&poison,&before,sizeof(poison));
 
-    checkU32("single segment must cover allocation",
+    checkU32("short single segment refused",
              nvGspPlanWprBootDma(0x1000ull,0x5fffull,0x5801ull,0x6000ull,&poison),
-             NV_GSP_WPR_BOOT_DMA_SHORT_SEGMENT);
+             NV_GSP_WPR_BOOT_DMA_LENGTH_MISMATCH);
     checkSame("short DMA segment atomic",&poison,&before,sizeof(poison));
+
+    checkU32("long single segment also refused",
+             nvGspPlanWprBootDma(0x1000ull,0x7000ull,0x5801ull,0x6000ull,&poison),
+             NV_GSP_WPR_BOOT_DMA_LENGTH_MISMATCH);
+    checkSame("long DMA segment atomic",&poison,&before,sizeof(poison));
 
     checkU32("64-bit DMA range overflow refused",
              nvGspPlanWprBootDma(0xfffffffffffff000ull,0x6000ull,
