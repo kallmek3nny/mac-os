@@ -85,6 +85,17 @@ jobs:
       - name: run Gen12 CSB retirement test
         run: ./build/host/test_intel_gt_csb_manual
 
+      - name: build multi-chunk copy planner test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_intel_gt_copy_plan.cpp \
+            -o build/host/test_intel_gt_copy_plan_manual
+
+      - name: run multi-chunk copy planner test
+        run: ./build/host/test_intel_gt_copy_plan_manual
+
   macos-kext:
     name: macos kext + userspace build
     runs-on: macos-latest
