@@ -1,0 +1,25 @@
+name: GSP WPR facts observer tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  wpr-facts-observer:
+    name: WPR facts observer safety
+    timeout-minutes: 6
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: enforce read-only observer contract
+        timeout-minutes: 2
+        run: python3 tests/test_nv_gsp_wpr_facts_observer_static.py
