@@ -150,3 +150,14 @@ jobs:
 
       - name: run GSP queue DMA flattening test
         run: ./test_nv_gsp_queue_dma
+
+      - name: build GSP RMARGS queue overlay test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_cached_args.cpp \
+            -o test_nv_gsp_cached_args
+
+      - name: run GSP RMARGS queue overlay test
+        run: ./test_nv_gsp_cached_args
