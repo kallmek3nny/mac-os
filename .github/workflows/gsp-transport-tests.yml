@@ -84,3 +84,25 @@ jobs:
 
       - name: run GSP MSGQ init/link test
         run: ./test_nv_gsp_queue_init
+
+      - name: build GSP MSGQ RX test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_queue_rx.cpp \
+            -o test_nv_gsp_queue_rx
+
+      - name: run GSP MSGQ RX test
+        run: ./test_nv_gsp_queue_rx
+
+      - name: build GSP RPC transaction rehearsal
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_rpc_transaction.cpp \
+            -o test_nv_gsp_rpc_transaction
+
+      - name: run GSP RPC transaction rehearsal
+        run: ./test_nv_gsp_rpc_transaction
