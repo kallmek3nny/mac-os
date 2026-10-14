@@ -1,0 +1,64 @@
+name: GSP transport tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gsp-transport:
+    name: GSP transport (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: toolchain info
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ --version || true
+
+      - name: build GSP queue layout test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_queue_plan.cpp \
+            -o test_nv_gsp_queue_plan
+
+      - name: run GSP queue layout test
+        run: ./test_nv_gsp_queue_plan
+
+      - name: build GSP RPC frame test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_rpc_frame.cpp \
+            -o test_nv_gsp_rpc_frame
+
+      - name: run GSP RPC frame test
+        run: ./test_nv_gsp_rpc_frame
+
+      - name: build GSP MSGQ TX test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_queue_tx.cpp \
+            -o test_nv_gsp_queue_tx
+
+      - name: run GSP MSGQ TX test
+        run: ./test_nv_gsp_queue_tx
