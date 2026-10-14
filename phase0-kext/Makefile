@@ -20,12 +20,14 @@ INSTALL_DIR  := /Library/Extensions
 # No boot argument means it declines start before touching PCI/MMIO.
 # IntelSinkCandidateService is also opt-in: igsink-candidate=1 permits the
 # backing allocation, while GGTT PTE writes require the additional independent
-# igsink-ggtt-map=1 gate. Peer-DMA mapping and plane programming stay disabled.
+# igsink-ggtt-map=1 gate. NVPeerMapperProbe is read-only and only resolves the
+# RTX 3050 provider's device-specific IOMapper under igsink-peer-map=1; it does
+# not create a DMA mapping or submit GPU work. Plane programming stays disabled.
 # This is an experimental BCS0 execution backend, not a Metal driver.
 #
-SOURCES      := NV3050Probe.cpp IntelDisplayProbe.cpp IntelFbPresentProbe.cpp \
-	IntelSinkCandidateService.cpp IntelGtProbe.cpp IntelGtBringup.cpp \
-	IntelGtBlitter.cpp IntelGtBlitUserClient.cpp
+SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp IntelDisplayProbe.cpp \
+	IntelFbPresentProbe.cpp IntelSinkCandidateService.cpp IntelGtProbe.cpp \
+	IntelGtBringup.cpp IntelGtBlitter.cpp IntelGtBlitUserClient.cpp
 OBJECTS      := $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 
 SDK          := $(shell xcrun --sdk macosx --show-sdk-path)

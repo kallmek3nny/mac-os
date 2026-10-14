@@ -80,6 +80,21 @@
 			<key>IOProbeScore</key>
 			<integer>100000</integer>
 		</dict>
+		<key>NVPeerMapperProbe</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>local.nv3050.NV3050Probe</string>
+			<key>IOClass</key>
+			<string>NVPeerMapperProbe</string>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+			<key>IOPCIMatch</key>
+			<string>0x25a210de</string>
+			<key>IOMatchCategory</key>
+			<string>NVPeerMapperProbe</string>
+			<key>IOProbeScore</key>
+			<integer>99900</integer>
+		</dict>
 		<key>IntelDisplayProbe</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
