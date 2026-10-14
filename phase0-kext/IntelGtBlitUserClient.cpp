@@ -28,19 +28,41 @@ IOReturn IntelGtBlitUserClient::clientClose() {
 }
 IOReturn IntelGtBlitUserClient::externalMethod(UInt32 selector,
     IOExternalMethodArguments *args, IOExternalMethodDispatch *, OSObject *, void *) {
-    if (selector!=IGGT_COPY32_SELECTOR) return kIOReturnUnsupported;
     if (!fOwner || !args || args->scalarInputCount || args->scalarOutputCount ||
-        args->structureInputSize!=sizeof(IgGtCopy32Request) ||
-        args->structureOutputSize!=sizeof(IgGtCopy32Response) ||
         !args->structureInput || !args->structureOutput || args->asyncWakePort ||
         args->structureInputDescriptor || args->structureOutputDescriptor) return kIOReturnBadArgument;
-    const auto *req=static_cast<const IgGtCopy32Request *>(args->structureInput);
-    auto *response=static_cast<IgGtCopy32Response *>(args->structureOutput);
-    if (!req->width || !req->height || !req->pitch || req->bytes>IGGT_COPY32_MAX_BYTES) return kIOReturnBadArgument;
-    UInt64 row=(UInt64)req->width*4;
-    UInt64 used=(UInt64)(req->height-1)*req->pitch+row;
-    if (row>req->pitch || used>req->bytes || used>IGGT_COPY32_MAX_BYTES) return kIOReturnBadArgument;
-    bzero(response,sizeof(*response));
-    return fOwner->copySurface32(req->pixels,response->pixels,req->width,req->height,
-                                req->pitch,req->bytes,IGGT_COPY32_MAX_BYTES);
+
+    if (selector==IGGT_COPY32_SELECTOR) {
+        if (args->structureInputSize!=sizeof(IgGtCopy32Request) ||
+            args->structureOutputSize!=sizeof(IgGtCopy32Response)) return kIOReturnBadArgument;
+        const auto *req=static_cast<const IgGtCopy32Request *>(args->structureInput);
+        auto *response=static_cast<IgGtCopy32Response *>(args->structureOutput);
+        if (!req->width || !req->height || !req->pitch || req->bytes>IGGT_COPY32_MAX_BYTES)
+            return kIOReturnBadArgument;
+        UInt64 row=(UInt64)req->width*4;
+        UInt64 used=(UInt64)(req->height-1)*req->pitch+row;
+        if (row>req->pitch || used>req->bytes || used>IGGT_COPY32_MAX_BYTES)
+            return kIOReturnBadArgument;
+        bzero(response,sizeof(*response));
+        return fOwner->copySurface32(req->pixels,response->pixels,req->width,req->height,
+                                    req->pitch,req->bytes,IGGT_COPY32_MAX_BYTES);
+    }
+
+    if (selector==IGGT_FILL32_SELECTOR) {
+        if (args->structureInputSize!=sizeof(IgGtFill32Request) ||
+            args->structureOutputSize!=sizeof(IgGtFill32Response)) return kIOReturnBadArgument;
+        const auto *req=static_cast<const IgGtFill32Request *>(args->structureInput);
+        auto *response=static_cast<IgGtFill32Response *>(args->structureOutput);
+        if (!req->width || !req->height || !req->pitch || req->bytes>IGGT_FILL32_MAX_BYTES)
+            return kIOReturnBadArgument;
+        UInt64 row=(UInt64)req->width*4;
+        UInt64 used=(UInt64)(req->height-1)*req->pitch+row;
+        if (row>req->pitch || used>req->bytes || used>IGGT_FILL32_MAX_BYTES)
+            return kIOReturnBadArgument;
+        bzero(response,sizeof(*response));
+        return fOwner->fillSurface32(response->pixels,req->width,req->height,
+                                    req->pitch,IGGT_FILL32_MAX_BYTES,req->color);
+    }
+
+    return kIOReturnUnsupported;
 }

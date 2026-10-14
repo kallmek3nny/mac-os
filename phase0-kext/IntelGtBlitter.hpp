@@ -15,4 +15,12 @@ bool gtEncodeCopy32(GTBlitU32 *batch, GTBlitU32 capacityDwords,
                     const GTBlitSurface32 &source, const GTBlitSurface32 &dest,
                     GTBlitU32 width, GTBlitU32 height,
                     GTBlitU32 fenceAddress, GTBlitU32 sequence);
+
+// Emits one source-backed XY_COLOR_BLT for a 32-bpp linear destination,
+// followed by the same private-PPGTT flushing fence used by copySurface32.
+// The fixed 16-DW image contains only driver-owned GPU addresses.
+bool gtEncodeFill32(GTBlitU32 *batch, GTBlitU32 capacityDwords,
+                    const GTBlitSurface32 &dest,
+                    GTBlitU32 width, GTBlitU32 height, GTBlitU32 color,
+                    GTBlitU32 fenceAddress, GTBlitU32 sequence);
 #endif
