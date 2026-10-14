@@ -7,6 +7,8 @@
 #include "IntelGtLrc.hpp"
 #include "IntelGtDispatch.hpp"
 #include "IntelGtCsb.hpp"
+#include "IntelGtCopyPlan.hpp"
+#include "IntelGtBlitABI.h"
 #include "IntelGtBlitUserClient.hpp"
 #include <pexpert/pexpert.h>
 #include <mach/task.h>
@@ -378,26 +380,76 @@ IOReturn IntelGtBringup::newUserClient(task_t task, void *securityID, UInt32 typ
 IOReturn IntelGtBringup::copySurface32(const void *source, void *destination,
                                      UInt32 width, UInt32 height, UInt32 pitch,
                                      UInt32 sourceBytes, UInt32 destinationBytes) {
-    // Kernel callers only; no physical addresses or untrusted batch buffers.
+    // Fixed, privileged staging path only; still no raw GPU addresses or batch
+    // input. Larger requests are split into row bands that each fit the same
+    // two 4 KiB GPU scratch pages and are reused only after CSB retirement.
     if (!source || !destination || !width || !height || width>1024 || height>1024 ||
-        !pitch || pitch>4096 || (pitch & 3) || (UInt64)width*4>pitch) return kIOReturnBadArgument;
-    UInt64 needed=(UInt64)(height-1)*pitch+(UInt64)width*4;
-    if (needed>4096 || sourceBytes<needed || destinationBytes<needed) return kIOReturnBadArgument;
+        !pitch || pitch>4096 || (pitch & 3)) return kIOReturnBadArgument;
+    UInt64 needed=0;
+    if (!igGtCopy32SurfaceBytes(width,height,pitch,&needed) ||
+        needed>IGGT_COPY32_MAX_BYTES || sourceBytes<needed || destinationBytes<needed) {
+        return kIOReturnBadArgument;
+    }
+
     IOLockLock(fQueueLock);
     IOReturn result=kIOReturnNotReady;
     if (fStage==3 && fCompleted && fRetired && !fFaulted && fCPU) {
-        bzero(fCPU+Source,4096); bzero(fCPU+Dest,4096);
-        memcpy(fCPU+Source,source,(size_t)needed);
-        GTBlitSurface32 src={Source,4096,pitch}, dst={Dest,4096,pitch};
-        if (++fSequence==0) ++fSequence;
-        if (!gtEncodeCopy32(reinterpret_cast<UInt32 *>(fCPU+Batch),16,src,dst,width,height,Fence,fSequence)) {
-            result=kIOReturnBadArgument;
-        } else if (!submitBatch(fSequence)) {
-            fFaulted=true; result=kIOReturnIOError;
+        UInt8 *staged=reinterpret_cast<UInt8 *>(IOMalloc((vm_size_t)needed));
+        if (!staged) {
+            result=kIOReturnNoMemory;
         } else {
-            // Return pixels only after the GPU copy AND CSB context retirement.
-            memcpy(destination,fCPU+Dest,(size_t)needed);
+            bzero(staged,(size_t)needed);
+            const UInt8 *input=reinterpret_cast<const UInt8 *>(source);
+            UInt32 row=0, chunks=0;
             result=kIOReturnSuccess;
+            const GTBlitSurface32 src={Source,IG_GTCP_SCRATCH_BYTES_POLICY_4096,pitch};
+            const GTBlitSurface32 dst={Dest,IG_GTCP_SCRATCH_BYTES_POLICY_4096,pitch};
+
+            while (row<height) {
+                IGGtCopy32Chunk chunk={};
+                UInt32 planVerdict=igGtCopy32PlanChunk(
+                    width,height,pitch,row,IG_GTCP_SCRATCH_BYTES_POLICY_4096,&chunk);
+                setProperty("GTBringupCopyPlanVerdict",planVerdict,32);
+                setProperty("GTBringupCopyChunkIndex",chunks,32);
+                setProperty("GTBringupCopyChunkRows",chunk.rows,32);
+                setProperty("GTBringupCopyChunkOffset",chunk.byteOffset,64);
+                if (!igGtCopy32PlanSucceeded(planVerdict)) {
+                    result=kIOReturnBadArgument;
+                    break;
+                }
+
+                bzero(fCPU+Source,IG_GTCP_SCRATCH_BYTES_POLICY_4096);
+                bzero(fCPU+Dest,IG_GTCP_SCRATCH_BYTES_POLICY_4096);
+                memcpy(fCPU+Source,input+(size_t)chunk.byteOffset,(size_t)chunk.usedBytes);
+                if (++fSequence==0) ++fSequence;
+                if (!gtEncodeCopy32(reinterpret_cast<UInt32 *>(fCPU+Batch),16,
+                                    src,dst,width,chunk.rows,Fence,fSequence)) {
+                    result=kIOReturnBadArgument;
+                    break;
+                }
+                if (!submitBatch(fSequence)) {
+                    fFaulted=true;
+                    result=kIOReturnIOError;
+                    break;
+                }
+
+                // Each submit has fenced and retired before scratch reuse. Copy
+                // into a CPU staging result first so a later failed band never
+                // exposes a partially updated caller destination.
+                memcpy(staged+(size_t)chunk.byteOffset,fCPU+Dest,(size_t)chunk.usedBytes);
+                row+=chunk.rows;
+                ++chunks;
+            }
+
+            if (result==kIOReturnSuccess && row==height) {
+                memcpy(destination,staged,(size_t)needed);
+                setProperty("GTBlitterCopyBytes",(UInt32)needed,32);
+                setProperty("GTBlitterCopyChunks",chunks,32);
+                GTLOG("GPU COPIED %u bytes in %u retired band(s)",(UInt32)needed,chunks);
+            } else if (result==kIOReturnSuccess) {
+                result=kIOReturnIOError;
+            }
+            IOFree(staged,(vm_size_t)needed);
         }
     }
     IOLockUnlock(fQueueLock);
