@@ -161,3 +161,14 @@ jobs:
 
       - name: run GSP RMARGS queue overlay test
         run: ./test_nv_gsp_cached_args
+
+      - name: build GSP LibOS init handoff test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_libos_init.cpp \
+            -o test_nv_gsp_libos_init
+
+      - name: run GSP LibOS init handoff test
+        run: ./test_nv_gsp_libos_init
