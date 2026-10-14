@@ -227,3 +227,14 @@ jobs:
 
       - name: run GSP .fwimage container test
         run: ./test_nv_gsp_fw_container
+
+      - name: build full GSP-RM image staging plan
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_rm_image.cpp \
+            -o test_nv_gsp_rm_image
+
+      - name: run full GSP-RM image staging plan
+        run: ./test_nv_gsp_rm_image
