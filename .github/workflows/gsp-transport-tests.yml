@@ -106,3 +106,14 @@ jobs:
 
       - name: run GSP RPC transaction rehearsal
         run: ./test_nv_gsp_rpc_transaction
+
+      - name: build GSP RPC response semantics test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_rpc_response.cpp \
+            -o test_nv_gsp_rpc_response
+
+      - name: run GSP RPC response semantics test
+        run: ./test_nv_gsp_rpc_response
