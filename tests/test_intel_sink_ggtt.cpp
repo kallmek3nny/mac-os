@@ -11,7 +11,7 @@ static bool zeroPlan(const IGSinkGgttPlan &p){return p.firstPte==0u&&p.pteCount=
 
 static void testSourceBackedPtes(void)
 {
-    std::printf("\n1. source-backed Gen12 GGTT PTE encoding\n");
+    std::printf("\n1. source-backed Gen12 GGTT encoding and GGC sizing\n");
     checkU64("address mask bits 45:12",IG_SINK_GGTT_PTE_ADDR_MASK_I915_45_12,0x00003FFFFFFFF000ull);
     checkU64("present bit",IG_SINK_GGTT_PTE_PRESENT_I915_0x1,1ull);
     checkU64("page0 PTE",igSinkGgttPteForPage(0x0000000123400000ull,0u),0x0000000123400001ull);
@@ -21,6 +21,14 @@ static void testSourceBackedPtes(void)
     checkU64("misaligned DMA refuses PTE",igSinkGgttPteForPage(0x12345001ull,0u),0ull);
     checkU64("top address accepted",igSinkGgttPteForPage(0x00003FFFFFFFF000ull,0u),0x00003FFFFFFFF001ull);
     checkU64("page beyond top refuses",igSinkGgttPteForPage(0x00003FFFFFFFF000ull,1u),0ull);
+
+    checkU32("GGC GGMS 0 refuses",igSinkGgttTableBytesFromGgc(0u),0u);
+    checkU32("GGC GGMS 1 -> 2 MiB",igSinkGgttTableBytesFromGgc(1u<<6),2u*1024u*1024u);
+    checkU32("GGC GGMS 2 -> 4 MiB",igSinkGgttTableBytesFromGgc(2u<<6),4u*1024u*1024u);
+    checkU32("GGC GGMS 3 -> 8 MiB",igSinkGgttTableBytesFromGgc(3u<<6),8u*1024u*1024u);
+    checkU32("GGC all ones refuses",igSinkGgttTableBytesFromGgc(0xFFFFu),0u);
+    checkU32("2 MiB table entry count",igSinkGgttEntriesFromGgc(1u<<6),262144u);
+    checkU32("8 MiB table entry count",igSinkGgttEntriesFromGgc(3u<<6),1048576u);
 }
 
 static void testPlanGeometry(void)
