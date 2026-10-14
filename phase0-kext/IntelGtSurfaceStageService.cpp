@@ -23,7 +23,7 @@ constexpr UInt8 IntelDmaAddressBits = 46;
 
 bool IntelGtSurfaceStageService::init(OSDictionary *dict)
 {
-    if (!super::init(dict)) return false;
+    if (!IOService::init(dict)) return false;
     fPCI=nullptr;
     fBacking=nullptr;
     fDMA=nullptr;
@@ -72,12 +72,12 @@ void IntelGtSurfaceStageService::free(void)
 {
     releaseResources();
     OSSafeReleaseNULL(fPCI);
-    super::free();
+    IOService::free();
 }
 
 IOService *IntelGtSurfaceStageService::probe(IOService *provider, SInt32 *score)
 {
-    IOService *result=super::probe(provider,score);
+    IOService *result=IOService::probe(provider,score);
     if (!result) return nullptr;
     IOPCIDevice *pci=OSDynamicCast(IOPCIDevice,provider);
     if (!pci) return nullptr;
@@ -91,11 +91,11 @@ bool IntelGtSurfaceStageService::start(IOService *provider)
     int enabled=0;
     if (!PE_parse_boot_argn("iggt-surface-stage",&enabled,sizeof(enabled)) || enabled!=1)
         return false;
-    if (!super::start(provider)) return false;
+    if (!IOService::start(provider)) return false;
 
     fPCI=OSDynamicCast(IOPCIDevice,provider);
     if (!fPCI) {
-        super::stop(provider);
+        IOService::stop(provider);
         return false;
     }
     fPCI->retain();
@@ -261,5 +261,5 @@ void IntelGtSurfaceStageService::stop(IOService *provider)
 {
     releaseResources();
     OSSafeReleaseNULL(fPCI);
-    super::stop(provider);
+    IOService::stop(provider);
 }
