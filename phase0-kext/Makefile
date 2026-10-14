@@ -18,11 +18,12 @@ INSTALL_DIR  := /Library/Extensions
 # The existing probes remain read-only. IntelGtBringup is a separate,
 # explicitly opt-in Tiger Lake hardware writer (iggt-bringup=1/2/3).
 # No boot argument means it declines start before touching PCI/MMIO.
-# IntelSinkCandidateService is also opt-in: igsink-candidate=1 permits the
-# backing allocation, while GGTT PTE writes require the additional independent
-# igsink-ggtt-map=1 gate. NVPeerMapperProbe is read-only and only resolves the
-# RTX 3050 provider's device-specific IOMapper under igsink-peer-map=1; it does
-# not create a DMA mapping or submit GPU work. Plane programming stays disabled.
+# IntelSinkCandidateService is also staged: igsink-candidate=1 permits the
+# backing allocation, igsink-ggtt-map=1 additionally permits reversible Intel
+# GGTT PTE writes, and igsink-peer-map=1 additionally permits mapping that SAME
+# backing through the RTX 3050 provider's device-specific IOMapper. The
+# NVPeerMapperProbe itself remains read-only and only proves the mapper exists.
+# None of these gates submit NVIDIA GPU work or program the display plane.
 # This is an experimental BCS0 execution backend, not a Metal driver.
 #
 SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp IntelDisplayProbe.cpp \

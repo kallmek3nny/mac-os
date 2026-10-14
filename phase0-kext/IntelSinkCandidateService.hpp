@@ -12,11 +12,13 @@
 #include "IntelFramebuffer.hpp"
 #include "IntelSinkCandidate.hpp"
 #include "IntelSinkGgtt.hpp"
+#include "IntelSinkPeer.hpp"
 
 // Allocation constraint only. Clearing the low twelve bits requests page
 // alignment; no peer-DMA magnitude claim is made from this mask.
 #define IG_SINK_CANDIDATE_PHYS_MASK 0xFFFFFFFFFFFFF000ull
 #define IG_SINK_CANDIDATE_DISPLAY_WAIT_NS 1000000000ull
+#define IG_SINK_CANDIDATE_PEER_WAIT_NS 1000000000ull
 
 class IntelSinkCandidateService : public IOService
 {
@@ -34,6 +36,7 @@ private:
     IOPCIDevice *fPCIDevice;
     IOBufferMemoryDescriptor *fBacking;
     IODMACommand *fIntelDMA;
+    IODMACommand *fPeerDMA;
     IOMemoryMap *fBarMap;
     volatile UInt8 *fMMIO;
     UInt64 fBarBytes;
@@ -43,8 +46,10 @@ private:
     UInt32 fMappedFirstPte;
     bool fPrepared;
     bool fDMABound;
+    bool fPeerDMABound;
     bool fOpened;
 
+    void releasePeerDma(void);
     void releaseGgtt(void);
     void releaseBacking(void);
     void publishNotReady(void);

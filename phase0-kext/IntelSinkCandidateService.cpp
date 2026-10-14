@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Opt-in runtime allocation and staged Intel GGTT mapping for the sink candidate.
+// Opt-in runtime allocation plus staged Intel GGTT and NVIDIA peer mapping.
 #include "IntelSinkCandidateService.hpp"
 
 #include <IOKit/IOLib.h>
+#include <IOKit/IOMapper.h>
 #include <IOKit/IORegistryEntry.h>
 #include <libkern/c++/OSNumber.h>
 #include <pexpert/pexpert.h>
@@ -28,6 +29,7 @@ bool IntelSinkCandidateService::init(OSDictionary *dict)
     fPCIDevice=nullptr;
     fBacking=nullptr;
     fIntelDMA=nullptr;
+    fPeerDMA=nullptr;
     fBarMap=nullptr;
     fMMIO=nullptr;
     fBarBytes=0;
@@ -37,6 +39,7 @@ bool IntelSinkCandidateService::init(OSDictionary *dict)
     fMappedFirstPte=0;
     fPrepared=false;
     fDMABound=false;
+    fPeerDMABound=false;
     fOpened=false;
     return true;
 }
@@ -59,6 +62,18 @@ bool IntelSinkCandidateService::acceleratorPresent(void)
     }
     it->release();
     return found;
+}
+
+void IntelSinkCandidateService::releasePeerDma(void)
+{
+    if (fPeerDMABound && fPeerDMA) {
+        fPeerDMA->clearMemoryDescriptor();
+        fPeerDMABound=false;
+    }
+    OSSafeReleaseNULL(fPeerDMA);
+    setProperty("IGSinkCandidatePeerDmaMapped",false);
+    setProperty("IGSinkCandidateProducerReady",false);
+    setProperty("IGSinkCandidateScanoutReady",false);
 }
 
 void IntelSinkCandidateService::releaseGgtt(void)
@@ -114,6 +129,7 @@ void IntelSinkCandidateService::publishNotReady(void)
     setProperty("IGSinkCandidateBackingAllocated",false);
     setProperty("IGSinkCandidateBackingContiguous",false);
     setProperty("IGSinkCandidateGgttMapRequested",false);
+    setProperty("IGSinkCandidatePeerMapRequested",false);
     setProperty("IGSinkCandidateGgttMapped",false);
     setProperty("IGSinkCandidatePeerDmaMapped",false);
     setProperty("IGSinkCandidatePlaneProgrammed",false);
@@ -123,6 +139,7 @@ void IntelSinkCandidateService::publishNotReady(void)
 
 void IntelSinkCandidateService::free(void)
 {
+    releasePeerDma();
     releaseGgtt();
     releaseBacking();
     OSSafeReleaseNULL(fPCIDevice);
@@ -157,10 +174,14 @@ bool IntelSinkCandidateService::start(IOService *provider)
     int mapValue=0;
     const bool mapRequested=PE_parse_boot_argn(
         "igsink-ggtt-map",&mapValue,sizeof(mapValue)) && mapValue==1;
+    int peerValue=0;
+    const bool peerRequested=PE_parse_boot_argn(
+        "igsink-peer-map",&peerValue,sizeof(peerValue)) && peerValue==1;
 
     setProperty("IGSinkCandidateEnabled",true);
     publishNotReady();
     setProperty("IGSinkCandidateGgttMapRequested",mapRequested);
+    setProperty("IGSinkCandidatePeerMapRequested",peerRequested);
     setProperty("IGSinkCandidateAddressKind","physical-candidate-not-peer-mapped");
 
     // Consume the read-only display probe's already-tested rehearsal instead of
@@ -289,7 +310,8 @@ bool IntelSinkCandidateService::start(IOService *provider)
     setProperty("IGSinkCandidateDescriptorStride",(UInt64)candidate.descriptor.stride,32);
 
     if (!mapRequested) {
-        setProperty("IGSinkCandidateState","backing-owned-not-mapped");
+        setProperty("IGSinkCandidateState",peerRequested
+            ? "peer-map-requires-ggtt-map" : "backing-owned-not-mapped");
         IGSINKLOG("owned candidate: phys=%llx bytes=%u ggtt=0x%08x; GGTT mapping not requested",
                   (unsigned long long)physical,plan.size,plan.base);
         registerService();
@@ -438,9 +460,112 @@ bool IntelSinkCandidateService::start(IOService *provider)
     setProperty("IGSinkCandidatePlaneProgrammed",false);
     setProperty("IGSinkCandidateProducerReady",candidate.producerReady!=0);
     setProperty("IGSinkCandidateScanoutReady",candidate.scanoutReady!=0);
-    setProperty("IGSinkCandidateState","ggtt-mapped-peer-not-mapped");
-    IGSINKLOG("GGTT mapped %u page(s) at 0x%08x -> Intel IOVM %llx; peer DMA and plane remain disabled",
-              ggttPlan.pteCount,plan.base,(unsigned long long)ggttPlan.intelDmaBase);
+
+    if (!peerRequested) {
+        setProperty("IGSinkCandidateState","ggtt-mapped-peer-not-requested");
+        IGSINKLOG("GGTT mapped %u page(s) at 0x%08x -> Intel IOVM %llx; peer DMA not requested",
+                  ggttPlan.pteCount,plan.base,(unsigned long long)ggttPlan.intelDmaBase);
+        registerService();
+        return true;
+    }
+
+    // Find the separately matched NVIDIA-side capability service. Its provider
+    // is the exact GA107M PCI function. We resolve a fresh device-specific
+    // mapper here rather than sharing a pointer across services.
+    OSDictionary *peerMatching=IOService::serviceMatching("NVPeerMapperProbe");
+    IOService *peerProbe=peerMatching
+        ? IOService::waitForMatchingService(peerMatching,IG_SINK_CANDIDATE_PEER_WAIT_NS)
+        : nullptr;
+    OSSafeReleaseNULL(peerMatching);
+    if (!peerProbe) {
+        setProperty("IGSinkCandidateState","peer-probe-unavailable");
+        registerService();
+        return true;
+    }
+
+    IOPCIDevice *peerPci=OSDynamicCast(IOPCIDevice,peerProbe->getProvider());
+    if (!peerPci) {
+        peerProbe->release();
+        setProperty("IGSinkCandidateState","peer-provider-unavailable");
+        registerService();
+        return true;
+    }
+
+    IOMapper *peerMapper=IOMapper::copyMapperForDevice(peerPci);
+    peerProbe->release();
+    if (!peerMapper) {
+        setProperty("IGSinkCandidateState","peer-mapper-unavailable");
+        registerService();
+        return true;
+    }
+
+    fPeerDMA=IODMACommand::withSpecification(
+        &IODMACommand::OutputHost64,
+        (UInt8)IG_SINK_PEER_DMA_ADDR_BITS_POLICY,
+        (UInt64)allocationBytes,
+        IODMACommand::kMapped,
+        (UInt64)allocationBytes,
+        IG_SINK_PEER_PAGE_BYTES,
+        peerMapper);
+    peerMapper->release();
+
+    if (!fPeerDMA || fPeerDMA->setMemoryDescriptor(fBacking,true)!=kIOReturnSuccess) {
+        setProperty("IGSinkCandidateState","peer-dma-bind-failed");
+        releasePeerDma();
+        registerService();
+        return true;
+    }
+    fPeerDMABound=true;
+
+    UInt64 peerOffset=0;
+    UInt32 peerSegmentCount=1;
+    IODMACommand::Segment64 peerSegment={};
+    if (fPeerDMA->gen64IOVMSegments(&peerOffset,&peerSegment,&peerSegmentCount)!=kIOReturnSuccess ||
+        peerSegmentCount!=1 || peerOffset<allocationBytes) {
+        setProperty("IGSinkCandidateState","peer-dma-segment-failed");
+        releasePeerDma();
+        registerService();
+        return true;
+    }
+
+    IGSinkPeerMap peerPlan={};
+    const UInt32 peerVerdict=igSinkPeerPlan(
+        peerSegment.fIOVMAddr,peerSegment.fLength,allocationBytes,&peerPlan);
+    setProperty("IGSinkCandidatePeerMapVerdict",igSinkPeerVerdictName(peerVerdict));
+    if (!igSinkPeerSucceeded(peerVerdict)) {
+        setProperty("IGSinkCandidateState","peer-dma-plan-refused");
+        releasePeerDma();
+        registerService();
+        return true;
+    }
+
+    setProperty("IGSinkCandidatePeerDmaAddress",peerPlan.iovmAddress,64);
+    setProperty("IGSinkCandidatePeerDmaSegmentBytes",peerPlan.segmentBytes,64);
+    setProperty("IGSinkCandidatePeerDmaMappedBytes",peerPlan.mappedBytes,64);
+    setProperty("IGSinkCandidateAddressKind","peer-iovm-ready-physical-candidate-retained");
+
+    candidateVerdict=igSinkCandidateBuild(
+        &plan,width,height,bytesPerPixel,
+        physical,(IGS64)allocationBytes,contiguous,
+        apertureBytes,
+        1,1,0,
+        &candidate);
+    if (!igSinkCandidateSucceeded(candidateVerdict)) {
+        setProperty("IGSinkCandidateState","post-peer-candidate-refused");
+        releasePeerDma();
+        registerService();
+        return true;
+    }
+
+    setProperty("IGSinkCandidatePeerDmaMapped",true);
+    setProperty("IGSinkCandidatePlaneProgrammed",false);
+    setProperty("IGSinkCandidateProducerReady",candidate.producerReady!=0);
+    setProperty("IGSinkCandidateScanoutReady",candidate.scanoutReady!=0);
+    setProperty("IGSinkCandidateState","ggtt-and-peer-mapped-plane-not-programmed");
+    IGSINKLOG("shared sink mapped: Intel GGTT 0x%08x -> %llx, NVIDIA IOVM %llx; plane still disabled",
+              plan.base,
+              (unsigned long long)ggttPlan.intelDmaBase,
+              (unsigned long long)peerPlan.iovmAddress);
 
     registerService();
     return true;
@@ -448,6 +573,7 @@ bool IntelSinkCandidateService::start(IOService *provider)
 
 void IntelSinkCandidateService::stop(IOService *provider)
 {
+    releasePeerDma();
     releaseGgtt();
     releaseBacking();
     OSSafeReleaseNULL(fPCIDevice);
