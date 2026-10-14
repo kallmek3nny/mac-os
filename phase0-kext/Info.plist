@@ -133,6 +133,21 @@
 			<key>IOProbeScore</key>
 			<integer>1000</integer>
 		</dict>
+		<key>IntelSinkCandidateService</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>local.nv3050.NV3050Probe</string>
+			<key>IOClass</key>
+			<string>IntelSinkCandidateService</string>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+			<key>IOPCIMatch</key>
+			<string>0x9a688086</string>
+			<key>IOMatchCategory</key>
+			<string>IntelSinkCandidateService</string>
+			<key>IOProbeScore</key>
+			<integer>800</integer>
+		</dict>
 		<key>IntelFbPresentProbe</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
