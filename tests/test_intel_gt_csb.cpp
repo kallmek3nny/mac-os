@@ -62,6 +62,7 @@ static void testSourceBackedGeometry(void)
     checkU32("ACK slot 0", igGtCsbReadPointerAckWord(0u), 0x0F000000u);
     checkU32("ACK slot 11", igGtCsbReadPointerAckWord(11u), 0x0F000B00u);
     checkU32("ACK invalid slot refuses", igGtCsbReadPointerAckWord(12u), 0u);
+    checkU32("reset pointers seed slot 11", igGtCsbResetPointerWord(), 0xFFFF0B0Bu);
 }
 
 static void testFieldDecode(void)
