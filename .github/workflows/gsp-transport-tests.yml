@@ -117,3 +117,14 @@ jobs:
 
       - name: run GSP RPC response semantics test
         run: ./test_nv_gsp_rpc_response
+
+      - name: build GSP queue observation classifier
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_queue_observe.cpp \
+            -o test_nv_gsp_queue_observe
+
+      - name: run GSP queue observation classifier
+        run: ./test_nv_gsp_queue_observe
