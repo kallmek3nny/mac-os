@@ -183,3 +183,14 @@ jobs:
 
       - name: run complete GSP bootargs rehearsal
         run: ./test_nv_gsp_bootargs_rehearsal
+
+      - name: build GA107 WPR metadata layout test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_wpr_meta.cpp \
+            -o test_nv_gsp_wpr_meta
+
+      - name: run GA107 WPR metadata layout test
+        run: ./test_nv_gsp_wpr_meta
