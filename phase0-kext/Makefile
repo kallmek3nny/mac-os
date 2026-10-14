@@ -47,12 +47,16 @@ INSTALL_DIR  := /Library/Extensions
 # container, stages the complete WPR boot-ucode payload in private cached sysmem
 # and requires one contiguous GA107-domain IOVA. It does not write WPR, execute
 # Booter, map BAR0, or issue any GPU/MMIO write.
+# NVGspWprMetaStageService is independently gated by nvgsp-wpr-meta-stage=1.
+# It snapshots the already-validated Radix3, boot-ucode and runtime-fact stages,
+# composes the exact 256-byte cold-boot metadata into a fresh GA107-mapped
+# sysmem page, and stops before WPR, Booter, mailbox or any device write.
 # None of these gates submit NVIDIA GPU work or program the display plane.
 # This is an experimental BCS0 execution backend, not a Metal driver.
 #
 SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp NVGspQueueObserver.cpp \
 	NVGspWprFactsObserver.cpp NVGspQueueBackingService.cpp NVGspBootArgsRehearsalService.cpp \
-	NVGspRmImageStageService.cpp NVGspWprBootUcodeStageService.cpp \
+	NVGspRmImageStageService.cpp NVGspWprBootUcodeStageService.cpp NVGspWprMetaStageService.cpp \
 	IntelDisplayProbe.cpp IntelFbPresentProbe.cpp IntelSinkCandidateService.cpp \
 	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtBlitter.cpp IntelGtFill.cpp IntelGtBlitUserClient.cpp
 OBJECTS      := $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)

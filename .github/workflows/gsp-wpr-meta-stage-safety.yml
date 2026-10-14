@@ -1,0 +1,31 @@
+name: GSP WPR metadata stage safety
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  allocation-only-stage:
+    name: WPR metadata allocation-only safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: enforce allocation-only contract
+        timeout-minutes: 2
+        run: |
+          timeout 30s python3 tests/test_nv_gsp_wpr_meta_stage_static.py
+
+      - name: parse plist independently
+        timeout-minutes: 2
+        run: |
+          timeout 30s python3 -c 'import plistlib; plistlib.load(open("phase0-kext/Info.plist", "rb")); print("plist parse: ok")'
