@@ -1,4 +1,4 @@
-name: GSP WPR sysmem bridge tests
+name: GSP WPR staging and policy tests
 
 on:
   push:
@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 jobs:
-  wpr-sysmem:
-    name: WPR sysmem bridge (${{ matrix.os }})
+  wpr-pure:
+    name: WPR pure contracts (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -34,3 +34,14 @@ jobs:
 
       - name: run WPR sysmem bridge test
         run: ./test_nv_gsp_wpr_sysmem
+
+      - name: build GA107 WPR policy test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_wpr_policy.cpp \
+            -o test_nv_gsp_wpr_policy
+
+      - name: run GA107 WPR policy test
+        run: ./test_nv_gsp_wpr_policy
