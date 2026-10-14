@@ -25,6 +25,7 @@ struct NVGspQueueSnapshot {
     NVGspObsU32 statusAvailable;
     NVGspObsU32 messageCount;
     bool allZero;
+    bool allOnes;
     bool anyTrafficEvidence;
     bool countersPlausibleWithoutHistory;
 };
@@ -52,6 +53,11 @@ static inline const char *nvGspQueueObserveVerdictName(NVGspObsU32 verdict)
 // the 63-entry production queue is therefore AMBIGUOUS, not proof of corrupt
 // hardware: open RM documents transient head/tail reset observations where the
 // cached counter is required to decide which value is real.
+//
+// One register reading 0xffffffff is NOT by itself a dead BAR signal. These are
+// monotonic NvU32 counters, so 0xffffffff is a legal value immediately before
+// rollover. Only the all-four-ones pattern is treated as a dead aperture by this
+// one-shot observer; mixed snapshots continue through source-accurate wrap math.
 static inline NVGspObsU32 nvGspClassifyQueueSnapshot(NVGspObsU32 queueIndex,
                                                      NVGspObsU32 commandHead,
                                                      NVGspObsU32 commandTail,
@@ -63,8 +69,9 @@ static inline NVGspObsU32 nvGspClassifyQueueSnapshot(NVGspObsU32 queueIndex,
     if (queueIndex >= NV_GSP_QUEUE_REGISTER_COUNT)
         return NV_GSP_QUEUE_OBSERVE_BAD_INDEX;
 
-    if (commandHead == 0xffffffffu || commandTail == 0xffffffffu ||
-        messageHead == 0xffffffffu || messageTail == 0xffffffffu)
+    const bool allOnes = commandHead == 0xffffffffu && commandTail == 0xffffffffu &&
+                         messageHead == 0xffffffffu && messageTail == 0xffffffffu;
+    if (allOnes)
         return NV_GSP_QUEUE_OBSERVE_DEAD_READ;
 
     NVGspMsgqTxHeaderPlan header = {};
@@ -86,6 +93,7 @@ static inline NVGspObsU32 nvGspClassifyQueueSnapshot(NVGspObsU32 queueIndex,
     staged.messageCount = header.messageCount;
     staged.allZero = commandHead == 0u && commandTail == 0u &&
                      messageHead == 0u && messageTail == 0u;
+    staged.allOnes = allOnes;
     staged.anyTrafficEvidence = commandHead != 0u || commandTail != 0u ||
                                 messageHead != 0u || messageTail != 0u;
     staged.countersPlausibleWithoutHistory =
