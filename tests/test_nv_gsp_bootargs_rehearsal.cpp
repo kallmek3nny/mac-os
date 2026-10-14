@@ -75,7 +75,7 @@ int main(void)
     checkU32("mailbox0 reg",mailbox.writes[0].reg,0x00110040u);
     checkU32("mailbox0 value",mailbox.writes[0].value,0xbcdef000u);
     checkU32("mailbox1 reg",mailbox.writes[1].reg,0x00110044u);
-    checkU32("mailbox1 value",mailbox.writes[1].value,0x0000001au);
+    checkU32("mailbox1 value",mailbox.writes[1].value,0x000001bau);
 
     // A malformed RMARGS address must fail before either page is touched.
     unsigned char rmBefore[sizeof(rmargs)];
