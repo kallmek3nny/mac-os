@@ -173,6 +173,17 @@ jobs:
       - name: run GA107 channel contract test
         run: ./build/host/test_nv_ampere_channel_manual
 
+      - name: build GA107 RM channel request test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_ampere_rm_plan.cpp \
+            -o build/host/test_nv_ampere_rm_plan_manual
+
+      - name: run GA107 RM channel request test
+        run: ./build/host/test_nv_ampere_rm_plan_manual
+
   macos-kext:
     name: macos kext + userspace build
     runs-on: macos-latest
