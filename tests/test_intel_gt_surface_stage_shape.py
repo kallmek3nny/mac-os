@@ -16,6 +16,11 @@ required = [
     'igGtSurfacePlan32(',
     'igGtSurfaceFlattenSegments(',
     'acceleratorPresent()',
+    'IOService::init(dict)',
+    'IOService::free()',
+    'IOService::probe(provider,score)',
+    'IOService::start(provider)',
+    'IOService::stop(provider)',
     'setProperty("IGSurfaceStagePpgttMutated",false)',
     'setProperty("IGSurfaceStageMmioMapped",false)',
     'setProperty("IGSurfaceStageRawIovaPublished",false)',
@@ -25,6 +30,7 @@ for token in required:
     assert token in CPP, f"missing required safety/runtime shape: {token}"
 
 for token in [
+    'super::',
     'inTaskWithPhysicalMask',
     'kIOMemoryPhysicallyContiguous',
     'getPhysicalSegment(',
