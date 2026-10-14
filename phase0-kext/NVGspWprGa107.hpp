@@ -162,17 +162,17 @@ static inline NVGspWprU32 nvGspGa107PlanFwHeap(NVGspWprU64 fbSize,
 
     staged.maxPrescrubbedHeapBytes =
         NV_GSP_GA107_PRESCRUBBED_TOP_FB_BYTES - staged.preWprBytes - staged.postWprBytes;
-    // Open RM floors the maximum to whole MiB before clamping the heap.
+    // Open RM floors the maximum to whole MiB before clamping the heap. Its
+    // heap override path then asserts minGspFwHeapSizeMB < maxGspFwHeapSizeMB,
+    // so an 88 MiB maximum is already invalid rather than a legal 88 MiB heap.
     staged.maxPrescrubbedHeapBytes =
         (staged.maxPrescrubbedHeapBytes / NV_GSP_GA107_MIB_BYTES) * NV_GSP_GA107_MIB_BYTES;
-    if (!staged.maxPrescrubbedHeapBytes)
+    if (staged.maxPrescrubbedHeapBytes <= NV_GSP_GA107_FW_HEAP_MIN_BYTES)
         return NV_GSP_GA107_WPR_POLICY_UNDERFLOW;
 
     staged.heapBytes = staged.formulaBytes;
     if (staged.heapBytes > staged.maxPrescrubbedHeapBytes)
         staged.heapBytes = staged.maxPrescrubbedHeapBytes;
-    if (!staged.heapBytes)
-        return NV_GSP_GA107_WPR_POLICY_UNDERFLOW;
 
     *out = staged;
     return NV_GSP_GA107_WPR_POLICY_OK;
