@@ -118,6 +118,17 @@ jobs:
       - name: run sink GGTT planner test
         run: ./build/host/test_intel_sink_ggtt_manual
 
+      - name: build sink peer DMA contract test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_intel_sink_peer.cpp \
+            -o build/host/test_intel_sink_peer_manual
+
+      - name: run sink peer DMA contract test
+        run: ./build/host/test_intel_sink_peer_manual
+
   macos-kext:
     name: macos kext + userspace build
     runs-on: macos-latest
