@@ -139,3 +139,14 @@ jobs:
 
       - name: run GSP shared queue memory test
         run: ./test_nv_gsp_queue_memory
+
+      - name: build GSP queue DMA flattening test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_queue_dma.cpp \
+            -o test_nv_gsp_queue_dma
+
+      - name: run GSP queue DMA flattening test
+        run: ./test_nv_gsp_queue_dma

@@ -110,6 +110,21 @@
 			<key>IOProbeScore</key>
 			<integer>99800</integer>
 		</dict>
+		<key>NVGspQueueBackingService</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>local.nv3050.NV3050Probe</string>
+			<key>IOClass</key>
+			<string>NVGspQueueBackingService</string>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+			<key>IOPCIMatch</key>
+			<string>0x25a210de</string>
+			<key>IOMatchCategory</key>
+			<string>NVGspQueueBackingService</string>
+			<key>IOProbeScore</key>
+			<integer>99700</integer>
+		</dict>
 		<key>IntelDisplayProbe</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
@@ -202,8 +217,8 @@
 			     provider's default category as exclusive, so exactly ONE of the
 			     two Intel personalities attaches and which one wins is decided
 			     by probe score. That failure is invisible in the way this
-			     project cares about: the kext loads, one driver appears in the
-			     IORegistry, and the missing one looks like a broken probe()
+			     project cares about: the kext loads, one driver appears in
+			     the IORegistry, and the missing one looks like a broken probe()
 			     rather than a plist that never offered it a slot.
 
 			     The score is below IntelDisplayProbe's on purpose. This class
