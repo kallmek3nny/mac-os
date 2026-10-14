@@ -39,12 +39,17 @@ INSTALL_DIR  := /Library/Extensions
 # It consumes only the distinct NVGspRmFirmware property, allocates private
 # noncontiguous sysmem, builds the source-backed Radix3 image and publishes its
 # GA107-domain root address. It contains no WPR, Booter, BAR0 or MMIO write path.
+# NVGspWprBootUcodeStageService is independently gated by
+# nvgsp-wpr-boot-ucode-stage=1. It consumes the existing NVGspFirmware nvfw
+# container, stages the complete WPR boot-ucode payload in private cached sysmem
+# and requires one contiguous GA107-domain IOVA. It does not write WPR, execute
+# Booter, map BAR0, or issue any GPU/MMIO write.
 # None of these gates submit NVIDIA GPU work or program the display plane.
 # This is an experimental BCS0 execution backend, not a Metal driver.
 #
 SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp NVGspQueueObserver.cpp \
 	NVGspQueueBackingService.cpp NVGspBootArgsRehearsalService.cpp \
-	NVGspRmImageStageService.cpp \
+	NVGspRmImageStageService.cpp NVGspWprBootUcodeStageService.cpp \
 	IntelDisplayProbe.cpp IntelFbPresentProbe.cpp IntelSinkCandidateService.cpp \
 	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtBlitter.cpp IntelGtBlitUserClient.cpp
 OBJECTS      := $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)
