@@ -65,12 +65,15 @@ static void testBusyAndResetRecovery(void) {
     checkU32("only two slots free",nvGspPlanQueueTx(0x40000u,62u,1u,1u,0x3000u,&p),NV_GSP_QUEUE_TX_BUSY);
     check("busy is atomic",std::memcmp(&p,&before,sizeof(p))==0);
 
+    // Source condition is strictly > msgCount. write=64 and observed tail=0
+    // looks 64 slots behind a 63-slot ring; cached tail=1 says the cached queue
+    // was exactly full, so NVIDIA treats the zero register as reset-to-empty.
     NVGspQueueTxPlan reset={};
-    checkU32("reset recovery",nvGspPlanQueueTx(0x40000u,63u,0u,0u,56u,&reset),NV_GSP_QUEUE_TX_OK);
-    checkU32("zero tail promoted to current head",reset.effectiveReadPtr,63u);
+    checkU32("reset recovery",nvGspPlanQueueTx(0x40000u,64u,1u,0u,56u,&reset),NV_GSP_QUEUE_TX_OK);
+    checkU32("zero tail promoted to current head",reset.effectiveReadPtr,64u);
     checkU32("queue treated empty",reset.freeBefore,63u);
-    checkU32("head slot wraps to zero",reset.slot[0],0u);
-    checkU32("new head",reset.newWritePtr,64u);
+    checkU32("head slot",reset.slot[0],1u);
+    checkU32("new head",reset.newWritePtr,65u);
 
     NVGspQueueTxPlan stale={};
     checkU32("impossible observed tail falls back to cache",
@@ -88,7 +91,9 @@ static void testCounterWrap(void) {
         NV_GSP_QUEUE_TX_OK);
     checkU32("slot from wrapped counter 0",p.slot[0],2u);
     checkU32("slot from wrapped counter 1",p.slot[1],3u);
-    checkU32("slot from wrapped counter 2",p.slot[2],4u);
+    // msgq.c performs NvU32 addition before modulo, so 0xfffffffe + 2 wraps
+    // to zero before `% 63`. Pin the source behavior rather than infinite math.
+    checkU32("slot from wrapped counter 2",p.slot[2],0u);
     checkU32("new head wraps",p.newWritePtr,1u);
     checkU32("published head wraps",p.txHeadValue,1u);
 }
