@@ -44,12 +44,16 @@ INSTALL_DIR  := /Library/Extensions
 # container, stages the complete WPR boot-ucode payload in private cached sysmem
 # and requires one contiguous GA107-domain IOVA. It does not write WPR, execute
 # Booter, map BAR0, or issue any GPU/MMIO write.
+# NVGspWprVgaObserver is independently gated by nvgsp-wpr-vga-observe=1. It
+# maps BAR0 only when PCI memory decoding is already enabled, takes one read-only
+# GFW/FB/display-fuse/VGA-workspace snapshot, and never polls or writes.
 # None of these gates submit NVIDIA GPU work or program the display plane.
 # This is an experimental BCS0 execution backend, not a Metal driver.
 #
 SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp NVGspQueueObserver.cpp \
 	NVGspQueueBackingService.cpp NVGspBootArgsRehearsalService.cpp \
 	NVGspRmImageStageService.cpp NVGspWprBootUcodeStageService.cpp \
+	NVGspWprVgaObserver.cpp \
 	IntelDisplayProbe.cpp IntelFbPresentProbe.cpp IntelSinkCandidateService.cpp \
 	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtBlitter.cpp IntelGtBlitUserClient.cpp
 OBJECTS      := $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)
@@ -185,6 +189,7 @@ install: all
 	@echo "installed to $(INSTALL_DIR)/$(KEXT_BUNDLE)"
 
 uninstall: unload
+	-sudo kmutil unload -b $(BUNDLE_ID)
 	sudo rm -rf $(INSTALL_DIR)/$(KEXT_BUNDLE)
 
 load:
