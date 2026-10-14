@@ -1,0 +1,36 @@
+name: GSP GA107 WPR runtime facts tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  wpr-facts:
+    name: GA107 WPR facts (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: build GA107 WPR facts test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_wpr_ga107_facts.cpp \
+            -o test_nv_gsp_wpr_ga107_facts
+
+      - name: run GA107 WPR facts test
+        run: ./test_nv_gsp_wpr_ga107_facts
