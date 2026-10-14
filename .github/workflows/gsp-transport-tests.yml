@@ -62,3 +62,14 @@ jobs:
 
       - name: run GSP MSGQ TX test
         run: ./test_nv_gsp_queue_tx
+
+      - name: build PGSP queue register test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_queue_regs.cpp \
+            -o test_nv_gsp_queue_regs
+
+      - name: run PGSP queue register test
+        run: ./test_nv_gsp_queue_regs
