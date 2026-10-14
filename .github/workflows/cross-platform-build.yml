@@ -118,6 +118,17 @@ jobs:
       - name: run sink GGTT planner test
         run: ./build/host/test_intel_sink_ggtt_manual
 
+      - name: build NVIDIA sink peer IOVM test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_sink_peer.cpp \
+            -o build/host/test_nv_sink_peer_manual
+
+      - name: run NVIDIA sink peer IOVM test
+        run: ./build/host/test_nv_sink_peer_manual
+
   macos-kext:
     name: macos kext + userspace build
     runs-on: macos-latest
