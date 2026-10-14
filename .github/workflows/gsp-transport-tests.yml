@@ -216,3 +216,14 @@ jobs:
 
       - name: run GSP Radix3 firmware image test
         run: ./test_nv_gsp_radix3
+
+      - name: build GSP .fwimage container test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_fw_container.cpp \
+            -o test_nv_gsp_fw_container
+
+      - name: run GSP .fwimage container test
+        run: ./test_nv_gsp_fw_container
