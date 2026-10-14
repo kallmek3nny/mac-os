@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: MIT
-// Opt-in runtime owner for the still-unmapped Intel/3050 sink backing store.
+// Opt-in runtime owner for the staged Intel/3050 sink backing store.
 #ifndef INTEL_SINK_CANDIDATE_SERVICE_HPP
 #define INTEL_SINK_CANDIDATE_SERVICE_HPP
 
 #include <IOKit/IOService.h>
 #include <IOKit/IOBufferMemoryDescriptor.h>
+#include <IOKit/IODMACommand.h>
 #include <IOKit/pci/IOPCIDevice.h>
 
 #include "IntelGpuId.hpp"
 #include "IntelFramebuffer.hpp"
 #include "IntelSinkCandidate.hpp"
+#include "IntelSinkGgtt.hpp"
 
 // Allocation constraint only. Clearing the low twelve bits requests page
 // alignment; no peer-DMA magnitude claim is made from this mask.
@@ -31,10 +33,22 @@ public:
 private:
     IOPCIDevice *fPCIDevice;
     IOBufferMemoryDescriptor *fBacking;
+    IODMACommand *fIntelDMA;
+    IOMemoryMap *fBarMap;
+    volatile UInt8 *fMMIO;
+    UInt64 fBarBytes;
+    UInt64 *fSavedPtes;
+    UInt32 fSavedPteCount;
+    UInt32 fMappedPteCount;
+    UInt32 fMappedFirstPte;
     bool fPrepared;
+    bool fDMABound;
+    bool fOpened;
 
+    void releaseGgtt(void);
     void releaseBacking(void);
     void publishNotReady(void);
+    bool acceleratorPresent(void);
 };
 
 #endif // INTEL_SINK_CANDIDATE_SERVICE_HPP

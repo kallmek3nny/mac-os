@@ -18,8 +18,9 @@ INSTALL_DIR  := /Library/Extensions
 # The existing probes remain read-only. IntelGtBringup is a separate,
 # explicitly opt-in Tiger Lake hardware writer (iggt-bringup=1/2/3).
 # No boot argument means it declines start before touching PCI/MMIO.
-# IntelSinkCandidateService is also opt-in (igsink-candidate=1), but allocates
-# memory only: it has no GPU register write path and does not map the GGTT.
+# IntelSinkCandidateService is also opt-in: igsink-candidate=1 permits the
+# backing allocation, while GGTT PTE writes require the additional independent
+# igsink-ggtt-map=1 gate. Peer-DMA mapping and plane programming stay disabled.
 # This is an experimental BCS0 execution backend, not a Metal driver.
 #
 SOURCES      := NV3050Probe.cpp IntelDisplayProbe.cpp IntelFbPresentProbe.cpp \
