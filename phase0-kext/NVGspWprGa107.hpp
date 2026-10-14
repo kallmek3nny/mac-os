@@ -14,7 +14,7 @@
 #define NV_GSP_GA107_WPR_POLICY_BAD_IMAGE_SIZE      6u
 #define NV_GSP_GA107_WPR_POLICY_UNDERFLOW           7u
 #define NV_GSP_GA107_WPR_POLICY_OVERFLOW            8u
-#define NV_GSP_GA107_WPR_POLICY_BAD_LAYOUT          9u
+#define NV_GSP_GA107_WPR_POLICY_BAD_LAYOUT           9u
 #define NV_GSP_GA107_WPR_POLICY_LIMIT               10u
 
 // Source-backed GA107 / TU102-through-Ada bare-metal policy.
@@ -242,8 +242,7 @@ static inline NVGspWprU32 nvGspPlanGa107ColdBootWpr(const NVGspGa107WprInput *in
     if (staged.layout.gspFwOffset != gspFwOffset ||
         staged.layout.gspFwWprEnd != wprEnd ||
         staged.layout.frtsOffset != frtsOffset ||
-        staged.layout.bootBinOffset != bootBinOffset ||
-        staged.layout.wprEndMargin /* no such field; keep compile-time drift visible */)
+        staged.layout.bootBinOffset != bootBinOffset)
         return NV_GSP_GA107_WPR_POLICY_BAD_LAYOUT;
 
     *out = staged;
