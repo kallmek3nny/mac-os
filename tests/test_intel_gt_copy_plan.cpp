@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstring>
 #include "IntelGtCopyPlan.hpp"
+#include "IntelGtBlitABI.h"
 
 static int gChecks = 0;
 static int gFailures = 0;
@@ -58,9 +59,26 @@ static void testSurfaceExtent(void)
     check("row wider than pitch refused", !igGtCopy32SurfaceBytes(2u,1u,4u,&bytes));
 }
 
+static void testAbiCeiling(void)
+{
+    std::printf("\n2. fixed ABI ceiling\n");
+    checkU32("ABI version", IGGT_COPY32_ABI_VERSION, 2u);
+    checkU32("ABI bytes", IGGT_COPY32_MAX_BYTES, 65536u);
+    IGCopyU64 bytes=0;
+    check("128x128 pitch512 extent succeeds", igGtCopy32SurfaceBytes(128u,128u,512u,&bytes));
+    checkU64("128x128 occupies whole ABI", bytes, 65536ull);
+
+    IGGtCopy32Chunk chunk={};
+    checkU32("128x128 first band succeeds",
+             igGtCopy32PlanChunk(128u,128u,512u,0u,4096u,&chunk), IG_GTCP_PLAN_OK);
+    checkU32("128x128 rows per band", chunk.rows, 8u);
+    checkU32("128x128 first band fills scratch", chunk.usedBytes, 4096u);
+    checkU32("128x128 needs 16 retired bands", 128u/chunk.rows, 16u);
+}
+
 static void testOnePageChunk(void)
 {
-    std::printf("\n2. exact one-page copy\n");
+    std::printf("\n3. exact one-page copy\n");
     IGGtCopy32Chunk chunk = {};
     IGCopyU32 verdict = igGtCopy32PlanChunk(32u,32u,128u,0u,4096u,&chunk);
     checkU32("plan succeeds", verdict, IG_GTCP_PLAN_OK);
@@ -71,7 +89,7 @@ static void testOnePageChunk(void)
 
 static void testMultiChunk(void)
 {
-    std::printf("\n3. multi-page surface over reused 4 KiB scratch\n");
+    std::printf("\n4. multi-page surface over reused 4 KiB scratch\n");
     IGGtCopy32Chunk chunk = {};
 
     checkU32("64x64 chunk0 succeeds",
@@ -94,7 +112,7 @@ static void testMultiChunk(void)
 
 static void testPaddedBands(void)
 {
-    std::printf("\n4. padded row bands\n");
+    std::printf("\n5. padded row bands\n");
     IGGtCopy32Chunk chunk = {};
     checkU32("first padded band succeeds",
              igGtCopy32PlanChunk(100u,10u,512u,0u,4096u,&chunk), IG_GTCP_PLAN_OK);
@@ -111,7 +129,7 @@ static void testPaddedBands(void)
 
 static void testSingleRowBands(void)
 {
-    std::printf("\n5. maximum-pitch single-row bands\n");
+    std::printf("\n6. maximum-pitch single-row bands\n");
     IGGtCopy32Chunk chunk = {};
     checkU32("row0 succeeds",
              igGtCopy32PlanChunk(1u,3u,4096u,0u,4096u,&chunk), IG_GTCP_PLAN_OK);
@@ -128,7 +146,7 @@ static void testSingleRowBands(void)
 
 static void testRefusalsAtomic(void)
 {
-    std::printf("\n6. refusals are atomic\n");
+    std::printf("\n7. refusals are atomic\n");
     const IGGtCopy32Chunk poison = {0x1111111111111111ull,0x22222222u,0x33333333u};
     IGGtCopy32Chunk out;
 
@@ -163,7 +181,7 @@ static void testRefusalsAtomic(void)
 
 static void testVerdicts(void)
 {
-    std::printf("\n7. verdict family\n");
+    std::printf("\n8. verdict family\n");
     check("only OK succeeds", igGtCopy32PlanSucceeded(IG_GTCP_PLAN_OK));
     for (IGCopyU32 v=0u; v<IG_GTCP_PLAN_LIMIT; ++v) {
         if (v!=IG_GTCP_PLAN_OK) check("non-OK refuses", !igGtCopy32PlanSucceeded(v));
@@ -176,6 +194,7 @@ int main(void)
 {
     std::printf("IntelGtCopyPlan.hpp -- multi-submit 32-bpp surface chunking\n");
     testSurfaceExtent();
+    testAbiCeiling();
     testOnePageChunk();
     testMultiChunk();
     testPaddedBands();
