@@ -192,7 +192,6 @@ install: all
 	@echo "installed to $(INSTALL_DIR)/$(KEXT_BUNDLE)"
 
 uninstall: unload
-	-sudo kmutil unload -b $(BUNDLE_ID)
 	sudo rm -rf $(INSTALL_DIR)/$(KEXT_BUNDLE)
 
 load:
