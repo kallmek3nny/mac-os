@@ -96,6 +96,17 @@ jobs:
       - name: run multi-chunk copy planner test
         run: ./build/host/test_intel_gt_copy_plan_manual
 
+      - name: build staged sink candidate test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_intel_sink_candidate.cpp \
+            -o build/host/test_intel_sink_candidate_manual
+
+      - name: run staged sink candidate test
+        run: ./build/host/test_intel_sink_candidate_manual
+
   macos-kext:
     name: macos kext + userspace build
     runs-on: macos-latest
