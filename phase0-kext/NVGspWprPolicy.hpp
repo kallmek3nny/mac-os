@@ -66,6 +66,7 @@ struct NVGspGa107WprPolicyPlan {
     NVGspWprPolicyU64 calculatedHeapBytes;
     NVGspWprPolicyU64 maxPrescrubbedHeapBytes;
     NVGspWprPolicyU64 wprHeapBytes;
+    bool prescrubClampApplied;
     bool valid;
 };
 
@@ -120,8 +121,10 @@ static inline bool nvGspWprPolicyAlignUpMiB(NVGspWprPolicyU64 value,
 
 // Mirrors the normal, non-vGPU, no-registry-override GA107 first-cold-boot
 // policy. The caller supplies the pre/post sizes already computed by TU102's
-// placement math. This function deliberately refuses an impossible 256 MiB
-// pre-scrubbed window instead of reproducing unsigned subtraction underflow.
+// placement math. When both are zero, open RM deliberately disables the
+// pre-scrubbed-space clamp; recovery-margin code relies on that exact path.
+// When either is nonzero, this function refuses an impossible 256 MiB window
+// instead of reproducing unsigned subtraction underflow.
 static inline NVGspWprPolicyU32 nvGspPlanGa107FirstBootWprPolicy(
     const NVGspGa107WprPolicyInput *in,
     NVGspGa107WprPolicyPlan *out)
@@ -133,7 +136,8 @@ static inline NVGspWprPolicyU32 nvGspPlanGa107FirstBootWprPolicy(
     NVGspWprPolicyU64 prePost = 0ull;
     if (!nvGspWprPolicyAdd(in->preWprHeapBytes, in->postWprHeapBytes, &prePost))
         return NV_GSP_WPR_POLICY_OVERFLOW;
-    if (prePost >= NV_GSP_GA107_PRESCRUBBED_TOP_FB_BYTES)
+    const bool applyPrescrubClamp = prePost != 0ull;
+    if (applyPrescrubClamp && prePost >= NV_GSP_GA107_PRESCRUBBED_TOP_FB_BYTES)
         return NV_GSP_WPR_POLICY_PRESCRUB_TOO_SMALL;
 
     const NVGspWprPolicyU64 fbGiB =
@@ -156,14 +160,17 @@ static inline NVGspWprPolicyU32 nvGspPlanGa107FirstBootWprPolicy(
         heap = NV_GSP_GA107_MIN_WPR_HEAP_BYTES;
     const NVGspWprPolicyU64 calculatedHeap = heap;
 
-    const NVGspWprPolicyU64 prescrubRemaining =
-        NV_GSP_GA107_PRESCRUBBED_TOP_FB_BYTES - prePost;
-    const NVGspWprPolicyU64 maxPrescrubbedHeap =
-        (prescrubRemaining / NV_GSP_WPR_POLICY_MIB) * NV_GSP_WPR_POLICY_MIB;
-    if (heap > maxPrescrubbedHeap)
-        heap = maxPrescrubbedHeap;
-    if (!heap)
-        return NV_GSP_WPR_POLICY_ZERO_HEAP;
+    NVGspWprPolicyU64 maxPrescrubbedHeap = ~0ull;
+    if (applyPrescrubClamp) {
+        const NVGspWprPolicyU64 prescrubRemaining =
+            NV_GSP_GA107_PRESCRUBBED_TOP_FB_BYTES - prePost;
+        maxPrescrubbedHeap =
+            (prescrubRemaining / NV_GSP_WPR_POLICY_MIB) * NV_GSP_WPR_POLICY_MIB;
+        if (heap > maxPrescrubbedHeap)
+            heap = maxPrescrubbedHeap;
+        if (!heap)
+            return NV_GSP_WPR_POLICY_ZERO_HEAP;
+    }
 
     NVGspGa107WprPolicyPlan staged = {};
     staged.wprEndMarginBytes = NV_GSP_GA107_FIRST_BOOT_WPR_END_MARGIN_BYTES;
@@ -174,6 +181,7 @@ static inline NVGspWprPolicyU32 nvGspPlanGa107FirstBootWprPolicy(
     staged.calculatedHeapBytes = calculatedHeap;
     staged.maxPrescrubbedHeapBytes = maxPrescrubbedHeap;
     staged.wprHeapBytes = heap;
+    staged.prescrubClampApplied = applyPrescrubClamp;
     staged.valid = true;
     *out = staged;
     return NV_GSP_WPR_POLICY_OK;
