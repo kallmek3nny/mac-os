@@ -140,6 +140,21 @@
 			<key>IOProbeScore</key>
 			<integer>99600</integer>
 		</dict>
+		<key>NVGspRmImageStageService</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>local.nv3050.NV3050Probe</string>
+			<key>IOClass</key>
+			<string>NVGspRmImageStageService</string>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+			<key>IOPCIMatch</key>
+			<string>0x25a210de</string>
+			<key>IOMatchCategory</key>
+			<string>NVGspRmImageStageService</string>
+			<key>IOProbeScore</key>
+			<integer>99500</integer>
+		</dict>
 		<key>IntelDisplayProbe</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
