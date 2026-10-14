@@ -23,12 +23,15 @@ INSTALL_DIR  := /Library/Extensions
 # GGTT PTE writes, and igsink-peer-map=1 additionally permits mapping that SAME
 # backing through the RTX 3050 provider's device-specific IOMapper. The
 # NVPeerMapperProbe itself remains read-only and only proves the mapper exists.
+# NVGspQueueObserver is independently gated by nvgsp-queue-observe=1 and only
+# reads the four PGSP RM queue pointer registers; it never changes PCI command
+# state, shared queue memory or GPU MMIO.
 # None of these gates submit NVIDIA GPU work or program the display plane.
 # This is an experimental BCS0 execution backend, not a Metal driver.
 #
-SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp IntelDisplayProbe.cpp \
-	IntelFbPresentProbe.cpp IntelSinkCandidateService.cpp IntelGtProbe.cpp \
-	IntelGtBringup.cpp IntelGtBlitter.cpp IntelGtBlitUserClient.cpp
+SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp NVGspQueueObserver.cpp \
+	IntelDisplayProbe.cpp IntelFbPresentProbe.cpp IntelSinkCandidateService.cpp \
+	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtBlitter.cpp IntelGtBlitUserClient.cpp
 OBJECTS      := $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 
 SDK          := $(shell xcrun --sdk macosx --show-sdk-path)
