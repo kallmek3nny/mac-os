@@ -110,6 +110,8 @@ bool NVGspWprFactsObserver::start(IOService *provider)
     UInt32 maxOffset=NV_GSP_GA107_USABLE_FB_MB_REG;
     if (NV_GSP_GA107_DISPLAY_FUSE_REG>maxOffset) maxOffset=NV_GSP_GA107_DISPLAY_FUSE_REG;
     if (NV_GSP_GA107_VGA_WORKSPACE_REG>maxOffset) maxOffset=NV_GSP_GA107_VGA_WORKSPACE_REG;
+    if (NV_PGC6_AON_SECURE_SCRATCH_GROUP_05_0_GFW_BOOT>maxOffset)
+        maxOffset=NV_PGC6_AON_SECURE_SCRATCH_GROUP_05_0_GFW_BOOT;
     if ((IOByteCount)maxOffset+sizeof(UInt32)>fBar0Map->getLength()) {
         setProperty("NVGspWprFactsRequiredBarOffset",(UInt64)maxOffset,32);
         publishState("bar0-too-short");
@@ -117,8 +119,27 @@ bool NVGspWprFactsObserver::start(IOService *provider)
         return true;
     }
 
-    // These are the only three device accesses after BAR mapping. All are
-    // reads from source-backed GA107/TU102-through-Ada registers.
+    // Usable-FB is a firmware-published fact. Take one bounded snapshot of GFW
+    // state first and refuse rather than polling inside start(). A later boot or
+    // operator retry can observe the completed state without this service ever
+    // blocking indefinitely.
+    const UInt32 gfwRaw=OSReadLittleInt32(
+        fBar0Base,NV_PGC6_AON_SECURE_SCRATCH_GROUP_05_0_GFW_BOOT);
+    if (gfwRaw==0xffffffffu) {
+        publishState("gfw-progress-dead-read");
+        registerService();
+        return true;
+    }
+    const UInt32 gfwProgress=nvGfwBootProgress(gfwRaw);
+    setProperty("NVGspWprFactsGfwProgress",(UInt64)gfwProgress,32);
+    if (!nvGfwBootComplete(gfwRaw)) {
+        publishState("gfw-not-complete");
+        registerService();
+        return true;
+    }
+
+    // These are the only three WPR-fact device accesses after the GFW snapshot.
+    // All are reads from source-backed GA107/TU102-through-Ada registers.
     NVGspGa107ObservedRegs regs={};
     regs.usableFbMb=OSReadLittleInt32(fBar0Base,NV_GSP_GA107_USABLE_FB_MB_REG);
     regs.displayFuse=OSReadLittleInt32(fBar0Base,NV_GSP_GA107_DISPLAY_FUSE_REG);
@@ -142,8 +163,11 @@ bool NVGspWprFactsObserver::start(IOService *provider)
         setProperty("NVGspWprFactsVgaWorkspaceRegisterValid",facts.vgaWorkspaceRegisterValid);
         setProperty("NVGspWprFactsVgaWorkspaceRegisterOffset",(UInt64)facts.vgaWorkspaceRegisterOffset,64);
         setProperty("NVGspWprFactsVgaWorkspacePolicyOffset",(UInt64)facts.vgaWorkspacePolicyOffset,64);
+        setProperty("NVGspWprFactsVbiosReservedOffset",(UInt64)facts.vgaWorkspacePolicyOffset,64);
+        setProperty("NVGspWprFactsVgaWorkspaceBytes",(UInt64)(facts.fbSizeBytes-facts.vgaWorkspacePolicyOffset),64);
         setProperty("NVGspWprFactsMmuLockValid",facts.mmuLockValid);
         setProperty("NVGspWprFactsMmuLockLo",(UInt64)facts.mmuLockLo,64);
+        setProperty("NVGspWprFactsAddressKind","framebuffer-byte-offset-read-only-not-installed");
         publishState("facts-plausible");
     }
     else {
