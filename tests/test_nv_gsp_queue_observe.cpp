@@ -19,6 +19,7 @@ static void testEmptyZeroSnapshot(void) {
     checkU32("command used",p.commandUsed,0u);
     checkU32("status available",p.statusAvailable,0u);
     check("all zero",p.allZero);
+    check("not all ones",!p.allOnes);
     check("no traffic evidence",!p.anyTrafficEvidence);
     check("counters plausible",p.countersPlausibleWithoutHistory);
 }
@@ -43,6 +44,7 @@ static void testCounterRollover(void) {
     checkU32("command delta",p.commandUsed,3u);
     checkU32("status delta",p.statusAvailable,3u);
     check("plausible",p.countersPlausibleWithoutHistory);
+    check("single all-ones counter is legal",!p.allOnes);
 }
 
 static void testAmbiguousResetShape(void) {
@@ -61,8 +63,9 @@ static void testDeadReadAndRefusals(void) {
     NVGspQueueSnapshot p;
     std::memset(&p,0xa5,sizeof(p));
     const NVGspQueueSnapshot before=p;
-    checkU32("dead command head",nvGspClassifyQueueSnapshot(0u,0xffffffffu,0u,0u,0u,&p),
-             NV_GSP_QUEUE_OBSERVE_DEAD_READ);
+    checkU32("all-four dead snapshot",
+        nvGspClassifyQueueSnapshot(0u,0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu,&p),
+        NV_GSP_QUEUE_OBSERVE_DEAD_READ);
     check("dead atomic",std::memcmp(&p,&before,sizeof(p))==0);
     checkU32("bad index",nvGspClassifyQueueSnapshot(8u,0u,0u,0u,0u,&p),
              NV_GSP_QUEUE_OBSERVE_BAD_INDEX);
