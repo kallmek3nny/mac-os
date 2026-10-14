@@ -128,3 +128,14 @@ jobs:
 
       - name: run GSP queue observation classifier
         run: ./test_nv_gsp_queue_observe
+
+      - name: build GSP shared queue memory test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_queue_memory.cpp \
+            -o test_nv_gsp_queue_memory
+
+      - name: run GSP shared queue memory test
+        run: ./test_nv_gsp_queue_memory
