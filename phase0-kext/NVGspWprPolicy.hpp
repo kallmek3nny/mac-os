@@ -33,10 +33,13 @@ using NVGspWprPolicyU64 = unsigned long long;
 // - Turing-Ada RM heap base is 8 MiB.
 // - heap growth is 96 KiB per rounded-up GiB of usable FB, then rounded to MiB.
 // - client allocation reserve is 48 KiB * 2048 channels = 96 MiB.
-// - LibOS3 bare-metal min/max heap bounds are 88/280 MiB.
+// - LibOS3 bare-metal minimum heap is 88 MiB.
+// - 280 MiB is the bare-metal REGISTRY-OVERRIDE maximum. It is intentionally
+//   not applied to the ordinary calculated path: open RM's normal path clamps
+//   only to the pre-scrubbed-space limit passed into _kgspCalculateFwHeapSize().
 // - GA107 has no scrubber ucode in this HAL generation, and its pre-scrubbed
-//   top-of-FB window is 256 MiB. When pre/post regions are nonzero, open RM
-//   clamps the heap to what remains in that window, in whole MiB.
+//   top-of-FB window is 256 MiB. With nonzero pre/post regions, open RM clamps
+//   the calculated heap to what remains in that window, in whole MiB.
 #define NV_GSP_GA107_FIRST_BOOT_WPR_END_MARGIN_BYTES  0ull
 #define NV_GSP_GA107_FRTS_BYTES                       (1ull * NV_GSP_WPR_POLICY_MIB)
 #define NV_GSP_GA107_NON_WPR_HEAP_BYTES               (1ull * NV_GSP_WPR_POLICY_MIB)
@@ -46,7 +49,7 @@ using NVGspWprPolicyU64 = unsigned long long;
 #define NV_GSP_GA107_HEAP_PER_GIB_BYTES               (96ull * NV_GSP_WPR_POLICY_KIB)
 #define NV_GSP_GA107_CLIENT_HEAP_BYTES                ((48ull * NV_GSP_WPR_POLICY_KIB) * 2048ull)
 #define NV_GSP_GA107_MIN_WPR_HEAP_BYTES               (88ull * NV_GSP_WPR_POLICY_MIB)
-#define NV_GSP_GA107_MAX_WPR_HEAP_BYTES               (280ull * NV_GSP_WPR_POLICY_MIB)
+#define NV_GSP_GA107_OVERRIDE_MAX_WPR_HEAP_BYTES      (280ull * NV_GSP_WPR_POLICY_MIB)
 
 struct NVGspGa107WprPolicyInput {
     NVGspWprPolicyU64 usableFbBytes;
@@ -60,7 +63,7 @@ struct NVGspGa107WprPolicyPlan {
     NVGspWprPolicyU64 nonWprHeapRawBytes;
     NVGspWprPolicyU64 usableFbGiB;
     NVGspWprPolicyU64 perFbHeapBytes;
-    NVGspWprPolicyU64 requestedHeapBytes;
+    NVGspWprPolicyU64 calculatedHeapBytes;
     NVGspWprPolicyU64 maxPrescrubbedHeapBytes;
     NVGspWprPolicyU64 wprHeapBytes;
     bool valid;
@@ -151,8 +154,7 @@ static inline NVGspWprPolicyU32 nvGspPlanGa107FirstBootWprPolicy(
 
     if (heap < NV_GSP_GA107_MIN_WPR_HEAP_BYTES)
         heap = NV_GSP_GA107_MIN_WPR_HEAP_BYTES;
-    if (heap > NV_GSP_GA107_MAX_WPR_HEAP_BYTES)
-        heap = NV_GSP_GA107_MAX_WPR_HEAP_BYTES;
+    const NVGspWprPolicyU64 calculatedHeap = heap;
 
     const NVGspWprPolicyU64 prescrubRemaining =
         NV_GSP_GA107_PRESCRUBBED_TOP_FB_BYTES - prePost;
@@ -169,7 +171,7 @@ static inline NVGspWprPolicyU32 nvGspPlanGa107FirstBootWprPolicy(
     staged.nonWprHeapRawBytes = NV_GSP_GA107_NON_WPR_HEAP_BYTES;
     staged.usableFbGiB = fbGiB;
     staged.perFbHeapBytes = perFbAligned;
-    staged.requestedHeapBytes = heap < maxPrescrubbedHeap ? heap : heap;
+    staged.calculatedHeapBytes = calculatedHeap;
     staged.maxPrescrubbedHeapBytes = maxPrescrubbedHeap;
     staged.wprHeapBytes = heap;
     staged.valid = true;
