@@ -38,3 +38,7 @@ jobs:
       - name: run VGA workspace test
         timeout-minutes: 2
         run: ./test_nv_gsp_wpr_vga
+
+      - name: enforce observer read-only contract
+        timeout-minutes: 2
+        run: python3 tests/test_nv_gsp_wpr_vga_observer_static.py
