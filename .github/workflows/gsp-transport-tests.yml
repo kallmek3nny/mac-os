@@ -172,3 +172,14 @@ jobs:
 
       - name: run GSP LibOS init handoff test
         run: ./test_nv_gsp_libos_init
+
+      - name: build complete GSP bootargs rehearsal
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_bootargs_rehearsal.cpp \
+            -o test_nv_gsp_bootargs_rehearsal
+
+      - name: run complete GSP bootargs rehearsal
+        run: ./test_nv_gsp_bootargs_rehearsal
