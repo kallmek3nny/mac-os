@@ -151,6 +151,17 @@ jobs:
       - name: run GA107 submission envelope test
         run: ./build/host/test_nv_ampere_submit_manual
 
+      - name: build GA107 tracking fence test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_ampere_fence.cpp \
+            -o build/host/test_nv_ampere_fence_manual
+
+      - name: run GA107 tracking fence test
+        run: ./build/host/test_nv_ampere_fence_manual
+
   macos-kext:
     name: macos kext + userspace build
     runs-on: macos-latest
