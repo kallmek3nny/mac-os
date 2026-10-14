@@ -162,6 +162,17 @@ jobs:
       - name: run GA107 tracking fence test
         run: ./build/host/test_nv_ampere_fence_manual
 
+      - name: build GA107 channel contract test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_ampere_channel.cpp \
+            -o build/host/test_nv_ampere_channel_manual
+
+      - name: run GA107 channel contract test
+        run: ./build/host/test_nv_ampere_channel_manual
+
   macos-kext:
     name: macos kext + userspace build
     runs-on: macos-latest
