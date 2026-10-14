@@ -129,6 +129,17 @@ jobs:
       - name: run sink peer DMA contract test
         run: ./build/host/test_intel_sink_peer_manual
 
+      - name: build Ampere copy rehearsal test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_ampere_copy.cpp \
+            -o build/host/test_nv_ampere_copy_manual
+
+      - name: run Ampere copy rehearsal test
+        run: ./build/host/test_nv_ampere_copy_manual
+
   macos-kext:
     name: macos kext + userspace build
     runs-on: macos-latest
