@@ -9,7 +9,7 @@
 #define NV_GSP_WPR_BOOT_DMA_BAD_ALLOCATION   3u
 #define NV_GSP_WPR_BOOT_DMA_BAD_SEGMENT      4u
 #define NV_GSP_WPR_BOOT_DMA_BAD_ALIGNMENT    5u
-#define NV_GSP_WPR_BOOT_DMA_SHORT_SEGMENT    6u
+#define NV_GSP_WPR_BOOT_DMA_LENGTH_MISMATCH  6u
 #define NV_GSP_WPR_BOOT_DMA_RANGE_OVERFLOW   7u
 #define NV_GSP_WPR_BOOT_DMA_LIMIT            8u
 
@@ -33,15 +33,15 @@ static inline bool nvGspWprBootDmaSucceeded(NVGspWprBootDmaU32 verdict)
 static inline const char *nvGspWprBootDmaVerdictName(NVGspWprBootDmaU32 verdict)
 {
     switch (verdict) {
-        case NV_GSP_WPR_BOOT_DMA_NOT_ATTEMPTED:  return "not-attempted";
-        case NV_GSP_WPR_BOOT_DMA_OK:             return "ok";
-        case NV_GSP_WPR_BOOT_DMA_NULL_OUTPUT:    return "null-output";
-        case NV_GSP_WPR_BOOT_DMA_BAD_ALLOCATION: return "bad-allocation";
-        case NV_GSP_WPR_BOOT_DMA_BAD_SEGMENT:    return "bad-segment";
-        case NV_GSP_WPR_BOOT_DMA_BAD_ALIGNMENT:  return "bad-alignment";
-        case NV_GSP_WPR_BOOT_DMA_SHORT_SEGMENT:  return "short-segment";
-        case NV_GSP_WPR_BOOT_DMA_RANGE_OVERFLOW: return "range-overflow";
-        default:                                 return "unknown";
+        case NV_GSP_WPR_BOOT_DMA_NOT_ATTEMPTED:   return "not-attempted";
+        case NV_GSP_WPR_BOOT_DMA_OK:              return "ok";
+        case NV_GSP_WPR_BOOT_DMA_NULL_OUTPUT:     return "null-output";
+        case NV_GSP_WPR_BOOT_DMA_BAD_ALLOCATION:  return "bad-allocation";
+        case NV_GSP_WPR_BOOT_DMA_BAD_SEGMENT:     return "bad-segment";
+        case NV_GSP_WPR_BOOT_DMA_BAD_ALIGNMENT:   return "bad-alignment";
+        case NV_GSP_WPR_BOOT_DMA_LENGTH_MISMATCH: return "length-mismatch";
+        case NV_GSP_WPR_BOOT_DMA_RANGE_OVERFLOW:  return "range-overflow";
+        default:                                  return "unknown";
     }
 }
 
@@ -74,8 +74,11 @@ static inline NVGspWprBootDmaU32 nvGspPlanWprBootDma(
     if ((segmentAddress & (NV_GSP_WPR_BOOT_DMA_PAGE_BYTES - 1ull)) != 0ull)
         return NV_GSP_WPR_BOOT_DMA_BAD_ALIGNMENT;
 
-    if (segmentBytes < allocationBytes)
-        return NV_GSP_WPR_BOOT_DMA_SHORT_SEGMENT;
+    // IODMACommand is bound to exactly allocationBytes. A different length is
+    // surprising enough to refuse rather than silently widening/narrowing the
+    // address contract Booter will later receive.
+    if (segmentBytes != allocationBytes)
+        return NV_GSP_WPR_BOOT_DMA_LENGTH_MISMATCH;
 
     // Prove both the allocation and the exact unpadded firmware source range
     // are representable without wrapping the 64-bit device address.
