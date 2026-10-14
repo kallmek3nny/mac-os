@@ -146,6 +146,36 @@ static void heapClamp(void)
     checkU64("final heap clamps to 104 MiB",p.heapBytes,104ull*NV_GSP_GA107_MIB_BYTES);
 }
 
+static void heapMinimumBoundary(void)
+{
+    const NVGspWprU64 fb=0x0000000100000000ull;
+
+    NVGspGa107HeapPlan poison;
+    std::memset(&poison,0x3C,sizeof(poison));
+    NVGspGa107HeapPlan before=poison;
+
+    // pre-WPR is fixed at 2 MiB. A 166 MiB post-WPR span leaves exactly
+    // 88 MiB inside the 256 MiB pre-scrubbed window. Open RM requires
+    // minGspFwHeapSizeMB < maxGspFwHeapSizeMB, so equality is invalid.
+    checkU32("88 MiB scrubbed max is refused",
+             nvGspGa107PlanFwHeap(fb,
+                                  fb-166ull*NV_GSP_GA107_MIB_BYTES,
+                                  &poison),
+             NV_GSP_GA107_WPR_POLICY_UNDERFLOW);
+    checkSame("88 MiB refusal atomic",&poison,&before,sizeof(poison));
+
+    NVGspGa107HeapPlan p={};
+    checkU32("89 MiB scrubbed max is accepted",
+             nvGspGa107PlanFwHeap(fb,
+                                  fb-165ull*NV_GSP_GA107_MIB_BYTES,
+                                  &p),
+             NV_GSP_GA107_WPR_POLICY_OK);
+    checkU64("89 MiB scrubbed max",p.maxPrescrubbedHeapBytes,
+             89ull*NV_GSP_GA107_MIB_BYTES);
+    checkU64("89 MiB final heap",p.heapBytes,
+             89ull*NV_GSP_GA107_MIB_BYTES);
+}
+
 static void refusalsAreAtomic(void)
 {
     NVGspGa107WprPlan poison;
@@ -202,6 +232,7 @@ int main(void)
     normalColdBoot();
     mmuLockWins();
     heapClamp();
+    heapMinimumBoundary();
     refusalsAreAtomic();
 
     std::printf("\n%d checks, %d failures\n",gChecks,gFailures);
