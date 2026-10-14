@@ -140,6 +140,17 @@ jobs:
       - name: run Ampere copy rehearsal test
         run: ./build/host/test_nv_ampere_copy_manual
 
+      - name: build GA107 submission envelope test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_ampere_submit.cpp \
+            -o build/host/test_nv_ampere_submit_manual
+
+      - name: run GA107 submission envelope test
+        run: ./build/host/test_nv_ampere_submit_manual
+
   macos-kext:
     name: macos kext + userspace build
     runs-on: macos-latest
