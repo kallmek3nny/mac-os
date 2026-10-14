@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "../phase0-kext/NVGspWprBootUcode.hpp"
+#include "../phase0-kext/NVGspWprBootDma.hpp"
 
 static int gChecks=0;
 static int gFailures=0;
@@ -13,6 +14,15 @@ static void checkU32(const char *name, NVU32 got, NVU32 expected)
     if (got==expected) { std::printf("ok  %s = 0x%X\n",name,got); return; }
     ++gFailures;
     std::printf("FAIL %s got 0x%X expected 0x%X\n",name,got,expected);
+}
+
+static void checkU64(const char *name, unsigned long long got,
+                     unsigned long long expected)
+{
+    ++gChecks;
+    if (got==expected) { std::printf("ok  %s = 0x%llX\n",name,got); return; }
+    ++gFailures;
+    std::printf("FAIL %s got 0x%llX expected 0x%llX\n",name,got,expected);
 }
 
 static void checkBool(const char *name, bool got, bool expected)
@@ -93,7 +103,6 @@ static void testHappy(void)
     checkU32("manifest offset",p.manifestOffset,0x0100u);
     checkU32("structural ucode verdict",(NVU32)p.ucodeVerdict,(NVU32)NV_RISCV_UCODE_OK);
 
-    // The old Phase-5 transfer slice is intentionally NOT this WPR image.
     checkBool("WPR source is larger than IMEM transfer slice",
               p.sourceBytes>NV_RISCV_GA107_BL_BOOTLOADER_SIZE,true);
     checkBool("monitor code precedes old transfer slice",
@@ -140,11 +149,60 @@ static void testRefusalAtomicity(void)
     checkU32("null output",nvGspPlanWprBootUcode(gBlob,len,nullptr),NV_GSP_WPR_BOOT_NULL_OUTPUT);
 }
 
+static void testDmaContract(void)
+{
+    const unsigned long long base=0x0000123456700000ull;
+    NVGspWprBootDmaPlan p={};
+    checkU32("single contiguous GA107 IOVA",
+             nvGspPlanWprBootDma(base,0x6000ull,0x5801ull,0x6000ull,&p),
+             NV_GSP_WPR_BOOT_DMA_OK);
+    checkBool("DMA plan valid",p.valid,true);
+    checkU64("DMA base",p.gpuAddress,base);
+    checkU64("DMA exact source bytes",p.sourceBytes,0x5801ull);
+    checkU64("DMA allocation bytes",p.allocationBytes,0x6000ull);
+
+    checkU32("above Phase-5 41-bit policy remains admissible",
+             nvGspPlanWprBootDma(0x0000040000000000ull,0x6000ull,
+                                 0x5801ull,0x6000ull,&p),
+             NV_GSP_WPR_BOOT_DMA_OK);
+
+    NVGspWprBootDmaPlan poison;
+    std::memset(&poison,0xA5,sizeof(poison));
+    NVGspWprBootDmaPlan before=poison;
+
+    checkU32("DMA source exceeds allocation",
+             nvGspPlanWprBootDma(0x1000ull,0x6000ull,0x7000ull,0x6000ull,&poison),
+             NV_GSP_WPR_BOOT_DMA_BAD_ALLOCATION);
+    checkSame("bad DMA allocation atomic",&poison,&before,sizeof(poison));
+
+    checkU32("DMA base must be page aligned",
+             nvGspPlanWprBootDma(0x1001ull,0x6000ull,0x5801ull,0x6000ull,&poison),
+             NV_GSP_WPR_BOOT_DMA_BAD_ALIGNMENT);
+    checkSame("bad DMA alignment atomic",&poison,&before,sizeof(poison));
+
+    checkU32("short single segment refused",
+             nvGspPlanWprBootDma(0x1000ull,0x5fffull,0x5801ull,0x6000ull,&poison),
+             NV_GSP_WPR_BOOT_DMA_LENGTH_MISMATCH);
+    checkSame("short DMA segment atomic",&poison,&before,sizeof(poison));
+
+    checkU32("long single segment also refused",
+             nvGspPlanWprBootDma(0x1000ull,0x7000ull,0x5801ull,0x6000ull,&poison),
+             NV_GSP_WPR_BOOT_DMA_LENGTH_MISMATCH);
+    checkSame("long DMA segment atomic",&poison,&before,sizeof(poison));
+
+    checkU32("64-bit DMA range overflow refused",
+             nvGspPlanWprBootDma(0xfffffffffffff000ull,0x6000ull,
+                                 0x5801ull,0x6000ull,&poison),
+             NV_GSP_WPR_BOOT_DMA_RANGE_OVERFLOW);
+    checkSame("DMA overflow atomic",&poison,&before,sizeof(poison));
+}
+
 int main(void)
 {
     testHappy();
     testPageRounding();
     testRefusalAtomicity();
+    testDmaContract();
 
     std::printf("\n%d checks, %d failures\n",gChecks,gFailures);
     return gFailures?1:0;
