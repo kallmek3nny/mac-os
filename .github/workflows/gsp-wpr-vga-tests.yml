@@ -1,0 +1,40 @@
+name: GSP WPR VGA workspace tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  wpr-vga:
+    name: WPR VGA workspace (${{ matrix.os }})
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: build VGA workspace test
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_wpr_vga.cpp \
+            -o test_nv_gsp_wpr_vga
+
+      - name: run VGA workspace test
+        timeout-minutes: 2
+        run: ./test_nv_gsp_wpr_vga
