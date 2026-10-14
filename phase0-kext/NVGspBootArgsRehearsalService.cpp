@@ -188,7 +188,7 @@ bool NVGspBootArgsRehearsalService::start(IOService *provider)
         numberProperty(queue,"NVGspQueueBackingInitPageTableEntryCount",pteCount);
     queue->release();
 
-    if (!queueReady || !shared || flags>~0ull || cmdOff>~0ull || statusOff>~0ull ||
+    if (!queueReady || !shared ||
         hdr>0xffffffffull || minBytes>0xffffffffull || maxBytes>0xffffffffull ||
         headerAlign>0xffffffffull || elementAlign>0xffffffffull || pteCount>0xffffffffull) {
         publishState("queue-init-args-unavailable");
