@@ -1,0 +1,32 @@
+name: Intel persistent surface runtime install safety
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-install-shape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: verify integrated runtime safety shape
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run(
+              ["python3", "tests/test_intel_gt_surface_runtime_install_shape.py"],
+              check=True,
+              timeout=30,
+          )
+          PY
