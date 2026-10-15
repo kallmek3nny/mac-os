@@ -9,6 +9,9 @@
 #include <IOKit/IOLib.h>
 #include <IOKit/IOLocks.h>
 #include <IOKit/IOUserClient.h>
+
+struct IntelGtSurfaceRuntimeState;
+
 class IntelGtBringup : public IOService {
     OSDeclareDefaultStructors(IntelGtBringup)
 public:
@@ -33,6 +36,7 @@ private:
     IOMemoryMap *fBarMap, *fPoolMap;
     IOBufferMemoryDescriptor *fPool;
     IODMACommand *fDMA;
+    IntelGtSurfaceRuntimeState *fSurfaceRuntime;
     volatile UInt8 *fMMIO;
     UInt8 *fCPU;
     UInt64 fBarBytes, fBusAddress, fSavedPtes[PoolPages];
@@ -51,6 +55,8 @@ private:
     void releaseWake(void);
     bool claimEngine(void);
     bool allocateMemory(void);
+    bool stagePersistentSurface(void);
+    bool releasePersistentSurface(void);
     bool installGGTT(void);
     bool buildContext(void);
     bool submitCopy(void);
