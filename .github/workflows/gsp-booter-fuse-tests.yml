@@ -38,3 +38,8 @@ jobs:
       - name: run Booter fuse observer test
         timeout-minutes: 2
         run: ./test_nv_gsp_booter_fuse
+
+      - name: verify runtime observer is read-only
+        shell: bash
+        timeout-minutes: 2
+        run: python3 tests/test_nv_gsp_booter_fuse_observer_static.py
