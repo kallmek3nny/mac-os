@@ -1,0 +1,58 @@
+name: GSP Booter run-plan tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  booter-run-plan:
+    name: Booter run plan (${{ matrix.os }}, ${{ matrix.compiler }})
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: g++
+          - os: ubuntu-latest
+            compiler: clang++
+          - os: macos-latest
+            compiler: clang++
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: build pure GA107 Booter run-plan test
+        shell: bash
+        timeout-minutes: 2
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import subprocess
+          subprocess.run([
+              os.environ["CXX"], "-std=c++17", "-O2",
+              "-Wall", "-Wextra", "-Wpedantic", "-Werror",
+              "-I", "phase0-kext",
+              "tests/test_nv_gsp_booter_run_plan.cpp",
+              "-o", "test_nv_gsp_booter_run_plan"
+          ], check=True, timeout=30)
+          PY
+
+      - name: run pure GA107 Booter run-plan test
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run(["./test_nv_gsp_booter_run_plan"], check=True, timeout=30)
+          PY
