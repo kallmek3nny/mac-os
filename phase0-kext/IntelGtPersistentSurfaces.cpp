@@ -8,29 +8,16 @@
 // retirement before the queue lock is released.
 #include "IntelGtBringup.hpp"
 #include "IntelGtBlitter.hpp"
-#include "IntelGtSurfaceTxn.hpp"
+#include "IntelGtSurfaceRuntime.hpp"
 
 #include <libkern/libkern.h>
 
 namespace {
-constexpr UInt32 SurfacePages = IG_GTS_ARENA_LEAVES_448;
 constexpr UInt32 PageBytes = IG_GTS_PAGE_BYTES_POLICY_4096;
-
-// Keep this definition token-for-token aligned with IntelGtBringupSurface.cpp.
-// It is the private runtime owned by the same IntelGtBringup instance, not a
-// second PCI/accelerator personality.
-struct SurfaceRuntimeLayout {
-    IOBufferMemoryDescriptor *backing;
-    IODMACommand *dma;
-    UInt8 *cpu;
-    bool dmaBound;
-    bool installed;
-    bool unsafe;
-    UInt32 segmentCount;
-    IGGtSurfacePteTxn txn;
-    IGSurfaceU64 snapshot[SurfacePages];
-    IGSurfaceU64 installedPtes[SurfacePages];
-};
+// These are already-owned addresses in IntelGtBringup's private 32-page pool.
+// Userspace can neither select nor observe them.
+constexpr UInt32 FenceGpuAddress = 19u * PageBytes;
+constexpr UInt32 BatchPoolOffset = 24u * PageBytes;
 
 inline void surfaceCpuBarrier()
 {
@@ -92,7 +79,7 @@ IOReturn IntelGtBringup::allocatePersistentSurface32(UInt32 width,
 
     IOLockLock(fQueueLock);
     IOReturn result=kIOReturnNotReady;
-    SurfaceRuntimeLayout *state=reinterpret_cast<SurfaceRuntimeLayout *>(fSurfaceRuntime);
+    IntelGtSurfaceRuntimeState *state=fSurfaceRuntime;
     if (fStage==3 && fCompleted && fRetired && !fFaulted && fCPU &&
         state && state->installed && !state->unsafe && state->cpu) {
         IGSurfaceU64 stagedHandle=0ull;
@@ -136,7 +123,7 @@ IOReturn IntelGtBringup::freePersistentSurface(UInt64 handle)
 
     IOLockLock(fQueueLock);
     IOReturn result=kIOReturnNotReady;
-    SurfaceRuntimeLayout *state=reinterpret_cast<SurfaceRuntimeLayout *>(fSurfaceRuntime);
+    IntelGtSurfaceRuntimeState *state=fSurfaceRuntime;
     if (fStage==3 && fCompleted && fRetired && !fFaulted && fCPU &&
         state && state->installed && !state->unsafe && state->cpu) {
         IGGtSurfaceHandleView view={};
@@ -173,7 +160,7 @@ IOReturn IntelGtBringup::fillPersistentSurface32(UInt64 handle, UInt32 color)
 
     IOLockLock(fQueueLock);
     IOReturn result=kIOReturnNotReady;
-    SurfaceRuntimeLayout *state=reinterpret_cast<SurfaceRuntimeLayout *>(fSurfaceRuntime);
+    IntelGtSurfaceRuntimeState *state=fSurfaceRuntime;
     if (fStage==3 && fCompleted && fRetired && !fFaulted && fCPU &&
         state && state->installed && !state->unsafe && state->cpu) {
         IGGtSurfaceHandleView view={};
@@ -185,9 +172,9 @@ IOReturn IntelGtBringup::fillPersistentSurface32(UInt64 handle, UInt32 color)
         } else {
             const GTBlitSurface32 dest={plan.gpuAddress,plan.allocationBytes,plan.pitch};
             if (++fSequence==0u) ++fSequence;
-            if (!gtEncodeFill32(reinterpret_cast<UInt32 *>(fCPU+24u*4096u),16,
+            if (!gtEncodeFill32(reinterpret_cast<UInt32 *>(fCPU+BatchPoolOffset),16,
                                 dest,plan.width,plan.height,color,
-                                19u*4096u,fSequence)) {
+                                FenceGpuAddress,fSequence)) {
                 result=kIOReturnBadArgument;
             } else if (!submitBatch(fSequence)) {
                 fFaulted=true;
@@ -210,7 +197,7 @@ IOReturn IntelGtBringup::copyPersistentSurface32(UInt64 sourceHandle,
 
     IOLockLock(fQueueLock);
     IOReturn result=kIOReturnNotReady;
-    SurfaceRuntimeLayout *state=reinterpret_cast<SurfaceRuntimeLayout *>(fSurfaceRuntime);
+    IntelGtSurfaceRuntimeState *state=fSurfaceRuntime;
     if (fStage==3 && fCompleted && fRetired && !fFaulted && fCPU &&
         state && state->installed && !state->unsafe && state->cpu) {
         IGGtSurfaceHandleView srcView={}, dstView={};
@@ -238,9 +225,9 @@ IOReturn IntelGtBringup::copyPersistentSurface32(UInt64 sourceHandle,
                 const GTBlitSurface32 src={srcPlan.gpuAddress,srcPlan.allocationBytes,srcPlan.pitch};
                 const GTBlitSurface32 dst={dstPlan.gpuAddress,dstPlan.allocationBytes,dstPlan.pitch};
                 if (++fSequence==0u) ++fSequence;
-                if (!gtEncodeCopy32(reinterpret_cast<UInt32 *>(fCPU+24u*4096u),16,
+                if (!gtEncodeCopy32(reinterpret_cast<UInt32 *>(fCPU+BatchPoolOffset),16,
                                     src,dst,srcPlan.width,srcPlan.height,
-                                    19u*4096u,fSequence)) {
+                                    FenceGpuAddress,fSequence)) {
                     result=kIOReturnBadArgument;
                 } else if (!submitBatch(fSequence)) {
                     fFaulted=true;
