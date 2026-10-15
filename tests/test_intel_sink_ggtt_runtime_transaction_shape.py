@@ -23,7 +23,7 @@ for token in required_header:
     assert token in HPP, f"missing runtime transaction field/API: {token}"
 
 required_service = [
-    'PE_parse_boot_argn("igsink-ggtt-map"',
+    '"igsink-ggtt-map"',
     'acceleratorPresent() || !fPCIDevice->open(this)',
     'pteIndex>=service->fGgttEntries',
     'entryOffset>service->fBarBytes',
@@ -114,10 +114,13 @@ free_release = SERVICE.index('(void)releaseGgtt();', free_guard_return)
 assert free_fn < free_guard < free_guard_return < free_release
 
 # Preserve the existing exact-device/ownership/write opt-ins and keep display
-# programming outside this runtime integration milestone.
+# programming outside this runtime integration milestone. The map boot-arg is
+# deliberately checked by exact literal rather than source formatting because
+# the call is line-wrapped in the service.
 assert 'return igIsSupportedDevice(vendor,device) ? result : nullptr;' in SERVICE
 assert 'PE_parse_boot_argn("igsink-candidate"' in SERVICE
-assert 'PE_parse_boot_argn("igsink-ggtt-map"' in SERVICE
+assert 'PE_parse_boot_argn(' in SERVICE
+assert '"igsink-ggtt-map"' in SERVICE
 assert 'IGSinkCandidatePlaneProgrammed",false' in SERVICE
 
 print("intel sink GGTT runtime transaction/quarantine shape: ok")
