@@ -9,6 +9,7 @@
 #include <IOKit/IOLib.h>
 #include <IOKit/IOLocks.h>
 #include <IOKit/IOUserClient.h>
+#include "IntelGtSurfaceHandles.hpp"
 
 struct IntelGtSurfaceRuntimeState;
 
@@ -45,6 +46,7 @@ private:
     IOBufferMemoryDescriptor *fPool;
     IODMACommand *fDMA;
     IntelGtSurfaceRuntimeState *fSurfaceRuntime;
+    IGGtSurfaceHandleArena fSurfaceHandles = {};
     volatile UInt8 *fMMIO;
     UInt8 *fCPU;
     UInt64 fBarBytes, fBusAddress, fSavedPtes[PoolPages];
