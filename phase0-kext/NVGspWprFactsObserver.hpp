@@ -7,6 +7,7 @@
 #include <IOKit/IOMemoryDescriptor.h>
 
 #include "NVDecode.hpp"
+#include "NVGspBooterFuse.hpp"
 #include "NVGspWprGa107Facts.hpp"
 
 class NVGspWprFactsObserver : public IOService
