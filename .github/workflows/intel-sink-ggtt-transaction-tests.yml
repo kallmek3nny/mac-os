@@ -1,0 +1,45 @@
+name: Intel sink GGTT transaction tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ggtt-transaction:
+    name: sink GGTT transaction (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: compile transaction tests
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run([
+              "c++", "-std=c++17", "-O2", "-Wall", "-Wextra", "-Wpedantic", "-Werror",
+              "-Iphase0-kext", "tests/test_intel_sink_ggtt_txn.cpp",
+              "-o", "/tmp/test-intel-sink-ggtt-txn"
+          ], check=True, timeout=30)
+          PY
+
+      - name: run transaction tests
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run(["/tmp/test-intel-sink-ggtt-txn"], check=True, timeout=30)
+          PY
