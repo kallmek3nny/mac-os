@@ -56,3 +56,14 @@ jobs:
           import subprocess
           subprocess.run(["/tmp/test-intel-plane-live-observe"], check=True, timeout=30)
           PY
+
+      - name: verify runtime read-only wiring shape
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run([
+              "python3", "tests/test_intel_plane_live_observer_shape.py"
+          ], check=True, timeout=30)
+          PY
