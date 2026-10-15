@@ -29,6 +29,14 @@ public:
     IOReturn fillSurface32(void *destination,
                           UInt32 width, UInt32 height, UInt32 pitch,
                           UInt32 destinationBytes, UInt32 color);
+
+    // Persistent arena entry points. Userspace supplies/receives opaque handles
+    // only; resolution to a private-PPGTT address happens under fQueueLock.
+    IOReturn allocatePersistentSurface32(UInt32 width, UInt32 height, UInt32 pitch,
+                                         UInt64 *outHandle);
+    IOReturn freePersistentSurface(UInt64 handle);
+    IOReturn fillPersistentSurface32(UInt64 handle, UInt32 color);
+    IOReturn copyPersistentSurface32(UInt64 sourceHandle, UInt64 destinationHandle);
 private:
     enum { PoolBytes = 128 * 1024, PoolPages = PoolBytes / 4096 };
     IOLock *fQueueLock;
