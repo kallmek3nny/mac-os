@@ -33,7 +33,10 @@ static std::vector<unsigned char> load(const char *path)
 
 static void put32(std::vector<unsigned char> &b,std::size_t off,std::uint32_t v)
 {
-    if (off+4>b.size()) std::abort();
+    if (off+4>b.size()) {
+        fail("put32 out of range");
+        return;
+    }
     b[off+0]=(unsigned char)(v>>0);
     b[off+1]=(unsigned char)(v>>8);
     b[off+2]=(unsigned char)(v>>16);
