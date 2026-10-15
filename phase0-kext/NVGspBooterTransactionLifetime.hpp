@@ -162,6 +162,76 @@ static inline bool nvGspBooterTransactionProgressValid(
     return true;
 }
 
+// A recovery plan crosses a trust boundary here. Its valid bit is not enough:
+// event-specific provenance and lifetime semantics must exactly match a state
+// the recovery planner can emit. Observation-only post-reset state may vary,
+// but it never changes backing retirement or retry authority.
+static inline bool nvGspBooterTransactionRecoveryEventSemanticsValid(
+    const NVGspBooterRecoveryPlan *recovery)
+{
+    if (!recovery)
+        return false;
+
+    switch (recovery->event) {
+    case NV_GSP_BOOTER_RECOVERY_EVENT_CORE_SELECT_TIMEOUT:
+    case NV_GSP_BOOTER_RECOVERY_EVENT_MEMORY_SCRUB_TIMEOUT:
+        return recovery->failureBeforeFirmwareDmaSubmission &&
+               !recovery->firmwareDmaWasSubmitted &&
+               !recovery->bootWasStarted &&
+               !recovery->firmwareDmaCompletionUncertain &&
+               !recovery->bootCompletionUncertain &&
+               !recovery->haltProven &&
+               !recovery->mailboxFailureObserved &&
+               !recovery->laterDmaIdleCanRetireFirmwareStaging &&
+               !recovery->laterDmaIdleRetirementObserved &&
+               !recovery->firmwareStagingMayStillBeReferenced &&
+               !recovery->wprMetaMayStillBeReferenced;
+
+    case NV_GSP_BOOTER_RECOVERY_EVENT_FIRMWARE_DMA_TIMEOUT:
+        return !recovery->failureBeforeFirmwareDmaSubmission &&
+               recovery->firmwareDmaWasSubmitted &&
+               !recovery->bootWasStarted &&
+               recovery->firmwareDmaCompletionUncertain ==
+                   !recovery->laterDmaIdleRetirementObserved &&
+               !recovery->bootCompletionUncertain &&
+               !recovery->haltProven &&
+               !recovery->mailboxFailureObserved &&
+               recovery->laterDmaIdleCanRetireFirmwareStaging &&
+               recovery->firmwareStagingMayStillBeReferenced ==
+                   !recovery->laterDmaIdleRetirementObserved &&
+               !recovery->wprMetaMayStillBeReferenced;
+
+    case NV_GSP_BOOTER_RECOVERY_EVENT_BOOT_HALT_TIMEOUT:
+        return !recovery->failureBeforeFirmwareDmaSubmission &&
+               recovery->firmwareDmaWasSubmitted &&
+               recovery->bootWasStarted &&
+               !recovery->firmwareDmaCompletionUncertain &&
+               recovery->bootCompletionUncertain &&
+               !recovery->haltProven &&
+               !recovery->mailboxFailureObserved &&
+               !recovery->laterDmaIdleCanRetireFirmwareStaging &&
+               !recovery->laterDmaIdleRetirementObserved &&
+               !recovery->firmwareStagingMayStillBeReferenced &&
+               recovery->wprMetaMayStillBeReferenced;
+
+    case NV_GSP_BOOTER_RECOVERY_EVENT_MAILBOX0_FAILURE:
+        return !recovery->failureBeforeFirmwareDmaSubmission &&
+               recovery->firmwareDmaWasSubmitted &&
+               recovery->bootWasStarted &&
+               !recovery->firmwareDmaCompletionUncertain &&
+               !recovery->bootCompletionUncertain &&
+               recovery->haltProven &&
+               recovery->mailboxFailureObserved &&
+               !recovery->laterDmaIdleCanRetireFirmwareStaging &&
+               !recovery->laterDmaIdleRetirementObserved &&
+               !recovery->firmwareStagingMayStillBeReferenced &&
+               recovery->wprMetaMayStillBeReferenced;
+
+    default:
+        return false;
+    }
+}
+
 static inline bool nvGspBooterTransactionRecoveryContractValid(
     const NVGspBooterExecSequencePlan *sequence,
     const NVGspBooterRecoveryPlan *recovery)
@@ -194,7 +264,7 @@ static inline bool nvGspBooterTransactionRecoveryContractValid(
         recovery->quarantineWprMeta != recovery->wprMetaMayStillBeReferenced)
         return false;
 
-    return true;
+    return nvGspBooterTransactionRecoveryEventSemanticsValid(recovery);
 }
 
 static inline bool nvGspBooterTransactionSuccessContractValid(
