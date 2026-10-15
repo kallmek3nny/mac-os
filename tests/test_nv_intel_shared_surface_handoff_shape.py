@@ -61,16 +61,17 @@ if text.count("staged.runtimeWriteAuthorized = false;") != 1:
     print("runtime write authorization must be assigned false exactly once")
     sys.exit(1)
 
-identity_gate = text.find("nvIntelSharedSurfaceIdentityPresent")
-copy_gate = text.find("nvIntelSharedSurfaceCopyContractValid")
-teardown_gate = text.find("nvIntelSharedSurfacePeerTeardownSequenceValid")
-premature_gate = text.find("NV_INTEL_HANDOFF_ERR_PREMATURE_INTEL")
-release_gate = text.find("staged.sharedBackingReleaseAuthorized = false;")
-assign = text.find("*out = staged;")
-if min(identity_gate, copy_gate, teardown_gate, premature_gate, release_gate, assign) < 0:
+planner = text.find("nvIntelSharedSurfaceHandoffPlan(")
+copy_gate = text.find("nvIntelSharedSurfaceCopyContractValid(copy)", planner)
+identity_gate = text.find("nvIntelSharedSurfaceIdentityPresent", planner)
+teardown_gate = text.find("nvIntelSharedSurfacePeerTeardownSequenceValid", planner)
+premature_gate = text.find("return NV_INTEL_HANDOFF_ERR_PREMATURE_INTEL;", planner)
+release_gate = text.find("staged.sharedBackingReleaseAuthorized = false;", planner)
+assign = text.find("*out = staged;", planner)
+if min(planner, copy_gate, identity_gate, teardown_gate, premature_gate, release_gate, assign) < 0:
     print("missing handoff ordering anchors")
     sys.exit(1)
-if not (copy_gate < identity_gate < teardown_gate < premature_gate < release_gate < assign):
+if not (planner < copy_gate < identity_gate < teardown_gate < premature_gate < release_gate < assign):
     print("shared-surface handoff safety gates are not in expected order")
     sys.exit(1)
 
