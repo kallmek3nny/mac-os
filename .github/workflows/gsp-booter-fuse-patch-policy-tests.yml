@@ -46,3 +46,13 @@ jobs:
           import subprocess
           subprocess.run(["./test_nv_gsp_booter_fuse_patch_policy"], check=True, timeout=30)
           PY
+
+      - name: verify private patch stage safety shape
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run([
+              "python3", "tests/test_nv_gsp_booter_fuse_patch_stage_shape.py"
+          ], check=True, timeout=30)
+          PY
