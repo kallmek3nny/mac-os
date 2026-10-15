@@ -4,7 +4,6 @@
 #include <cstring>
 
 static int fails=0;
-static void ck(bool ok,const char *s){if(!ok){std::printf("FAIL: %s\n",s);++fails;}}
 static void ck32(unsigned g,unsigned w,const char*s){if(g!=w){std::printf("FAIL: %s got=%u want=%u\n",s,g,w);++fails;}}
 static void ck64(unsigned long long g,unsigned long long w,const char*s){if(g!=w){std::printf("FAIL: %s got=%llx want=%llx\n",s,g,w);++fails;}}
 
