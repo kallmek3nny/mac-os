@@ -96,7 +96,7 @@ static void checkEveryUnreadableWord()
 
     // Each entry is a pointer-to-member so this test cannot accidentally mutate
     // a copy while leaving the field consumed by the observer unchanged.
-    const IGU32 IgPlaneLiveSample::*fields[] = {
+    IGU32 IgPlaneLiveSample::*fields[] = {
         &IgPlaneLiveSample::surfLiveBefore,
         &IgPlaneLiveSample::transConf,
         &IgPlaneLiveSample::pipeSrc,

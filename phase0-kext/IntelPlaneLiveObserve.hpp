@@ -16,7 +16,21 @@
 #define INTEL_PLANE_LIVE_OBSERVE_HPP
 
 #include "IntelGpuId.hpp"
+
+// IntelDisplay.hpp intentionally quotes an upstream multiline macro in a //
+// comment, including its trailing backslash. GCC/Clang diagnose that lexical
+// shape as -Wcomment even though it is source-provenance prose, not C++ code.
+// Keep -Werror for this header and its callers while suppressing only that
+// pre-existing dependency comment for the duration of the include.
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcomment"
+#endif
 #include "IntelDisplay.hpp"
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+
 #include "IntelFramebuffer.hpp"
 
 #define IG_PLANE_LIVE_OK                         0u
