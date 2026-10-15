@@ -1,0 +1,58 @@
+name: GSP Booter observed fuse patch policy tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  booter-fuse-patch-policy:
+    name: Booter fuse patch policy (${{ matrix.os }})
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: build observed fuse patch policy test
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run([
+              "c++", "-std=c++17", "-O2", "-Wall", "-Wextra", "-Wpedantic", "-Werror",
+              "-I", "phase0-kext", "tests/test_nv_gsp_booter_fuse_patch_policy.cpp",
+              "-o", "test_nv_gsp_booter_fuse_patch_policy"
+          ], check=True, timeout=30)
+          PY
+
+      - name: run observed fuse patch policy test
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run(["./test_nv_gsp_booter_fuse_patch_policy"], check=True, timeout=30)
+          PY
+
+      - name: verify private patch stage safety shape
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run([
+              "python3", "tests/test_nv_gsp_booter_fuse_patch_stage_shape.py"
+          ], check=True, timeout=30)
+          PY

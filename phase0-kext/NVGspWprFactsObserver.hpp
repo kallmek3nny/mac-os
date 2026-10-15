@@ -10,6 +10,9 @@
 #include "NVGspBooterFuse.hpp"
 #include "NVGspWprGa107Facts.hpp"
 
+#define NV_GSP_BOOTER_PATCH_STAGE_BOOT_ARG "nvgsp-booter-patch-stage"
+#define NV_GSP_BOOTER_LOAD_FIRMWARE_PROPERTY "NVGspBooterLoadFirmware"
+
 class NVGspWprFactsObserver : public IOService
 {
     OSDeclareDefaultStructors(NVGspWprFactsObserver);
@@ -26,6 +29,10 @@ private:
     IOMemoryMap *fBar0Map;
     volatile UInt8 *fBar0Base;
 
+    // Optional SEC2 Booter signature-patch rehearsal. The helper allocates a
+    // transient kernel-private copy, patches it, validates the decision, and
+    // releases it without DMA mapping or publishing an address.
+    void stageBooterPrivateImage(const NVGspBooterFuseObservation &observation);
     void clearResources(void);
     void publishState(const char *state);
 };
