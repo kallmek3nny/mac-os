@@ -1,0 +1,80 @@
+name: GSP Booter transaction lifetime tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  booter-transaction-lifetime:
+    name: booter transaction lifetime (${{ matrix.os }}, ${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: g++
+          - os: ubuntu-latest
+            compiler: clang++
+          - os: macos-latest
+            compiler: clang++
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: compile pure ga107 sec2 transaction lifetime tests
+        shell: bash
+        timeout-minutes: 2
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import subprocess
+          common = [
+              os.environ["CXX"], "-std=c++17", "-O2",
+              "-Wall", "-Wextra", "-Wpedantic", "-Werror",
+              "-Iphase0-kext"
+          ]
+          subprocess.run(common + [
+              "tests/test_nv_gsp_booter_transaction_lifetime.cpp",
+              "-o", "/tmp/test-nv-gsp-booter-transaction-lifetime"
+          ], check=True, timeout=30)
+          subprocess.run(common + [
+              "tests/test_nv_gsp_booter_transaction_recovery_contract.cpp",
+              "-o", "/tmp/test-nv-gsp-booter-transaction-recovery-contract"
+          ], check=True, timeout=30)
+          PY
+
+      - name: run pure ga107 sec2 transaction lifetime tests
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run([
+              "/tmp/test-nv-gsp-booter-transaction-lifetime"
+          ], check=True, timeout=30)
+          subprocess.run([
+              "/tmp/test-nv-gsp-booter-transaction-recovery-contract"
+          ], check=True, timeout=30)
+          PY
+
+      - name: verify pure/no-write transaction lifetime source shape
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run([
+              "python3", "tests/test_nv_gsp_booter_transaction_lifetime_shape.py"
+          ], check=True, timeout=30)
+          PY
