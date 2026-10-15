@@ -184,9 +184,11 @@ static void checkInputAndImageRefusals(const std::vector<unsigned char> &loadBlo
           "private image patched for wrong fuse/signature refused");
 
     const auto hs=hsPlan(loadBlob);
-    std::vector<unsigned char> missingSignature(
-        loadBlob.begin()+hs.firmwareOffset,
-        loadBlob.begin()+hs.firmwareOffset+hs.firmwareBytes);
+    // The source payload may already contain bytes equal to the selected
+    // production signature, so an unpatched copy is not inherently invalid.
+    // Corrupt one byte inside the expected signature range to prove absence.
+    auto missingSignature=image0;
+    missingSignature[(std::size_t)hs.patchLocation]^=0xffu;
     check(nvGspPlanGa107BooterRun(
               loadBlob.data(),loadBlob.size(),&observed0,
               missingSignature.data(),missingSignature.size(),1u,&out)==
