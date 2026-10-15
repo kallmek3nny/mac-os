@@ -447,8 +447,10 @@ void IntelDisplayProbe::publishTranscoder(UInt32 trans)
 //
 void IntelDisplayProbe::scanPlanes(void)
 {
-    for (UInt32 pipe = 0; pipe < IG_TRANS_SCAN_COUNT; pipe++)
+    for (UInt32 pipe = 0; pipe < IG_TRANS_SCAN_COUNT; pipe++) {
         publishPlane(pipe);
+        publishPlaneLiveObservation(pipe);
+    }
 }
 
 void IntelDisplayProbe::publishPlane(UInt32 pipe)
@@ -637,6 +639,128 @@ void IntelDisplayProbe::publishPlane(UInt32 pipe)
                                                igFbSizeHeight(size)),
                     64);
     }
+}
+
+//
+// Second, independently bracketed primary-plane sample. publishPlane() above is
+// intentionally left untouched: this method answers a different question --
+// whether the programmed surface was still the live surface for one coherent
+// read window. SURFLIVE is sampled first and last around every other word so a
+// flip that lands mid-snapshot becomes an explicit refusal rather than a mixed
+// record. igPlaneLiveObserve() owns the exact raw SURF equality check and all
+// semantic gates. This shell only performs bounded reads and publishes evidence.
+//
+// There is no write accessor here and this method performs no writes. The
+// WroteRegisters property is unconditional so absence can never be mistaken for
+// proof that a future revision did not program the plane.
+//
+void IntelDisplayProbe::publishPlaneLiveObservation(UInt32 pipe)
+{
+    IgPlaneLiveSample sample = {};
+    sample.deviceId = fDeviceId;
+    sample.pipe = pipe;
+
+    sample.surfLiveBefore = regRead32(igPlaneReg(pipe,
+                                                IG_PLANE_LIVE_PRIMARY_PLANE,
+                                                IG_PLANE_SURFLIVE));
+    sample.transConf = regRead32(igTransConfReg(pipe));
+    sample.pipeSrc = regRead32(igTransTimingReg(pipe, IG_TRANS_PIPESRC));
+    sample.ctl = regRead32(igPlaneReg(pipe,
+                                     IG_PLANE_LIVE_PRIMARY_PLANE,
+                                     IG_PLANE_CTL));
+    sample.stride = regRead32(igPlaneReg(pipe,
+                                        IG_PLANE_LIVE_PRIMARY_PLANE,
+                                        IG_PLANE_STRIDE));
+    sample.pos = regRead32(igPlaneReg(pipe,
+                                     IG_PLANE_LIVE_PRIMARY_PLANE,
+                                     IG_PLANE_POS));
+    sample.size = regRead32(igPlaneReg(pipe,
+                                      IG_PLANE_LIVE_PRIMARY_PLANE,
+                                      IG_PLANE_SIZE));
+    sample.surf = regRead32(igPlaneReg(pipe,
+                                      IG_PLANE_LIVE_PRIMARY_PLANE,
+                                      IG_PLANE_SURF));
+    sample.offset = regRead32(igPlaneReg(pipe,
+                                        IG_PLANE_LIVE_PRIMARY_PLANE,
+                                        IG_PLANE_OFFSET));
+    sample.surfLiveAfter = regRead32(igPlaneReg(pipe,
+                                               IG_PLANE_LIVE_PRIMARY_PLANE,
+                                               IG_PLANE_SURFLIVE));
+
+    IgPlaneLiveObservation observed = {};
+    UInt32 verdict = igPlaneLiveObserve(&sample, &observed);
+
+    IGLOG("plane %s.1 live: verdict=%s before=0x%08x after=0x%08x surf=0x%08x",
+          igTransName(pipe),
+          igPlaneLiveVerdictName(verdict),
+          sample.surfLiveBefore,
+          sample.surfLiveAfter,
+          sample.surf);
+
+    char key[IG_KEY_BUFFER_BYTES];
+
+    // The verdict, zero-write fact and raw words are published on every path.
+    // That makes every refusal inspectable without decoding data the pure helper
+    // explicitly declined to trust.
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveObserve"))
+        setProperty(key, igPlaneLiveVerdictName(verdict));
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveWroteRegisters"))
+        setProperty(key, false);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveBefore"))
+        setProperty(key, (UInt64) sample.surfLiveBefore, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveAfter"))
+        setProperty(key, (UInt64) sample.surfLiveAfter, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveTransConf"))
+        setProperty(key, (UInt64) sample.transConf, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LivePipeSrc"))
+        setProperty(key, (UInt64) sample.pipeSrc, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveCtl"))
+        setProperty(key, (UInt64) sample.ctl, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveStride"))
+        setProperty(key, (UInt64) sample.stride, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LivePos"))
+        setProperty(key, (UInt64) sample.pos, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveSize"))
+        setProperty(key, (UInt64) sample.size, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveSurf"))
+        setProperty(key, (UInt64) sample.surf, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveOffset"))
+        setProperty(key, (UInt64) sample.offset, 32);
+
+    if (!igPlaneLiveSucceeded(verdict))
+        return;
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveWidth"))
+        setProperty(key, (UInt64) observed.width, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveHeight"))
+        setProperty(key, (UInt64) observed.height, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveStrideBytes"))
+        setProperty(key, (UInt64) observed.strideBytes, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveSurfaceWord"))
+        setProperty(key, (UInt64) observed.liveSurfaceWord, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveSurfaceOffset"))
+        setProperty(key, (UInt64) observed.programmedSurfaceOffset, 32);
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveInherit"))
+        setProperty(key, igInheritVerdictName(observed.inheritVerdict));
+
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveCoherent"))
+        setProperty(key, true);
 }
 
 //

@@ -60,6 +60,7 @@
 #include "IntelGpuId.hpp"
 #include "IntelDisplay.hpp"
 #include "IntelFramebuffer.hpp"
+#include "IntelPlaneLiveObserve.hpp"
 
 //
 // The scanout descriptor -- base, stride, byte EXTENT, and whether that extent
@@ -194,6 +195,7 @@ private:
 
     void   publishTranscoder(UInt32 trans);
     void   publishPlane(UInt32 pipe);
+    void   publishPlaneLiveObservation(UInt32 pipe);
 
     void   publishSinkRehearsal(void);
 };
