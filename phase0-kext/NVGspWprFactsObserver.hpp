@@ -5,7 +5,6 @@
 #include <IOKit/IOService.h>
 #include <IOKit/pci/IOPCIDevice.h>
 #include <IOKit/IOMemoryDescriptor.h>
-#include <IOKit/IOBufferMemoryDescriptor.h>
 
 #include "NVDecode.hpp"
 #include "NVGspBooterFuse.hpp"
@@ -30,16 +29,11 @@ private:
     IOMemoryMap *fBar0Map;
     volatile UInt8 *fBar0Base;
 
-    // Optional SEC2 Booter signature-patch rehearsal. Both objects are private
-    // kernel memory references owned by this existing observer; neither is DMA
-    // mapped or published as an address to another component.
-    OSData *fBooterFirmware;
-    IOBufferMemoryDescriptor *fBooterPrivate;
-
-    void clearBooterStageResources(void);
-    void clearResources(void);
-    OSData *copyBooterLoadFirmwareBlob(void);
+    // Optional SEC2 Booter signature-patch rehearsal. The helper allocates a
+    // transient kernel-private copy, patches it, validates the decision, and
+    // releases it without DMA mapping or publishing an address.
     void stageBooterPrivateImage(const NVGspBooterFuseObservation &observation);
+    void clearResources(void);
     void publishState(const char *state);
 };
 
