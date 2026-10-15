@@ -64,5 +64,54 @@ IOReturn IntelGtBlitUserClient::externalMethod(UInt32 selector,
                                     req->pitch,IGGT_FILL32_MAX_BYTES,req->color);
     }
 
+    if (selector==IGGT_SURFACE_ALLOC32_SELECTOR) {
+        if (args->structureInputSize!=sizeof(IgGtSurfaceAlloc32Request) ||
+            args->structureOutputSize!=sizeof(IgGtSurfaceAlloc32Response)) return kIOReturnBadArgument;
+        const auto *req=static_cast<const IgGtSurfaceAlloc32Request *>(args->structureInput);
+        auto *response=static_cast<IgGtSurfaceAlloc32Response *>(args->structureOutput);
+        if (req->reserved) return kIOReturnBadArgument;
+        bzero(response,sizeof(*response));
+        UInt64 handle=0;
+        const IOReturn result=fOwner->allocatePersistentSurface32(
+            req->width,req->height,req->pitch,&handle);
+        if (result==kIOReturnSuccess) response->handle=handle;
+        return result;
+    }
+
+    if (selector==IGGT_SURFACE_FREE_SELECTOR) {
+        if (args->structureInputSize!=sizeof(IgGtSurfaceFreeRequest) ||
+            args->structureOutputSize!=sizeof(IgGtSurfaceFreeResponse)) return kIOReturnBadArgument;
+        const auto *req=static_cast<const IgGtSurfaceFreeRequest *>(args->structureInput);
+        auto *response=static_cast<IgGtSurfaceFreeResponse *>(args->structureOutput);
+        bzero(response,sizeof(*response));
+        const IOReturn result=fOwner->freePersistentSurface(req->handle);
+        if (result==kIOReturnSuccess) response->released=1u;
+        return result;
+    }
+
+    if (selector==IGGT_SURFACE_FILL32_SELECTOR) {
+        if (args->structureInputSize!=sizeof(IgGtSurfaceFill32Request) ||
+            args->structureOutputSize!=sizeof(IgGtSurfaceFill32Response)) return kIOReturnBadArgument;
+        const auto *req=static_cast<const IgGtSurfaceFill32Request *>(args->structureInput);
+        auto *response=static_cast<IgGtSurfaceFill32Response *>(args->structureOutput);
+        if (req->reserved) return kIOReturnBadArgument;
+        bzero(response,sizeof(*response));
+        const IOReturn result=fOwner->fillPersistentSurface32(req->handle,req->color);
+        if (result==kIOReturnSuccess) response->completed=1u;
+        return result;
+    }
+
+    if (selector==IGGT_SURFACE_COPY32_SELECTOR) {
+        if (args->structureInputSize!=sizeof(IgGtSurfaceCopy32Request) ||
+            args->structureOutputSize!=sizeof(IgGtSurfaceCopy32Response)) return kIOReturnBadArgument;
+        const auto *req=static_cast<const IgGtSurfaceCopy32Request *>(args->structureInput);
+        auto *response=static_cast<IgGtSurfaceCopy32Response *>(args->structureOutput);
+        bzero(response,sizeof(*response));
+        const IOReturn result=fOwner->copyPersistentSurface32(
+            req->sourceHandle,req->destinationHandle);
+        if (result==kIOReturnSuccess) response->completed=1u;
+        return result;
+    }
+
     return kIOReturnUnsupported;
 }

@@ -8,8 +8,7 @@
 // every write is snapshotted, read back, and reversibly restored through the
 // host-tested IntelGtSurfaceTxn helper.  No GPU address is exposed to userspace.
 #include "IntelGtBringup.hpp"
-#include "IntelGtSurface.hpp"
-#include "IntelGtSurfaceTxn.hpp"
+#include "IntelGtSurfaceRuntime.hpp"
 
 #include <IOKit/IOMapper.h>
 #include <pexpert/pexpert.h>
@@ -55,22 +54,7 @@ bool writePrivatePt(void *opaque, IGSurfaceU32 leaf, IGSurfaceU64 value)
     ptBarrier();
     return true;
 }
-}
 
-struct IntelGtSurfaceRuntimeState {
-    IOBufferMemoryDescriptor *backing;
-    IODMACommand *dma;
-    UInt8 *cpu;
-    bool dmaBound;
-    bool installed;
-    bool unsafe;
-    UInt32 segmentCount;
-    IGGtSurfacePteTxn txn;
-    IGSurfaceU64 snapshot[SurfacePages];
-    IGSurfaceU64 installedPtes[SurfacePages];
-};
-
-namespace {
 void releaseRuntimeStorage(IntelGtSurfaceRuntimeState *state)
 {
     if (!state) return;

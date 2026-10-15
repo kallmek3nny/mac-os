@@ -32,6 +32,10 @@ struct IGGtSurfaceHandleSlot {
     IGSurfaceU32 pitch;
     IGSurfaceU64 usedBytes;
     bool allocated;
+    // A slot is permanently retired once its 56-bit generation space is
+    // exhausted. Reusing generation one would make an ancient opaque ID live
+    // again, so retirement is preferable to handle resurrection.
+    bool retired;
 };
 
 struct IGGtSurfaceHandleArena {
@@ -56,11 +60,13 @@ static inline bool igGtSurfaceHandleSucceeded(IGSurfaceU32 verdict)
     return verdict == IG_GTH_OK;
 }
 
+// Returns zero when the generation space is exhausted. Zero is never a valid
+// generation and tells the caller to retire the slot permanently.
 static inline IGSurfaceU64 igGtSurfaceHandleNextGeneration(IGSurfaceU64 generation)
 {
     generation &= IG_GTH_HANDLE_GENERATION_MAX_56;
     if (generation == 0ull || generation == IG_GTH_HANDLE_GENERATION_MAX_56)
-        return 1ull;
+        return 0ull;
     return generation + 1ull;
 }
 
@@ -172,7 +178,7 @@ static inline IGSurfaceU32 igGtSurfaceHandleResolve(
         return IG_GTH_ERR_BAD_HANDLE;
 
     const IGGtSurfaceHandleSlot &slot = arena->slots[slotIndex];
-    if (!slot.allocated || slot.generation != generation)
+    if (!slot.allocated || slot.retired || slot.generation != generation)
         return IG_GTH_ERR_STALE_HANDLE;
     if (slot.pageCount == 0u ||
         (IGSurfaceU64)slot.firstArenaPage + slot.pageCount > IG_GTS_ARENA_LEAVES_448 ||
@@ -214,7 +220,7 @@ static inline IGSurfaceU32 igGtSurfaceHandleAllocate(
 
     IGSurfaceU32 slotIndex = IG_GTH_MAX_SLOTS_16;
     for (IGSurfaceU32 i = 0u; i < IG_GTH_MAX_SLOTS_16; ++i) {
-        if (!arena->slots[i].allocated) {
+        if (!arena->slots[i].allocated && !arena->slots[i].retired) {
             slotIndex = i;
             break;
         }
@@ -246,14 +252,17 @@ static inline IGSurfaceU32 igGtSurfaceHandleAllocate(
     slot.pitch = pitch;
     slot.usedBytes = basePlan.usedBytes;
     slot.allocated = true;
+    slot.retired = false;
     *outHandle = handle;
     return IG_GTH_OK;
 }
 
 // Free validates the complete slot + bitmap image before touching state. The
 // generation advances immediately, so every old handle becomes stale before
-// the slot can be reused. Page contents are intentionally not cleared here;
-// the runtime owner must zero the backing before exposing a reused allocation.
+// the slot can be reused. At generation exhaustion the slot is retired forever
+// instead of wrapping to generation one and resurrecting an ancient ID. Page
+// contents are intentionally not cleared here; the runtime owner must scrub the
+// backing before releasing the allocation to the free-page pool.
 static inline IGSurfaceU32 igGtSurfaceHandleFree(IGGtSurfaceHandleArena *arena,
                                                   IGSurfaceU64 handle)
 {
@@ -266,7 +275,7 @@ static inline IGSurfaceU32 igGtSurfaceHandleFree(IGGtSurfaceHandleArena *arena,
         return IG_GTH_ERR_BAD_HANDLE;
 
     IGGtSurfaceHandleSlot &slot = arena->slots[slotIndex];
-    if (!slot.allocated || slot.generation != generation)
+    if (!slot.allocated || slot.retired || slot.generation != generation)
         return IG_GTH_ERR_STALE_HANDLE;
     if (slot.pageCount == 0u ||
         (IGSurfaceU64)slot.firstArenaPage + slot.pageCount > IG_GTS_ARENA_LEAVES_448 ||
@@ -281,7 +290,12 @@ static inline IGSurfaceU32 igGtSurfaceHandleFree(IGGtSurfaceHandleArena *arena,
         igGtSurfaceHandleSetPage(arena, firstPage + i, false);
 
     IGGtSurfaceHandleSlot clean = {};
-    clean.generation = nextGeneration;
+    if (nextGeneration == 0ull) {
+        clean.generation = IG_GTH_HANDLE_GENERATION_MAX_56;
+        clean.retired = true;
+    } else {
+        clean.generation = nextGeneration;
+    }
     slot = clean;
     return IG_GTH_OK;
 }

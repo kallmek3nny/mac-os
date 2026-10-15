@@ -59,6 +59,7 @@ static void testEncodingAndInit()
         check32(arena.pageBitmap[i], 0u, "bitmap word starts clear");
     for (unsigned i = 0; i < IG_GTH_MAX_SLOTS_16; ++i) {
         check(!arena.slots[i].allocated, "slot starts free");
+        check(!arena.slots[i].retired, "slot starts reusable");
         check64(arena.slots[i].generation, 1ull, "slot generation starts at one");
     }
 
@@ -226,9 +227,9 @@ static void testAtomicRefusalsAndCorruption()
     check(igGtSurfaceHandlePageUsed(&arena, 2u), "corrupt free keeps page two owned");
 }
 
-static void testGenerationWrap()
+static void testGenerationRetirement()
 {
-    std::puts("7. 56-bit generation wrap skips zero");
+    std::puts("7. 56-bit generation exhaustion permanently retires the slot");
     IGGtSurfaceHandleArena arena = {};
     igGtSurfaceHandleArenaInit(&arena);
     arena.slots[0].generation = IG_GTH_HANDLE_GENERATION_MAX_56;
@@ -237,19 +238,28 @@ static void testGenerationWrap()
     unsigned slot = 0u;
     IGSurfaceU64 generation = 0ull;
     check(igGtSurfaceHandleDecode(last, &slot, &generation), "max-generation handle decodes");
+    check32(slot, 0u, "max-generation allocation uses first slot");
     check64(generation, IG_GTH_HANDLE_GENERATION_MAX_56, "max generation emitted");
     check64(last, 0xffffffffffffff01ull, "max generation occupies upper 56 handle bits");
     check32(igGtSurfaceHandleFree(&arena, last), IG_GTH_OK, "max generation frees");
-    check64(arena.slots[0].generation, 1ull, "generation wraps to one, never zero");
+    check(!arena.slots[0].allocated, "exhausted slot is no longer allocated");
+    check(arena.slots[0].retired, "exhausted slot is permanently retired");
+    check64(arena.slots[0].generation, IG_GTH_HANDLE_GENERATION_MAX_56,
+            "retired slot keeps terminal generation");
+    check(!igGtSurfaceHandlePageUsed(&arena, 0u), "retired slot releases its page range");
 
-    const IGSurfaceU64 wrapped = allocatePages(arena, 1u);
-    check64(wrapped, 0x0000000000000101ull, "wrapped handle uses generation one");
-    IGGtSurfaceHandleView liveView = resolve(arena, wrapped);
-    IGGtSurfaceHandleView staleProbe = liveView;
-    check32(igGtSurfaceHandleResolve(&arena, last, &staleProbe),
-            IG_GTH_ERR_STALE_HANDLE, "pre-wrap max-generation handle is stale");
-    check(std::memcmp(&staleProbe, &liveView, sizeof(liveView)) == 0,
-          "stale pre-wrap resolve leaves output untouched");
+    const IGSurfaceU64 next = allocatePages(arena, 1u);
+    check64(next, 0x0000000000000102ull,
+            "allocator skips retired slot instead of resurrecting generation one");
+    check(igGtSurfaceHandleDecode(next, &slot, &generation), "next handle decodes");
+    check32(slot, 1u, "next allocation advances to second slot");
+    check64(generation, 1ull, "next slot starts at generation one");
+
+    IGGtSurfaceHandleView probe = {};
+    check32(igGtSurfaceHandleResolve(&arena, last, &probe),
+            IG_GTH_ERR_STALE_HANDLE, "terminal handle remains stale forever");
+    check32(igGtSurfaceHandleFree(&arena, last),
+            IG_GTH_ERR_STALE_HANDLE, "terminal handle cannot free retired slot twice");
 }
 
 int main()
@@ -260,7 +270,7 @@ int main()
     testFragmentationAndCapacity();
     testSlotExhaustion();
     testAtomicRefusalsAndCorruption();
-    testGenerationWrap();
+    testGenerationRetirement();
 
     if (failures) {
         std::printf("%d failure(s)\n", failures);
