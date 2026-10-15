@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Dependency-free allocator for the already-mapped Tiger Lake persistent arena.
 //
-// Handles are opaque 32-bit generation-tagged slot IDs. They never contain a
+// Handles are opaque 64-bit generation-tagged slot IDs. They never contain a
 // GPU virtual address, DMA address, CPU pointer, PTE index, or byte offset.
 // The kernel may resolve a live handle to an arena page offset internally.
 #ifndef IntelGtSurfaceHandles_hpp
@@ -9,22 +9,22 @@
 
 #include "IntelGtSurface.hpp"
 
-#define IG_GTH_MAX_SLOTS_16                 16u
-#define IG_GTH_BITMAP_WORDS_14              14u
-#define IG_GTH_HANDLE_SLOT_MASK_0xFF         0xffu
-#define IG_GTH_HANDLE_GENERATION_MAX_24     0x00ffffffu
+#define IG_GTH_MAX_SLOTS_16                  16u
+#define IG_GTH_BITMAP_WORDS_14               14u
+#define IG_GTH_HANDLE_SLOT_MASK_0xFF          0xffull
+#define IG_GTH_HANDLE_GENERATION_MAX_56       0x00ffffffffffffffull
 
-#define IG_GTH_OK                            0u
-#define IG_GTH_ERR_NULL                      1u
-#define IG_GTH_ERR_PLAN                      2u
-#define IG_GTH_ERR_NO_SLOT                   3u
-#define IG_GTH_ERR_NO_PAGES                  4u
-#define IG_GTH_ERR_BAD_HANDLE                5u
-#define IG_GTH_ERR_STALE_HANDLE              6u
-#define IG_GTH_ERR_CORRUPT                   7u
+#define IG_GTH_OK                             0u
+#define IG_GTH_ERR_NULL                       1u
+#define IG_GTH_ERR_PLAN                       2u
+#define IG_GTH_ERR_NO_SLOT                    3u
+#define IG_GTH_ERR_NO_PAGES                   4u
+#define IG_GTH_ERR_BAD_HANDLE                 5u
+#define IG_GTH_ERR_STALE_HANDLE               6u
+#define IG_GTH_ERR_CORRUPT                    7u
 
 struct IGGtSurfaceHandleSlot {
-    IGSurfaceU32 generation;
+    IGSurfaceU64 generation;
     IGSurfaceU32 firstArenaPage;
     IGSurfaceU32 pageCount;
     IGSurfaceU32 width;
@@ -40,9 +40,9 @@ struct IGGtSurfaceHandleArena {
 };
 
 struct IGGtSurfaceHandleView {
-    IGSurfaceU32 handle;
+    IGSurfaceU64 handle;
     IGSurfaceU32 slotIndex;
-    IGSurfaceU32 generation;
+    IGSurfaceU64 generation;
     IGSurfaceU32 firstArenaPage;
     IGSurfaceU32 pageCount;
     IGSurfaceU32 width;
@@ -56,31 +56,31 @@ static inline bool igGtSurfaceHandleSucceeded(IGSurfaceU32 verdict)
     return verdict == IG_GTH_OK;
 }
 
-static inline IGSurfaceU32 igGtSurfaceHandleNextGeneration(IGSurfaceU32 generation)
+static inline IGSurfaceU64 igGtSurfaceHandleNextGeneration(IGSurfaceU64 generation)
 {
-    generation &= IG_GTH_HANDLE_GENERATION_MAX_24;
-    if (generation == 0u || generation == IG_GTH_HANDLE_GENERATION_MAX_24)
-        return 1u;
-    return generation + 1u;
+    generation &= IG_GTH_HANDLE_GENERATION_MAX_56;
+    if (generation == 0ull || generation == IG_GTH_HANDLE_GENERATION_MAX_56)
+        return 1ull;
+    return generation + 1ull;
 }
 
-static inline IGSurfaceU32 igGtSurfaceHandleEncode(IGSurfaceU32 slotIndex,
-                                                    IGSurfaceU32 generation)
+static inline IGSurfaceU64 igGtSurfaceHandleEncode(IGSurfaceU32 slotIndex,
+                                                    IGSurfaceU64 generation)
 {
-    if (slotIndex >= IG_GTH_MAX_SLOTS_16 || generation == 0u ||
-        generation > IG_GTH_HANDLE_GENERATION_MAX_24)
-        return 0u;
-    return (generation << 8) | (slotIndex + 1u);
+    if (slotIndex >= IG_GTH_MAX_SLOTS_16 || generation == 0ull ||
+        generation > IG_GTH_HANDLE_GENERATION_MAX_56)
+        return 0ull;
+    return (generation << 8) | (IGSurfaceU64)(slotIndex + 1u);
 }
 
-static inline bool igGtSurfaceHandleDecode(IGSurfaceU32 handle,
+static inline bool igGtSurfaceHandleDecode(IGSurfaceU64 handle,
                                            IGSurfaceU32 *slotIndex,
-                                           IGSurfaceU32 *generation)
+                                           IGSurfaceU64 *generation)
 {
-    const IGSurfaceU32 slotField = handle & IG_GTH_HANDLE_SLOT_MASK_0xFF;
-    const IGSurfaceU32 gen = handle >> 8;
-    if (slotField == 0u || slotField > IG_GTH_MAX_SLOTS_16 || gen == 0u ||
-        gen > IG_GTH_HANDLE_GENERATION_MAX_24)
+    const IGSurfaceU32 slotField = (IGSurfaceU32)(handle & IG_GTH_HANDLE_SLOT_MASK_0xFF);
+    const IGSurfaceU64 gen = handle >> 8;
+    if (slotField == 0u || slotField > IG_GTH_MAX_SLOTS_16 || gen == 0ull ||
+        gen > IG_GTH_HANDLE_GENERATION_MAX_56)
         return false;
     if (slotIndex) *slotIndex = slotField - 1u;
     if (generation) *generation = gen;
@@ -115,7 +115,7 @@ static inline void igGtSurfaceHandleArenaInit(IGGtSurfaceHandleArena *arena)
         arena->pageBitmap[i] = 0u;
     for (IGSurfaceU32 i = 0u; i < IG_GTH_MAX_SLOTS_16; ++i) {
         IGGtSurfaceHandleSlot clean = {};
-        clean.generation = 1u;
+        clean.generation = 1ull;
         arena->slots[i] = clean;
     }
 }
@@ -160,13 +160,14 @@ static inline bool igGtSurfaceHandleFindFirstFit(const IGGtSurfaceHandleArena *a
 
 static inline IGSurfaceU32 igGtSurfaceHandleResolve(
     const IGGtSurfaceHandleArena *arena,
-    IGSurfaceU32 handle,
+    IGSurfaceU64 handle,
     IGGtSurfaceHandleView *out)
 {
     if (!arena || !out)
         return IG_GTH_ERR_NULL;
 
-    IGSurfaceU32 slotIndex = 0u, generation = 0u;
+    IGSurfaceU32 slotIndex = 0u;
+    IGSurfaceU64 generation = 0ull;
     if (!igGtSurfaceHandleDecode(handle, &slotIndex, &generation))
         return IG_GTH_ERR_BAD_HANDLE;
 
@@ -201,7 +202,7 @@ static inline IGSurfaceU32 igGtSurfaceHandleAllocate(
     IGSurfaceU32 width,
     IGSurfaceU32 height,
     IGSurfaceU32 pitch,
-    IGSurfaceU32 *outHandle)
+    IGSurfaceU64 *outHandle)
 {
     if (!arena || !outHandle)
         return IG_GTH_ERR_NULL;
@@ -228,10 +229,10 @@ static inline IGSurfaceU32 igGtSurfaceHandleAllocate(
         return IG_GTH_ERR_CORRUPT;
 
     IGGtSurfaceHandleSlot &slot = arena->slots[slotIndex];
-    IGSurfaceU32 generation = slot.generation & IG_GTH_HANDLE_GENERATION_MAX_24;
-    if (generation == 0u) generation = 1u;
-    const IGSurfaceU32 handle = igGtSurfaceHandleEncode(slotIndex, generation);
-    if (handle == 0u)
+    IGSurfaceU64 generation = slot.generation & IG_GTH_HANDLE_GENERATION_MAX_56;
+    if (generation == 0ull) generation = 1ull;
+    const IGSurfaceU64 handle = igGtSurfaceHandleEncode(slotIndex, generation);
+    if (handle == 0ull)
         return IG_GTH_ERR_CORRUPT;
 
     for (IGSurfaceU32 i = 0u; i < basePlan.pageCount; ++i)
@@ -254,12 +255,13 @@ static inline IGSurfaceU32 igGtSurfaceHandleAllocate(
 // the slot can be reused. Page contents are intentionally not cleared here;
 // the runtime owner must zero the backing before exposing a reused allocation.
 static inline IGSurfaceU32 igGtSurfaceHandleFree(IGGtSurfaceHandleArena *arena,
-                                                  IGSurfaceU32 handle)
+                                                  IGSurfaceU64 handle)
 {
     if (!arena)
         return IG_GTH_ERR_NULL;
 
-    IGSurfaceU32 slotIndex = 0u, generation = 0u;
+    IGSurfaceU32 slotIndex = 0u;
+    IGSurfaceU64 generation = 0ull;
     if (!igGtSurfaceHandleDecode(handle, &slotIndex, &generation))
         return IG_GTH_ERR_BAD_HANDLE;
 
@@ -273,7 +275,7 @@ static inline IGSurfaceU32 igGtSurfaceHandleFree(IGGtSurfaceHandleArena *arena,
 
     const IGSurfaceU32 firstPage = slot.firstArenaPage;
     const IGSurfaceU32 pageCount = slot.pageCount;
-    const IGSurfaceU32 nextGeneration = igGtSurfaceHandleNextGeneration(slot.generation);
+    const IGSurfaceU64 nextGeneration = igGtSurfaceHandleNextGeneration(slot.generation);
 
     for (IGSurfaceU32 i = 0u; i < pageCount; ++i)
         igGtSurfaceHandleSetPage(arena, firstPage + i, false);
