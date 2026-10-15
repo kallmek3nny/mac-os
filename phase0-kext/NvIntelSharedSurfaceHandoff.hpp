@@ -75,6 +75,7 @@ struct NvIntelSharedSurfaceHandoffPlan {
     bool sharedBackingReleaseAuthorized;
 
     bool completionUncertain;
+    bool lifetimeUncertain;
     bool quarantineSharedBacking;
     bool quarantinePeerMapping;
     bool quarantineIntelMapping;
@@ -292,16 +293,17 @@ static inline NVIntelHandoffU32 nvIntelSharedSurfaceHandoffPlan(
         !progress->peerMappingTeardownSucceeded;
     const bool displayUncertain = display && display->completionUncertain;
     staged.completionUncertain = copy->completionUncertain || displayUncertain;
-    staged.quarantineSharedBacking = staged.completionUncertain;
+    staged.lifetimeUncertain = staged.completionUncertain || peerTeardownUncertain;
+    staged.quarantineSharedBacking = staged.lifetimeUncertain;
     staged.quarantinePeerMapping =
         copy->completionUncertain || peerTeardownUncertain;
     staged.quarantineIntelMapping = displayUncertain;
 
     if (!copyRetired) {
-        staged.phase = copy->completionUncertain
+        staged.phase = staged.lifetimeUncertain
                            ? NV_INTEL_HANDOFF_PHASE_UNCERTAIN_QUARANTINE
                            : NV_INTEL_HANDOFF_PHASE_WAIT_NVIDIA;
-    } else if (displayUncertain) {
+    } else if (staged.lifetimeUncertain) {
         staged.phase = NV_INTEL_HANDOFF_PHASE_UNCERTAIN_QUARANTINE;
     } else if (display && display->newSurfaceIsLiveScanout) {
         staged.phase = NV_INTEL_HANDOFF_PHASE_INTEL_DISPLAY_LIVE;
