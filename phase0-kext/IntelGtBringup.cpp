@@ -34,6 +34,7 @@ bool IntelGtBringup::init(OSDictionary *dict) {
     if (!IOService::init(dict)) return false;
     fQueueLock=nullptr;
     fPCI=nullptr; fBarMap=nullptr; fPoolMap=nullptr; fPool=nullptr; fDMA=nullptr;
+    fSurfaceRuntime=nullptr;
     fMMIO=nullptr; fCPU=nullptr; fBarBytes=0; fBusAddress=0;
     bzero(fSavedPtes,sizeof(fSavedPtes));
     fGGTTBase=0; fGGTTEntries=0; fStage=0; fTrace=0; fPteCount=0;
@@ -476,6 +477,14 @@ void IntelGtBringup::cleanup() {
                 0xffff0000|(fOldCsbPointer & 0xffff));
         fEngineChanged=false;
     }
+    // The private PPGTT root must remain CPU-visible until every persistent
+    // arena leaf has either restored its exact snapshot or been quarantined.
+    if (!releasePersistentSurface()) {
+        fQuarantined=true;
+        setProperty("GTBringupSurfaceQuarantined",true);
+        fail("persistent surface PPGTT restore uncertain; DMA retained");
+        return;
+    }
     restoreGGTT();
     if (fDMABound) { fDMA->clearMemoryDescriptor(); fDMABound=false; }
     if (fDMA) { fDMA->release(); fDMA=nullptr; }
@@ -528,7 +537,8 @@ bool IntelGtBringup::start(IOService *provider) {
     setProperty("GTBlitterCopyCompleted",false);
     setProperty("MetalSupported",false);
     if (fStage==1) { releaseWake(); registerService(); return true; }
-    if (!claimEngine() || !allocateMemory() || !installGGTT() || !buildContext()) {
+    if (!claimEngine() || !allocateMemory() || !stagePersistentSurface() ||
+        !installGGTT() || !buildContext()) {
         fail("memory/context preparation failed"); cleanup(); return false;
     }
     if (fStage==2) { cleanup(); setProperty("GTMemorySetupCompleted",true); registerService(); return true; }
