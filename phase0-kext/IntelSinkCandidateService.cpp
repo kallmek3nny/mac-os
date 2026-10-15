@@ -34,9 +34,22 @@ bool IntelSinkCandidateService::init(OSDictionary *dict)
     fMMIO=nullptr;
     fBarBytes=0;
     fSavedPtes=nullptr;
+    fInstalledPtes=nullptr;
     fSavedPteCount=0;
-    fMappedPteCount=0;
-    fMappedFirstPte=0;
+    fInstalledPteCount=0;
+    fGgttEntries=0;
+    fGgttTxn={};
+    fCommitStats={};
+    fRestoreStats={};
+    fCommitStats.failedPte=0xffffffffu;
+    fRestoreStats.failedPte=0xffffffffu;
+    fPrepareVerdict=IG_SINK_GGTT_TXN_NOT_ATTEMPTED;
+    fCommitVerdict=IG_SINK_GGTT_TXN_NOT_ATTEMPTED;
+    fRestoreVerdict=IG_SINK_GGTT_TXN_NOT_ATTEMPTED;
+    fGgttTxnPrepared=false;
+    fGgttInstalled=false;
+    fQuarantined=false;
+    fGgttLifetimePinned=false;
     fPrepared=false;
     fDMABound=false;
     fPeerDMABound=false;
@@ -64,6 +77,112 @@ bool IntelSinkCandidateService::acceleratorPresent(void)
     return found;
 }
 
+bool IntelSinkCandidateService::readGgttPte(
+    void *context, IGGgttU32 pteIndex, IGGgttU64 *value)
+{
+    IntelSinkCandidateService *service=
+        reinterpret_cast<IntelSinkCandidateService *>(context);
+    if (!service || !value || !service->fMMIO ||
+        pteIndex>=service->fGgttEntries)
+        return false;
+
+    const UInt64 tableOffset=(UInt64)IG_SINK_GGTT_TABLE_BAR0_OFFSET_I915_0x800000;
+    const UInt64 entryOffset=tableOffset+(UInt64)pteIndex*sizeof(UInt64);
+    if (tableOffset>service->fBarBytes || entryOffset>service->fBarBytes ||
+        (UInt64)sizeof(UInt64)>service->fBarBytes-entryOffset)
+        return false;
+
+    volatile UInt64 *entry=reinterpret_cast<volatile UInt64 *>(
+        service->fMMIO+entryOffset);
+    OSSynchronizeIO();
+    *value=*entry;
+    OSSynchronizeIO();
+    return true;
+}
+
+bool IntelSinkCandidateService::writeGgttPte(
+    void *context, IGGgttU32 pteIndex, IGGgttU64 value)
+{
+    IntelSinkCandidateService *service=
+        reinterpret_cast<IntelSinkCandidateService *>(context);
+    if (!service || !service->fMMIO || pteIndex>=service->fGgttEntries)
+        return false;
+
+    const UInt64 tableOffset=(UInt64)IG_SINK_GGTT_TABLE_BAR0_OFFSET_I915_0x800000;
+    const UInt64 entryOffset=tableOffset+(UInt64)pteIndex*sizeof(UInt64);
+    if (tableOffset>service->fBarBytes || entryOffset>service->fBarBytes ||
+        (UInt64)sizeof(UInt64)>service->fBarBytes-entryOffset)
+        return false;
+
+    volatile UInt64 *entry=reinterpret_cast<volatile UInt64 *>(
+        service->fMMIO+entryOffset);
+    *entry=value;
+    OSSynchronizeIO();
+    return true;
+}
+
+void IntelSinkCandidateService::publishGgttTxnDiagnostics(void)
+{
+    setProperty("IGSinkCandidateGgttPrepareVerdict",
+                igSinkGgttTxnVerdictName(fPrepareVerdict));
+    setProperty("IGSinkCandidateGgttPrepareVerdictCode",(UInt64)fPrepareVerdict,32);
+    setProperty("IGSinkCandidateGgttCommitVerdict",
+                igSinkGgttTxnVerdictName(fCommitVerdict));
+    setProperty("IGSinkCandidateGgttCommitVerdictCode",(UInt64)fCommitVerdict,32);
+    setProperty("IGSinkCandidateGgttRestoreVerdict",
+                igSinkGgttTxnVerdictName(fRestoreVerdict));
+    setProperty("IGSinkCandidateGgttRestoreVerdictCode",(UInt64)fRestoreVerdict,32);
+
+    setProperty("IGSinkCandidateGgttCommitWritesAttempted",
+                (UInt64)fCommitStats.writesAttempted,32);
+    setProperty("IGSinkCandidateGgttCommitWritesVerified",
+                (UInt64)fCommitStats.writesVerified,32);
+    setProperty("IGSinkCandidateGgttCommitRecoveryWrites",
+                (UInt64)fCommitStats.recoveryWrites,32);
+    setProperty("IGSinkCandidateGgttCommitFailedPte",
+                (UInt64)fCommitStats.failedPte,32);
+    setProperty("IGSinkCandidateGgttRestoreWritesAttempted",
+                (UInt64)fRestoreStats.writesAttempted,32);
+    setProperty("IGSinkCandidateGgttRestoreWritesVerified",
+                (UInt64)fRestoreStats.writesVerified,32);
+    setProperty("IGSinkCandidateGgttRestoreRecoveryWrites",
+                (UInt64)fRestoreStats.recoveryWrites,32);
+    setProperty("IGSinkCandidateGgttRestoreFailedPte",
+                (UInt64)fRestoreStats.failedPte,32);
+
+    setProperty("IGSinkCandidateQuarantined",fQuarantined);
+    setProperty("IGSinkCandidateQuarantineState",fQuarantined);
+    setProperty("IGSinkCandidateGgttLifetimePinned",fGgttLifetimePinned);
+    setProperty("IGSinkCandidateGgttMappingSafe",fGgttInstalled && !fQuarantined);
+}
+
+void IntelSinkCandidateService::pinGgttLifetime(void)
+{
+    if (fGgttLifetimePinned) return;
+    // Hold the service itself across the first GGTT store. That guarantees a
+    // failed rollback/restore cannot later free the PCI-open owner object while
+    // the BAR, DMA mapping, backing allocation or PTE image is quarantined.
+    retain();
+    fGgttLifetimePinned=true;
+    setProperty("IGSinkCandidateGgttLifetimePinned",true);
+}
+
+void IntelSinkCandidateService::enterQuarantine(const char *reason)
+{
+    pinGgttLifetime();
+    fQuarantined=true;
+    setProperty("IGSinkCandidateQuarantined",true);
+    setProperty("IGSinkCandidateQuarantineState",true);
+    setProperty("IGSinkCandidateQuarantineReason",reason ? reason : "unknown");
+    setProperty("IGSinkCandidateGgttMapped",false);
+    setProperty("IGSinkCandidateGgttMappingSafe",false);
+    setProperty("IGSinkCandidateProducerReady",false);
+    setProperty("IGSinkCandidateScanoutReady",false);
+    setProperty("IGSinkCandidateState","ggtt-quarantined-resource-pin");
+    IGSINKLOG("GGTT quarantine entered: %s; retaining backing/DMA/BAR/PCI ownership",
+              reason ? reason : "unknown");
+}
+
 void IntelSinkCandidateService::releasePeerDma(void)
 {
     if (fPeerDMABound && fPeerDMA) {
@@ -76,25 +195,60 @@ void IntelSinkCandidateService::releasePeerDma(void)
     setProperty("IGSinkCandidateScanoutReady",false);
 }
 
-void IntelSinkCandidateService::releaseGgtt(void)
+bool IntelSinkCandidateService::releaseGgtt(void)
 {
-    if (fMMIO && fSavedPtes && fMappedPteCount) {
-        volatile UInt64 *pt=reinterpret_cast<volatile UInt64 *>(
-            fMMIO+IG_SINK_GGTT_TABLE_BAR0_OFFSET_I915_0x800000);
-        for (UInt32 i=0;i<fMappedPteCount;++i) {
-            pt[fMappedFirstPte+i]=fSavedPtes[i];
-            OSSynchronizeIO();
+    // Once quarantine is entered, never retry writes during teardown. The exact
+    // hardware image is no longer proven safe to mutate, so every dependency is
+    // intentionally retained until reboot.
+    if (fQuarantined) return false;
+
+    if (fGgttInstalled) {
+        if (!fGgttTxnPrepared || !fSavedPtes || !fInstalledPtes ||
+            fSavedPteCount!=fGgttTxn.pteCount ||
+            fInstalledPteCount!=fGgttTxn.pteCount) {
+            enterQuarantine("ggtt-restore-metadata-missing");
+            return false;
         }
-        IGSINKLOG("restored %u GGTT PTE(s) at index %u",fMappedPteCount,fMappedFirstPte);
+
+        fRestoreStats={};
+        fRestoreStats.failedPte=0xffffffffu;
+        fRestoreVerdict=igSinkGgttTxnRestore(
+            &fGgttTxn,
+            fInstalledPtes,
+            fSavedPtes,
+            fSavedPteCount,
+            &IntelSinkCandidateService::readGgttPte,
+            &IntelSinkCandidateService::writeGgttPte,
+            this,
+            &fRestoreStats);
+        publishGgttTxnDiagnostics();
+        if (!igSinkGgttTxnSucceeded(fRestoreVerdict)) {
+            setProperty("IGSinkCandidateGgttFailedPte",
+                        (UInt64)fRestoreStats.failedPte,32);
+            enterQuarantine("ggtt-restore-unproven");
+            return false;
+        }
+
+        fGgttInstalled=false;
+        setProperty("IGSinkCandidateGgttMapped",false);
+        setProperty("IGSinkCandidateGgttMappingSafe",false);
+        IGSINKLOG("verified restore of %u GGTT PTE(s) at index %u",
+                  fGgttTxn.pteCount,fGgttTxn.firstPte);
     }
-    fMappedPteCount=0;
-    fMappedFirstPte=0;
 
     if (fSavedPtes) {
         IOFree(fSavedPtes,(vm_size_t)fSavedPteCount*sizeof(UInt64));
         fSavedPtes=nullptr;
     }
     fSavedPteCount=0;
+    if (fInstalledPtes) {
+        IOFree(fInstalledPtes,(vm_size_t)fInstalledPteCount*sizeof(UInt64));
+        fInstalledPtes=nullptr;
+    }
+    fInstalledPteCount=0;
+    fGgttTxn={};
+    fGgttTxnPrepared=false;
+    fGgttEntries=0;
 
     if (fDMABound && fIntelDMA) {
         fIntelDMA->clearMemoryDescriptor();
@@ -111,8 +265,10 @@ void IntelSinkCandidateService::releaseGgtt(void)
     }
 
     setProperty("IGSinkCandidateGgttMapped",false);
+    setProperty("IGSinkCandidateGgttMappingSafe",false);
     setProperty("IGSinkCandidateProducerReady",false);
     setProperty("IGSinkCandidateScanoutReady",false);
+    return true;
 }
 
 void IntelSinkCandidateService::releaseBacking(void)
@@ -135,12 +291,22 @@ void IntelSinkCandidateService::publishNotReady(void)
     setProperty("IGSinkCandidatePlaneProgrammed",false);
     setProperty("IGSinkCandidateProducerReady",false);
     setProperty("IGSinkCandidateScanoutReady",false);
+    publishGgttTxnDiagnostics();
 }
 
 void IntelSinkCandidateService::free(void)
 {
+    // A lifetime pin makes this branch unreachable in normal IOKit teardown.
+    // Keep the guard anyway: free() must never become a last-chance unverified
+    // restore path that dismantles resources behind a live/uncertain PTE image.
+    if (fQuarantined || fGgttInstalled || fGgttLifetimePinned) {
+        IGSINKLOG("refusing unsafe free-time resource teardown");
+        super::free();
+        return;
+    }
+
+    (void)releaseGgtt();
     releasePeerDma();
-    releaseGgtt();
     releaseBacking();
     OSSafeReleaseNULL(fPCIDevice);
     super::free();
@@ -332,7 +498,7 @@ bool IntelSinkCandidateService::start(IOService *provider)
     if (bar) fBarMap=bar->map(kIOMapAnywhere|kIOMapInhibitCache);
     if (!fBarMap) {
         setProperty("IGSinkCandidateState","ggtt-bar-map-failed");
-        releaseGgtt();
+        (void)releaseGgtt();
         registerService();
         return true;
     }
@@ -347,10 +513,11 @@ bool IntelSinkCandidateService::start(IOService *provider)
     if (!fMMIO || !gttBytes ||
         (UInt64)IG_SINK_GGTT_TABLE_BAR0_OFFSET_I915_0x800000+(UInt64)gttBytes>fBarBytes) {
         setProperty("IGSinkCandidateState","ggtt-table-unavailable");
-        releaseGgtt();
+        (void)releaseGgtt();
         registerService();
         return true;
     }
+    fGgttEntries=ggttEntries;
 
     // The Intel side gets its own IOVM mapping. This address, not the physical
     // candidate address above, is what goes in the Intel GGTT PTEs.
@@ -360,7 +527,7 @@ bool IntelSinkCandidateService::start(IOService *provider)
         IG_SINK_GGTT_PAGE_BYTES_I915_4096);
     if (!fIntelDMA || fIntelDMA->setMemoryDescriptor(fBacking,true)!=kIOReturnSuccess) {
         setProperty("IGSinkCandidateState","intel-dma-bind-failed");
-        releaseGgtt();
+        (void)releaseGgtt();
         registerService();
         return true;
     }
@@ -373,7 +540,7 @@ bool IntelSinkCandidateService::start(IOService *provider)
         segmentCount!=1 || dmaOffset<allocationBytes ||
         dmaSegment.fLength<allocationBytes) {
         setProperty("IGSinkCandidateState","intel-dma-segment-failed");
-        releaseGgtt();
+        (void)releaseGgtt();
         registerService();
         return true;
     }
@@ -387,7 +554,7 @@ bool IntelSinkCandidateService::start(IOService *provider)
     setProperty("IGSinkCandidateGgttPlanVerdict",igSinkGgttPlanVerdictName(ggttVerdict));
     if (!igSinkGgttPlanSucceeded(ggttVerdict)) {
         setProperty("IGSinkCandidateState","ggtt-plan-refused");
-        releaseGgtt();
+        (void)releaseGgtt();
         registerService();
         return true;
     }
@@ -395,50 +562,93 @@ bool IntelSinkCandidateService::start(IOService *provider)
     setProperty("IGSinkCandidateGgttPteCount",(UInt64)ggttPlan.pteCount,32);
     setProperty("IGSinkCandidateGgttMappedBytes",ggttPlan.mappedBytes,64);
 
-    const vm_size_t savedBytes=(vm_size_t)ggttPlan.pteCount*sizeof(UInt64);
-    fSavedPtes=reinterpret_cast<UInt64 *>(IOMalloc(savedBytes));
-    if (!fSavedPtes) {
-        setProperty("IGSinkCandidateState","ggtt-save-allocation-failed");
-        releaseGgtt();
+    const vm_size_t pteBytes=(vm_size_t)ggttPlan.pteCount*sizeof(UInt64);
+    fSavedPtes=reinterpret_cast<UInt64 *>(IOMalloc(pteBytes));
+    fInstalledPtes=reinterpret_cast<UInt64 *>(IOMalloc(pteBytes));
+    if (!fSavedPtes || !fInstalledPtes) {
+        setProperty("IGSinkCandidateState","ggtt-image-allocation-failed");
+        (void)releaseGgtt();
         registerService();
         return true;
     }
     fSavedPteCount=ggttPlan.pteCount;
-    fMappedFirstPte=ggttPlan.firstPte;
+    fInstalledPteCount=ggttPlan.pteCount;
+    bzero(fSavedPtes,(size_t)pteBytes);
+    bzero(fInstalledPtes,(size_t)pteBytes);
 
-    volatile UInt64 *pt=reinterpret_cast<volatile UInt64 *>(
-        fMMIO+IG_SINK_GGTT_TABLE_BAR0_OFFSET_I915_0x800000);
-
-    // Read and save the whole target range BEFORE any write. A single present
-    // entry refuses the entire operation, so an existing mapping is never
-    // partially overwritten.
     for (UInt32 i=0;i<ggttPlan.pteCount;++i) {
-        const UInt64 old=pt[ggttPlan.firstPte+i];
-        fSavedPtes[i]=old;
-        if (igSinkGgttPtePresent(old)) {
-            setProperty("IGSinkCandidateGgttOccupiedIndex",(UInt64)(ggttPlan.firstPte+i),32);
-            setProperty("IGSinkCandidateState","ggtt-target-occupied");
-            releaseGgtt();
+        const UInt64 pte=igSinkGgttPteForPage(ggttPlan.intelDmaBase,i);
+        if (!pte) {
+            setProperty("IGSinkCandidateState","ggtt-installed-image-invalid");
+            (void)releaseGgtt();
             registerService();
             return true;
         }
+        fInstalledPtes[i]=pte;
     }
 
-    bool writeOk=true;
-    for (UInt32 i=0;i<ggttPlan.pteCount;++i) {
-        const UInt64 pte=igSinkGgttPteForPage(ggttPlan.intelDmaBase,i);
-        if (!pte) { writeOk=false; break; }
-        pt[ggttPlan.firstPte+i]=pte;
-        OSSynchronizeIO();
-        fMappedPteCount=i+1u;
-        if (pt[ggttPlan.firstPte+i]!=pte) { writeOk=false; break; }
-    }
-    if (!writeOk || fMappedPteCount!=ggttPlan.pteCount) {
-        setProperty("IGSinkCandidateState","ggtt-write-readback-failed");
-        releaseGgtt();
+    fPrepareVerdict=igSinkGgttTxnPrepare(
+        ggttPlan.firstPte,
+        fInstalledPtes,
+        ggttPlan.pteCount,
+        ggttEntries,
+        fSavedPtes,
+        fSavedPteCount,
+        &IntelSinkCandidateService::readGgttPte,
+        this,
+        &fGgttTxn);
+    publishGgttTxnDiagnostics();
+    if (!igSinkGgttTxnSucceeded(fPrepareVerdict)) {
+        if (fPrepareVerdict==IG_SINK_GGTT_TXN_TARGET_OCCUPIED) {
+            for (UInt32 i=0;i<fSavedPteCount;++i) {
+                if (igSinkGgttPtePresent(fSavedPtes[i])) {
+                    setProperty("IGSinkCandidateGgttOccupiedIndex",
+                                (UInt64)(ggttPlan.firstPte+i),32);
+                    break;
+                }
+            }
+        }
+        setProperty("IGSinkCandidateState","ggtt-transaction-prepare-refused");
+        (void)releaseGgtt();
         registerService();
         return true;
     }
+    fGgttTxnPrepared=true;
+
+    // Pin the service before the first possible store. Safe rollback can later
+    // release resources normally, but an unproven rollback/restore keeps this
+    // owner object and every mapping dependency alive until reboot.
+    pinGgttLifetime();
+    fCommitStats={};
+    fCommitStats.failedPte=0xffffffffu;
+    fCommitVerdict=igSinkGgttTxnCommit(
+        &fGgttTxn,
+        fInstalledPtes,
+        fSavedPtes,
+        fSavedPteCount,
+        &IntelSinkCandidateService::readGgttPte,
+        &IntelSinkCandidateService::writeGgttPte,
+        this,
+        &fCommitStats);
+    publishGgttTxnDiagnostics();
+    if (!igSinkGgttTxnSucceeded(fCommitVerdict)) {
+        setProperty("IGSinkCandidateGgttFailedPte",
+                    (UInt64)fCommitStats.failedPte,32);
+        if (fCommitVerdict==IG_SINK_GGTT_TXN_ROLLBACK_FAILED) {
+            enterQuarantine("ggtt-commit-rollback-unproven");
+            registerService();
+            return true;
+        }
+        setProperty("IGSinkCandidateState",
+                    fCommitVerdict==IG_SINK_GGTT_TXN_WRITE_FAILED_ROLLED_BACK
+                        ? "ggtt-commit-failed-rolled-back"
+                        : "ggtt-commit-refused");
+        (void)releaseGgtt();
+        registerService();
+        return true;
+    }
+    fGgttInstalled=true;
+    publishGgttTxnDiagnostics();
 
     // Fresh previously-nonpresent addresses have no valid stale GGTT TLB entry.
     // TGL's uncached GGTT path does not need the pre-Gen11 GFX_FLSH_CNTL write.
@@ -450,7 +660,10 @@ bool IntelSinkCandidateService::start(IOService *provider)
         &candidate);
     if (!igSinkCandidateSucceeded(candidateVerdict)) {
         setProperty("IGSinkCandidateState","post-map-candidate-refused");
-        releaseGgtt();
+        if (!releaseGgtt()) {
+            registerService();
+            return true;
+        }
         registerService();
         return true;
     }
@@ -460,6 +673,7 @@ bool IntelSinkCandidateService::start(IOService *provider)
     setProperty("IGSinkCandidatePlaneProgrammed",false);
     setProperty("IGSinkCandidateProducerReady",candidate.producerReady!=0);
     setProperty("IGSinkCandidateScanoutReady",candidate.scanoutReady!=0);
+    publishGgttTxnDiagnostics();
 
     if (!peerRequested) {
         setProperty("IGSinkCandidateState","ggtt-mapped-peer-not-requested");
@@ -573,9 +787,25 @@ bool IntelSinkCandidateService::start(IOService *provider)
 
 void IntelSinkCandidateService::stop(IOService *provider)
 {
+    // GGTT ownership is the first teardown gate. If exact restoration is not
+    // proven, keep peer DMA, Intel DMA, BAR mapping, backing pages, snapshots and
+    // the PCI-open owner alive. No later release is allowed to fall through.
+    const bool ggttReleased=releaseGgtt();
+    if (!ggttReleased) {
+        IGSINKLOG("stop leaving quarantined sink resources pinned until reboot");
+        super::stop(provider);
+        return;
+    }
+
     releasePeerDma();
-    releaseGgtt();
     releaseBacking();
     OSSafeReleaseNULL(fPCIDevice);
+
+    const bool dropLifetimePin=fGgttLifetimePinned;
+    fGgttLifetimePinned=false;
+    setProperty("IGSinkCandidateGgttLifetimePinned",false);
     super::stop(provider);
+
+    // Last operation: dropping the extra safety retain may invoke free().
+    if (dropLifetimePin) release();
 }

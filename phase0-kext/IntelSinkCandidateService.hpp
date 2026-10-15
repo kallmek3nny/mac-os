@@ -12,6 +12,7 @@
 #include "IntelFramebuffer.hpp"
 #include "IntelSinkCandidate.hpp"
 #include "IntelSinkGgtt.hpp"
+#include "IntelSinkGgttTxn.hpp"
 #include "IntelSinkPeer.hpp"
 
 // Allocation constraint only. Clearing the low twelve bits requests page
@@ -41,16 +42,33 @@ private:
     volatile UInt8 *fMMIO;
     UInt64 fBarBytes;
     UInt64 *fSavedPtes;
+    UInt64 *fInstalledPtes;
     UInt32 fSavedPteCount;
-    UInt32 fMappedPteCount;
-    UInt32 fMappedFirstPte;
+    UInt32 fInstalledPteCount;
+    UInt32 fGgttEntries;
+    IGSinkGgttTxn fGgttTxn;
+    IGSinkGgttTxnStats fCommitStats;
+    IGSinkGgttTxnStats fRestoreStats;
+    UInt32 fPrepareVerdict;
+    UInt32 fCommitVerdict;
+    UInt32 fRestoreVerdict;
+    bool fGgttTxnPrepared;
+    bool fGgttInstalled;
+    bool fQuarantined;
+    bool fGgttLifetimePinned;
     bool fPrepared;
     bool fDMABound;
     bool fPeerDMABound;
     bool fOpened;
 
+    static bool readGgttPte(void *context, IGGgttU32 pteIndex, IGGgttU64 *value);
+    static bool writeGgttPte(void *context, IGGgttU32 pteIndex, IGGgttU64 value);
+
+    void pinGgttLifetime(void);
+    void enterQuarantine(const char *reason);
+    void publishGgttTxnDiagnostics(void);
     void releasePeerDma(void);
-    void releaseGgtt(void);
+    bool releaseGgtt(void);
     void releaseBacking(void);
     void publishNotReady(void);
     bool acceleratorPresent(void);
