@@ -1,0 +1,37 @@
+name: Intel sink GGTT runtime transaction safety
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-transaction-shape:
+    name: sink GGTT runtime safety (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: verify transaction and quarantine source shape
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run(
+              ["python3", "tests/test_intel_sink_ggtt_runtime_transaction_shape.py"],
+              check=True,
+              timeout=30,
+          )
+          PY
