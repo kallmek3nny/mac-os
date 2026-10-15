@@ -1,0 +1,71 @@
+name: GSP Booter success-retirement tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  booter-success-retirement:
+    name: booter success retirement (${{ matrix.os }}, ${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: g++
+          - os: ubuntu-latest
+            compiler: clang++
+          - os: macos-latest
+            compiler: clang++
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: compile pure ga107 sec2 success-retirement tests
+        shell: bash
+        timeout-minutes: 2
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import subprocess
+          subprocess.run([
+              os.environ["CXX"], "-std=c++17", "-O2",
+              "-Wall", "-Wextra", "-Wpedantic", "-Werror",
+              "-Iphase0-kext",
+              "tests/test_nv_gsp_booter_success_retirement_plan.cpp",
+              "-o", "/tmp/test-nv-gsp-booter-success-retirement"
+          ], check=True, timeout=30)
+          PY
+
+      - name: run pure ga107 sec2 success-retirement tests
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run([
+              "/tmp/test-nv-gsp-booter-success-retirement"
+          ], check=True, timeout=30)
+          PY
+
+      - name: verify pure/no-write success-retirement source shape
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run([
+              "python3", "tests/test_nv_gsp_booter_success_retirement_plan_shape.py"
+          ], check=True, timeout=30)
+          PY
