@@ -13,6 +13,7 @@ bool NVPeerMapperProbe::init(OSDictionary *dict)
 {
     if (!super::init(dict)) return false;
     fPCIDevice=nullptr;
+    fCopyPublicationLifetimePinned=false;
     return nvAmpereCopyRuntimeInit(&fCopyPublicationRuntime)==
            NV_COPY_RUNTIME_OK;
 }
@@ -98,6 +99,7 @@ bool NVPeerMapperProbe::start(IOService *provider)
     setProperty("NVPeerMapperState",available ? "device-mapper-available" : "device-mapper-unavailable");
     setProperty("NVPeerMapperCopyPublicationPeerValidated",publicationPeerValidated);
     setProperty("NVPeerMapperCopyPublicationRuntimeWriteAuthorized",false);
+    setProperty("NVPeerMapperCopyPublicationLifetimePinned",false);
     setProperty("NVPeerMapperCopyPublicationState",
                 publicationPeerValidated
                     ? "peer-mapping-validated-awaiting-channel"
@@ -115,18 +117,25 @@ void NVPeerMapperProbe::stop(IOService *provider)
 {
     // There is deliberately no transaction-reuse/retirement path in this
     // phase. If a future executor starts a transaction, stop() must not silently
-    // dismantle provider ownership underneath it. Preserve the service/device
-    // lifetime instead of pretending retirement happened.
+    // dismantle provider ownership underneath it. Mirror the sink quarantine
+    // rule: pin the service/device lifetime, still complete IOService stop(),
+    // and refuse every later dependency release until retirement is proven.
     if (fCopyPublicationRuntime.transactionActive) {
+        if (!fCopyPublicationLifetimePinned) {
+            retain();
+            fCopyPublicationLifetimePinned=true;
+            setProperty("NVPeerMapperCopyPublicationLifetimePinned",true);
+        }
         setProperty("NVPeerMapperCopyPublicationState",
                     "active-transaction-provider-retained");
         setProperty("NVPeerMapperCopyPublicationRuntimeWriteAuthorized",false);
         NVMAPLOG("stop: active copy publication transaction; retaining provider ownership");
-        retain();
+        super::stop(provider);
         return;
     }
 
     (void)nvAmpereCopyRuntimeSetPeerMapping(&fCopyPublicationRuntime,false);
+    setProperty("NVPeerMapperCopyPublicationLifetimePinned",false);
     OSSafeReleaseNULL(fPCIDevice);
     super::stop(provider);
 }
