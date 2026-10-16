@@ -2,7 +2,6 @@
 #include "NVAmpereCopyPublicationBridge.hpp"
 
 #include <cstdio>
-#include <cstring>
 
 static unsigned gChecks = 0u;
 static unsigned gFailures = 0u;
@@ -49,13 +48,97 @@ static NVAmpereCopyPublicationEvidence validEvidence()
 
 static void poison(NVAmpereCopyPublicationBridge *out)
 {
-    std::memset(out, 0xa5, sizeof(*out));
+    NVAmpereCopyPublicationBridge staged = {};
+    staged.channelReadiness.allocationReady = true;
+    staged.channelReadiness.ceBoundReady = false;
+    staged.channelReadiness.submitReady = true;
+
+    staged.copyProgress.peerMappingValidated = true;
+    staged.copyProgress.channelSubmitReady = true;
+    staged.copyProgress.copySubmissionPublished = true;
+    staged.copyProgress.trackingFencePublishedAfterCopy = true;
+    staged.copyProgress.completedBeforeSubmission = 900ull;
+    staged.copyProgress.submittedTrackingValue = 901ull;
+    staged.copyProgress.observedCompletionPayload = 0x5a5a5a5au;
+    staged.copyProgress.maxCredibleCompletionJump = 16ull;
+
+    // Mint a real non-default opaque anchor so atomic-refusal checks cover the
+    // non-trivial member semantically instead of inspecting its object bytes.
+    NvIntelSharedCopyProgress anchorProgress = staged.copyProgress;
+    anchorProgress.observedCompletionPayload = 0u;
+    NvIntelSharedCopyTransactionAnchor sentinelAnchor = {};
+    if (nvIntelBuildSharedCopyTransactionAnchor(
+            &anchorProgress,
+            0xabcdef0123456789ull,
+            0x123456789abcdef0ull,
+            &sentinelAnchor) == NV_INTEL_ANCHORED_PROVENANCE_OK)
+        staged.transactionAnchor = sentinelAnchor;
+
+    staged.copyPublicationProven = false;
+    staged.trackingFencePublicationProven = true;
+    staged.completionObservationMayBegin = false;
+    staged.runtimeWriteAuthorized = true;
+    staged.valid = true;
+    *out = staged;
 }
 
-static bool sameBytes(const NVAmpereCopyPublicationBridge &a,
+static bool sameState(const NVAmpereCopyPublicationBridge &a,
                       const NVAmpereCopyPublicationBridge &b)
 {
-    return std::memcmp(&a, &b, sizeof(a)) == 0;
+    return a.channelReadiness.allocationReady ==
+               b.channelReadiness.allocationReady &&
+           a.channelReadiness.ceBoundReady == b.channelReadiness.ceBoundReady &&
+           a.channelReadiness.submitReady == b.channelReadiness.submitReady &&
+           a.copyProgress.peerMappingValidated ==
+               b.copyProgress.peerMappingValidated &&
+           a.copyProgress.channelSubmitReady ==
+               b.copyProgress.channelSubmitReady &&
+           a.copyProgress.copySubmissionPublished ==
+               b.copyProgress.copySubmissionPublished &&
+           a.copyProgress.trackingFencePublishedAfterCopy ==
+               b.copyProgress.trackingFencePublishedAfterCopy &&
+           a.copyProgress.boundedCompletionWaitUsed ==
+               b.copyProgress.boundedCompletionWaitUsed &&
+           a.copyProgress.boundedCompletionWaitFinished ==
+               b.copyProgress.boundedCompletionWaitFinished &&
+           a.copyProgress.completionPayloadReadSucceeded ==
+               b.copyProgress.completionPayloadReadSucceeded &&
+           a.copyProgress.completionWaitTimedOut ==
+               b.copyProgress.completionWaitTimedOut &&
+           a.copyProgress.completedBeforeSubmission ==
+               b.copyProgress.completedBeforeSubmission &&
+           a.copyProgress.submittedTrackingValue ==
+               b.copyProgress.submittedTrackingValue &&
+           a.copyProgress.observedCompletionPayload ==
+               b.copyProgress.observedCompletionPayload &&
+           a.copyProgress.maxCredibleCompletionJump ==
+               b.copyProgress.maxCredibleCompletionJump &&
+           a.transactionAnchor.handoffEpoch() ==
+               b.transactionAnchor.handoffEpoch() &&
+           a.transactionAnchor.transactionToken() ==
+               b.transactionAnchor.transactionToken() &&
+           a.transactionAnchor.completedBeforeSubmission() ==
+               b.transactionAnchor.completedBeforeSubmission() &&
+           a.transactionAnchor.submittedTrackingValue() ==
+               b.transactionAnchor.submittedTrackingValue() &&
+           a.transactionAnchor.maxCredibleCompletionJump() ==
+               b.transactionAnchor.maxCredibleCompletionJump() &&
+           a.transactionAnchor.peerMappingValidated() ==
+               b.transactionAnchor.peerMappingValidated() &&
+           a.transactionAnchor.channelSubmitReady() ==
+               b.transactionAnchor.channelSubmitReady() &&
+           a.transactionAnchor.copySubmissionPublished() ==
+               b.transactionAnchor.copySubmissionPublished() &&
+           a.transactionAnchor.trackingFencePublishedAfterCopy() ==
+               b.transactionAnchor.trackingFencePublishedAfterCopy() &&
+           a.transactionAnchor.valid() == b.transactionAnchor.valid() &&
+           a.copyPublicationProven == b.copyPublicationProven &&
+           a.trackingFencePublicationProven ==
+               b.trackingFencePublicationProven &&
+           a.completionObservationMayBegin ==
+               b.completionObservationMayBegin &&
+           a.runtimeWriteAuthorized == b.runtimeWriteAuthorized &&
+           a.valid == b.valid;
 }
 
 static void testValidPublicationBuildsPreEvidenceAnchor()
@@ -111,7 +194,7 @@ static void testChannelRefusalIsAtomic()
     check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_CHANNEL,
           "missing provider submission token is refused");
-    check(sameBytes(out, before), "channel refusal leaves output untouched");
+    check(sameState(out, before), "channel refusal leaves output untouched");
 }
 
 static void testPeerMappingRequiredAtomically()
@@ -126,7 +209,7 @@ static void testPeerMappingRequiredAtomically()
     check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_PEER_MAPPING,
           "missing peer mapping proof is refused");
-    check(sameBytes(out, before), "peer refusal leaves output untouched");
+    check(sameState(out, before), "peer refusal leaves output untouched");
 }
 
 static void testCopyPublicationOrderingRefuses()
@@ -141,7 +224,7 @@ static void testCopyPublicationOrderingRefuses()
     check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_SEQUENCE,
           "gpPut cannot be published without ring entry storage");
-    check(sameBytes(out, before), "copy ordering refusal is atomic");
+    check(sameState(out, before), "copy ordering refusal is atomic");
 }
 
 static void testFenceCannotPublishBeforeCopyKick()
@@ -156,7 +239,7 @@ static void testFenceCannotPublishBeforeCopyKick()
     check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_SEQUENCE,
           "fence ring publication before copy kick is refused");
-    check(sameBytes(out, before), "cross-submission ordering refusal is atomic");
+    check(sameState(out, before), "cross-submission ordering refusal is atomic");
 }
 
 static void testPartialPublicationCannotMintAnchor()
@@ -171,7 +254,7 @@ static void testPartialPublicationCannotMintAnchor()
     check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_SEQUENCE,
           "anchor waits for ordered tracking-fence publication");
-    check(sameBytes(out, before), "partial publication leaves output untouched");
+    check(sameState(out, before), "partial publication leaves output untouched");
 }
 
 static void testInvalidTrackingTargetRefusesThroughAnchor()
@@ -186,7 +269,7 @@ static void testInvalidTrackingTargetRefusesThroughAnchor()
     check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_ANCHOR,
           "non-new tracking target cannot mint an anchor");
-    check(sameBytes(out, before), "tracking-target refusal is atomic");
+    check(sameState(out, before), "tracking-target refusal is atomic");
 }
 
 static void testZeroIdentityRefusesThroughAnchor()
@@ -200,12 +283,12 @@ static void testZeroIdentityRefusesThroughAnchor()
     check(nvAmpereBuildCopyPublicationBridge(e, 0ull, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_ANCHOR,
           "zero handoff epoch refused");
-    check(sameBytes(out, before), "zero-epoch refusal is atomic");
+    check(sameState(out, before), "zero-epoch refusal is atomic");
 
     check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, 0ull, &out) ==
               NV_COPY_PUBLICATION_ERR_ANCHOR,
           "zero transaction token refused");
-    check(sameBytes(out, before), "zero-token refusal is atomic");
+    check(sameState(out, before), "zero-token refusal is atomic");
 }
 
 int main()
