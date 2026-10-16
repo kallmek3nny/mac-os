@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Pure pre-evidence provenance anchors for the GA107 -> Tiger Lake handoff.
 //
-// The earlier handoff provenance wrapper verifies evidence against opaque
-// expected identities. This layer moves those expected identities behind a
-// temporal boundary: the NVIDIA transaction anchor is admitted only after the
-// ordered tracking fence is published and before completion observation starts;
-// the Intel transaction anchor is admitted only after the surface arm point and
-// before retirement evidence exists. Later evidence therefore cannot choose its
-// own expected transaction identity.
+// Expected transaction identities are admitted before retirement evidence can
+// exist, then carried in opaque value objects whose identity/state has no public
+// mutator surface. Later evidence can be compared with an earlier anchor but
+// cannot rewrite the expected epoch/token through this API.
 //
 // This helper performs no submission, MMIO, GGTT, IOMMU, or memory writes. It
 // carries opaque epochs/tokens and lifetime facts only.
@@ -26,41 +23,110 @@
 #define NV_INTEL_ANCHORED_PROVENANCE_ERR_EVIDENCE               7u
 #define NV_INTEL_ANCHORED_PROVENANCE_VERDICT_LIMIT              7u
 
-struct NvIntelSharedCopyTransactionAnchor {
-    NVIntelHandoffU64 handoffEpoch;
-    NVIntelHandoffU64 transactionToken;
+class NvIntelSharedCopyTransactionAnchor;
+class IgDisplayTransactionProvenanceAnchor;
 
-    NVIntelCopyU64 completedBeforeSubmission;
-    NVIntelCopyU64 submittedTrackingValue;
-    NVIntelCopyU64 maxCredibleCompletionJump;
+static inline NVIntelHandoffU32 nvIntelBuildSharedCopyTransactionAnchor(
+    const NvIntelSharedCopyProgress *progress,
+    NVIntelHandoffU64 handoffEpoch,
+    NVIntelHandoffU64 transactionToken,
+    NvIntelSharedCopyTransactionAnchor *out);
 
-    bool peerMappingValidated;
-    bool channelSubmitReady;
-    bool copySubmissionPublished;
-    bool trackingFencePublishedAfterCopy;
+static inline NVIntelHandoffU32 nvIntelBuildDisplayTransactionProvenanceAnchor(
+    const IgDisplayTransactionLifetimePlan *preEvidence,
+    NVIntelHandoffU64 handoffEpoch,
+    NVIntelHandoffU64 transactionToken,
+    IgDisplayTransactionProvenanceAnchor *out);
 
-    bool runtimeWriteAuthorized;
-    bool valid;
+class NvIntelSharedCopyTransactionAnchor {
+public:
+    NvIntelSharedCopyTransactionAnchor() = default;
+
+    NVIntelHandoffU64 handoffEpoch() const { return handoffEpoch_; }
+    NVIntelHandoffU64 transactionToken() const { return transactionToken_; }
+    NVIntelCopyU64 completedBeforeSubmission() const
+    {
+        return completedBeforeSubmission_;
+    }
+    NVIntelCopyU64 submittedTrackingValue() const
+    {
+        return submittedTrackingValue_;
+    }
+    NVIntelCopyU64 maxCredibleCompletionJump() const
+    {
+        return maxCredibleCompletionJump_;
+    }
+    bool peerMappingValidated() const { return peerMappingValidated_; }
+    bool channelSubmitReady() const { return channelSubmitReady_; }
+    bool copySubmissionPublished() const { return copySubmissionPublished_; }
+    bool trackingFencePublishedAfterCopy() const
+    {
+        return trackingFencePublishedAfterCopy_;
+    }
+    bool runtimeWriteAuthorized() const { return false; }
+    bool valid() const { return valid_; }
+
+private:
+    friend NVIntelHandoffU32 nvIntelBuildSharedCopyTransactionAnchor(
+        const NvIntelSharedCopyProgress *progress,
+        NVIntelHandoffU64 handoffEpoch,
+        NVIntelHandoffU64 transactionToken,
+        NvIntelSharedCopyTransactionAnchor *out);
+
+    NVIntelHandoffU64 handoffEpoch_ = 0ull;
+    NVIntelHandoffU64 transactionToken_ = 0ull;
+    NVIntelCopyU64 completedBeforeSubmission_ = 0ull;
+    NVIntelCopyU64 submittedTrackingValue_ = 0ull;
+    NVIntelCopyU64 maxCredibleCompletionJump_ = 0ull;
+    bool peerMappingValidated_ = false;
+    bool channelSubmitReady_ = false;
+    bool copySubmissionPublished_ = false;
+    bool trackingFencePublishedAfterCopy_ = false;
+    bool valid_ = false;
 };
 
-struct IgDisplayTransactionProvenanceAnchor {
-    NVIntelHandoffU64 handoffEpoch;
-    NVIntelHandoffU64 transactionToken;
+class IgDisplayTransactionProvenanceAnchor {
+public:
+    IgDisplayTransactionProvenanceAnchor() = default;
 
-    IGU32 deviceId;
-    IGU32 pipe;
-    IGU32 plane;
+    NVIntelHandoffU64 handoffEpoch() const { return handoffEpoch_; }
+    NVIntelHandoffU64 transactionToken() const { return transactionToken_; }
+    IGU32 deviceId() const { return deviceId_; }
+    IGU32 pipe() const { return pipe_; }
+    IGU32 plane() const { return plane_; }
+    bool targetMappingPrepared() const { return targetMappingPrepared_; }
+    bool targetMappingCommitted() const { return targetMappingCommitted_; }
+    bool targetMappingReadbackExact() const
+    {
+        return targetMappingReadbackExact_;
+    }
+    bool noArmProgrammingIssued() const { return noArmProgrammingIssued_; }
+    bool armControlWriteIssued() const { return armControlWriteIssued_; }
+    bool surfaceArmWriteIssued() const { return surfaceArmWriteIssued_; }
+    bool armPointCrossed() const { return armPointCrossed_; }
+    bool runtimeWriteAuthorized() const { return false; }
+    bool valid() const { return valid_; }
 
-    bool targetMappingPrepared;
-    bool targetMappingCommitted;
-    bool targetMappingReadbackExact;
-    bool noArmProgrammingIssued;
-    bool armControlWriteIssued;
-    bool surfaceArmWriteIssued;
-    bool armPointCrossed;
+private:
+    friend NVIntelHandoffU32 nvIntelBuildDisplayTransactionProvenanceAnchor(
+        const IgDisplayTransactionLifetimePlan *preEvidence,
+        NVIntelHandoffU64 handoffEpoch,
+        NVIntelHandoffU64 transactionToken,
+        IgDisplayTransactionProvenanceAnchor *out);
 
-    bool runtimeWriteAuthorized;
-    bool valid;
+    NVIntelHandoffU64 handoffEpoch_ = 0ull;
+    NVIntelHandoffU64 transactionToken_ = 0ull;
+    IGU32 deviceId_ = 0u;
+    IGU32 pipe_ = 0u;
+    IGU32 plane_ = 0u;
+    bool targetMappingPrepared_ = false;
+    bool targetMappingCommitted_ = false;
+    bool targetMappingReadbackExact_ = false;
+    bool noArmProgrammingIssued_ = false;
+    bool armControlWriteIssued_ = false;
+    bool surfaceArmWriteIssued_ = false;
+    bool armPointCrossed_ = false;
+    bool valid_ = false;
 };
 
 struct NvIntelSharedSurfaceAnchoredProvenance {
@@ -138,19 +204,18 @@ static inline NVIntelHandoffU32 nvIntelBuildSharedCopyTransactionAnchor(
         lifetime.intelHandoffAuthorized)
         return NV_INTEL_ANCHORED_PROVENANCE_ERR_COPY_ANCHOR;
 
-    NvIntelSharedCopyTransactionAnchor staged = {};
-    staged.handoffEpoch = handoffEpoch;
-    staged.transactionToken = transactionToken;
-    staged.completedBeforeSubmission = progress->completedBeforeSubmission;
-    staged.submittedTrackingValue = progress->submittedTrackingValue;
-    staged.maxCredibleCompletionJump = progress->maxCredibleCompletionJump;
-    staged.peerMappingValidated = progress->peerMappingValidated;
-    staged.channelSubmitReady = progress->channelSubmitReady;
-    staged.copySubmissionPublished = progress->copySubmissionPublished;
-    staged.trackingFencePublishedAfterCopy =
+    NvIntelSharedCopyTransactionAnchor staged;
+    staged.handoffEpoch_ = handoffEpoch;
+    staged.transactionToken_ = transactionToken;
+    staged.completedBeforeSubmission_ = progress->completedBeforeSubmission;
+    staged.submittedTrackingValue_ = progress->submittedTrackingValue;
+    staged.maxCredibleCompletionJump_ = progress->maxCredibleCompletionJump;
+    staged.peerMappingValidated_ = progress->peerMappingValidated;
+    staged.channelSubmitReady_ = progress->channelSubmitReady;
+    staged.copySubmissionPublished_ = progress->copySubmissionPublished;
+    staged.trackingFencePublishedAfterCopy_ =
         progress->trackingFencePublishedAfterCopy;
-    staged.runtimeWriteAuthorized = false;
-    staged.valid = true;
+    staged.valid_ = true;
     *out = staged;
     return NV_INTEL_ANCHORED_PROVENANCE_OK;
 }
@@ -159,18 +224,18 @@ static inline bool nvIntelSharedCopyTransactionAnchorMatchesProgress(
     const NvIntelSharedCopyTransactionAnchor &anchor,
     const NvIntelSharedCopyProgress &progress)
 {
-    if (!anchor.valid || anchor.runtimeWriteAuthorized ||
-        anchor.handoffEpoch == 0ull || anchor.transactionToken == 0ull)
+    if (!anchor.valid() || anchor.runtimeWriteAuthorized() ||
+        anchor.handoffEpoch() == 0ull || anchor.transactionToken() == 0ull)
         return false;
 
-    return anchor.peerMappingValidated == progress.peerMappingValidated &&
-           anchor.channelSubmitReady == progress.channelSubmitReady &&
-           anchor.copySubmissionPublished == progress.copySubmissionPublished &&
-           anchor.trackingFencePublishedAfterCopy ==
+    return anchor.peerMappingValidated() == progress.peerMappingValidated &&
+           anchor.channelSubmitReady() == progress.channelSubmitReady &&
+           anchor.copySubmissionPublished() == progress.copySubmissionPublished &&
+           anchor.trackingFencePublishedAfterCopy() ==
                progress.trackingFencePublishedAfterCopy &&
-           anchor.completedBeforeSubmission == progress.completedBeforeSubmission &&
-           anchor.submittedTrackingValue == progress.submittedTrackingValue &&
-           anchor.maxCredibleCompletionJump ==
+           anchor.completedBeforeSubmission() == progress.completedBeforeSubmission &&
+           anchor.submittedTrackingValue() == progress.submittedTrackingValue &&
+           anchor.maxCredibleCompletionJump() ==
                progress.maxCredibleCompletionJump;
 }
 
@@ -260,21 +325,20 @@ static inline NVIntelHandoffU32 nvIntelBuildDisplayTransactionProvenanceAnchor(
         preEvidence->displayRollbackAuthorized)
         return NV_INTEL_ANCHORED_PROVENANCE_ERR_DISPLAY_ANCHOR;
 
-    IgDisplayTransactionProvenanceAnchor staged = {};
-    staged.handoffEpoch = handoffEpoch;
-    staged.transactionToken = transactionToken;
-    staged.deviceId = preEvidence->deviceId;
-    staged.pipe = preEvidence->pipe;
-    staged.plane = preEvidence->plane;
-    staged.targetMappingPrepared = preEvidence->targetMappingPrepared;
-    staged.targetMappingCommitted = preEvidence->targetMappingCommitted;
-    staged.targetMappingReadbackExact = preEvidence->targetMappingReadbackExact;
-    staged.noArmProgrammingIssued = preEvidence->noArmProgrammingIssued;
-    staged.armControlWriteIssued = preEvidence->armControlWriteIssued;
-    staged.surfaceArmWriteIssued = preEvidence->surfaceArmWriteIssued;
-    staged.armPointCrossed = preEvidence->armPointCrossed;
-    staged.runtimeWriteAuthorized = false;
-    staged.valid = true;
+    IgDisplayTransactionProvenanceAnchor staged;
+    staged.handoffEpoch_ = handoffEpoch;
+    staged.transactionToken_ = transactionToken;
+    staged.deviceId_ = preEvidence->deviceId;
+    staged.pipe_ = preEvidence->pipe;
+    staged.plane_ = preEvidence->plane;
+    staged.targetMappingPrepared_ = preEvidence->targetMappingPrepared;
+    staged.targetMappingCommitted_ = preEvidence->targetMappingCommitted;
+    staged.targetMappingReadbackExact_ = preEvidence->targetMappingReadbackExact;
+    staged.noArmProgrammingIssued_ = preEvidence->noArmProgrammingIssued;
+    staged.armControlWriteIssued_ = preEvidence->armControlWriteIssued;
+    staged.surfaceArmWriteIssued_ = preEvidence->surfaceArmWriteIssued;
+    staged.armPointCrossed_ = preEvidence->armPointCrossed;
+    staged.valid_ = true;
     *out = staged;
     return NV_INTEL_ANCHORED_PROVENANCE_OK;
 }
@@ -283,22 +347,22 @@ static inline bool nvIntelDisplayTransactionAnchorMatchesPlan(
     const IgDisplayTransactionProvenanceAnchor &anchor,
     const IgDisplayTransactionLifetimePlan &current)
 {
-    if (!anchor.valid || anchor.runtimeWriteAuthorized ||
-        anchor.handoffEpoch == 0ull || anchor.transactionToken == 0ull ||
+    if (!anchor.valid() || anchor.runtimeWriteAuthorized() ||
+        anchor.handoffEpoch() == 0ull || anchor.transactionToken() == 0ull ||
         !current.valid || current.runtimeWriteAuthorized)
         return false;
 
-    if (anchor.deviceId != current.deviceId ||
-        anchor.pipe != current.pipe || anchor.plane != current.plane)
+    if (anchor.deviceId() != current.deviceId ||
+        anchor.pipe() != current.pipe || anchor.plane() != current.plane)
         return false;
 
-    if (anchor.targetMappingPrepared != current.targetMappingPrepared ||
-        anchor.targetMappingCommitted != current.targetMappingCommitted ||
-        anchor.targetMappingReadbackExact != current.targetMappingReadbackExact ||
-        anchor.noArmProgrammingIssued != current.noArmProgrammingIssued ||
-        anchor.armControlWriteIssued != current.armControlWriteIssued ||
-        anchor.surfaceArmWriteIssued != current.surfaceArmWriteIssued ||
-        anchor.armPointCrossed != current.armPointCrossed)
+    if (anchor.targetMappingPrepared() != current.targetMappingPrepared ||
+        anchor.targetMappingCommitted() != current.targetMappingCommitted ||
+        anchor.targetMappingReadbackExact() != current.targetMappingReadbackExact ||
+        anchor.noArmProgrammingIssued() != current.noArmProgrammingIssued ||
+        anchor.armControlWriteIssued() != current.armControlWriteIssued ||
+        anchor.surfaceArmWriteIssued() != current.surfaceArmWriteIssued ||
+        anchor.armPointCrossed() != current.armPointCrossed)
         return false;
 
     if (current.newSurfaceBackingReleaseAuthorized ||
@@ -355,18 +419,18 @@ static inline NVIntelHandoffU32 nvIntelSharedSurfaceAnchoredProvenancePlan(
                 &anchored->intelDisplayTransaction, displayPlan);
         if (displayAnchorVerdict != NV_INTEL_ANCHORED_PROVENANCE_OK)
             return displayAnchorVerdict;
-        if (anchored->intelDisplayTransaction.handoffEpoch !=
-            anchored->copyTransaction.handoffEpoch)
+        if (anchored->intelDisplayTransaction.handoffEpoch() !=
+            anchored->copyTransaction.handoffEpoch())
             return NV_INTEL_ANCHORED_PROVENANCE_ERR_ROOT_IDENTITY;
     }
 
     NvIntelSharedSurfaceHandoffProvenance expected = {};
-    expected.handoffEpoch = anchored->copyTransaction.handoffEpoch;
-    expected.copySubmissionToken = anchored->copyTransaction.transactionToken;
+    expected.handoffEpoch = anchored->copyTransaction.handoffEpoch();
+    expected.copySubmissionToken = anchored->copyTransaction.transactionToken();
     expected.copyCompletionEvidence = anchored->copyCompletionEvidence;
     if (displayActive) {
         expected.intelDisplayTransactionToken =
-            anchored->intelDisplayTransaction.transactionToken;
+            anchored->intelDisplayTransaction.transactionToken();
         expected.intelDisplayEvidence = anchored->intelDisplayEvidence;
     }
 
