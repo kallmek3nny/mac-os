@@ -22,6 +22,7 @@ public:
 
 private:
     IOPCIDevice *fPCIDevice;
+    bool fCopyPublicationLifetimePinned;
 
     // Provider-owned publication state. The exact-device mapper result is
     // recorded here by start(); future channel execution can extend the same
