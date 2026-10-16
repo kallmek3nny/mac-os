@@ -114,15 +114,22 @@ static inline void nvIntelSharedSurfaceApplyProvenanceQuarantine(
 
     if (copyProvenanceAmbiguous) {
         // Without exact submission/evidence binding, NVIDIA retirement is not a
-        // trustworthy ownership boundary. Keep every affected lifetime closed.
+        // trustworthy ownership boundary. Keep every still-live affected
+        // lifetime closed. A peer mapping already proven torn down stays gone;
+        // ambiguity instead quarantines its slot against reuse so stale NVIDIA
+        // references cannot be redirected into a different allocation.
+        const bool peerMappingStillPresent =
+            copy.peerMappingValidated &&
+            !handoff->peerMappingTeardownSucceeded;
+
         handoff->copyRetirementProven = false;
         handoff->nvidiaMayStillReferenceSurface = copy.copySubmissionPublished;
         handoff->peerMappingTeardownMayBeAttempted = false;
-        handoff->peerMappingMustRemainPinned = copy.peerMappingValidated;
+        handoff->peerMappingMustRemainPinned = peerMappingStillPresent;
         handoff->peerMappingSlotReuseAuthorized = false;
         handoff->intelHandoffAuthorized = false;
         handoff->intelMappingMayBegin = false;
-        handoff->quarantinePeerMapping = copy.peerMappingValidated;
+        handoff->quarantinePeerMapping = peerMappingStillPresent;
 
         if (displayActive) {
             handoff->quarantineIntelMapping = true;
