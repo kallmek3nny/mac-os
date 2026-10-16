@@ -1,0 +1,90 @@
+name: GA107 provider publication runtime tests
+
+on:
+  push:
+    branches:
+      - agent/ga107-provider-publication-state
+    paths:
+      - 'phase0-kext/NVAmpereCopyPublicationRuntime.hpp'
+      - 'phase0-kext/NVAmpereCopyPublicationBridge.hpp'
+      - 'phase0-kext/NVAmpereChannel.hpp'
+      - 'phase0-kext/NVAmpereSubmit.hpp'
+      - 'phase0-kext/NVAmpereFence.hpp'
+      - 'phase0-kext/NvIntelSharedCopyLifetime.hpp'
+      - 'phase0-kext/NvIntelSharedSurfaceHandoffAnchoredProvenance.hpp'
+      - 'phase0-kext/NVPeerMapperProbe.hpp'
+      - 'phase0-kext/NVPeerMapperProbe.cpp'
+      - 'tests/test_nv_ampere_copy_publication_runtime.cpp'
+      - 'tests/test_nv_ampere_copy_publication_runtime_shape.py'
+      - '.github/workflows/ga107-provider-publication-runtime-tests.yml'
+  pull_request:
+    paths:
+      - 'phase0-kext/NVAmpereCopyPublicationRuntime.hpp'
+      - 'phase0-kext/NVAmpereCopyPublicationBridge.hpp'
+      - 'phase0-kext/NVAmpereChannel.hpp'
+      - 'phase0-kext/NVAmpereSubmit.hpp'
+      - 'phase0-kext/NVAmpereFence.hpp'
+      - 'phase0-kext/NvIntelSharedCopyLifetime.hpp'
+      - 'phase0-kext/NvIntelSharedSurfaceHandoffAnchoredProvenance.hpp'
+      - 'phase0-kext/NVPeerMapperProbe.hpp'
+      - 'phase0-kext/NVPeerMapperProbe.cpp'
+      - 'tests/test_nv_ampere_copy_publication_runtime.cpp'
+      - 'tests/test_nv_ampere_copy_publication_runtime_shape.py'
+      - '.github/workflows/ga107-provider-publication-runtime-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  provider-publication-runtime:
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            cxx: g++
+          - os: ubuntu-latest
+            cxx: clang++
+          - os: macos-latest
+            cxx: clang++
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: compile and run provider publication runtime tests
+        timeout-minutes: 3
+        env:
+          CXX: ${{ matrix.cxx }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import subprocess
+          from pathlib import Path
+
+          exe = Path('test_nv_ampere_copy_publication_runtime')
+          cmd = [
+              os.environ['CXX'],
+              '-std=c++17', '-O2',
+              '-Wall', '-Wextra', '-Wpedantic', '-Werror',
+              '-Iphase0-kext',
+              'tests/test_nv_ampere_copy_publication_runtime.cpp',
+              '-o', str(exe),
+          ]
+          subprocess.run(cmd, check=True, timeout=30)
+          subprocess.run([str(exe.resolve())], check=True, timeout=30)
+          PY
+
+      - name: verify provider publication runtime source shape
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run(
+              ['python3', 'tests/test_nv_ampere_copy_publication_runtime_shape.py'],
+              check=True,
+              timeout=30,
+          )
+          PY
