@@ -7,6 +7,8 @@ HEADER = ROOT / "phase0-kext" / "NvIntelSharedSurfaceHandoffAnchoredProvenance.h
 text = HEADER.read_text(encoding="utf-8")
 
 required = [
+    "class NvIntelSharedCopyTransactionAnchor",
+    "class IgDisplayTransactionProvenanceAnchor",
     "nvIntelBuildSharedCopyTransactionAnchor",
     "nvIntelVerifySharedCopyTransactionAnchor",
     "nvIntelBuildDisplayTransactionProvenanceAnchor",
@@ -22,6 +24,29 @@ required = [
 ]
 for needle in required:
     assert needle in text, f"missing anchored provenance invariant: {needle}"
+
+# Both transaction anchors must remain opaque value types. Their identity and
+# captured lifetime facts live after a private: boundary and can only be read
+# through const accessors. This prevents evidence-time callers from rewriting an
+# earlier expected epoch/token through the public anchor API.
+for class_name in (
+    "NvIntelSharedCopyTransactionAnchor",
+    "IgDisplayTransactionProvenanceAnchor",
+):
+    match = re.search(
+        rf"class {class_name}\s*\{{(?P<body>.*?)\n\}};",
+        text,
+        flags=re.S,
+    )
+    assert match, f"opaque anchor class missing: {class_name}"
+    class_body = match.group("body")
+    assert "private:" in class_body, f"{class_name} lost private state"
+    private_body = class_body.split("private:", 1)[1]
+    assert "handoffEpoch_" in private_body, f"{class_name} epoch is not private"
+    assert "transactionToken_" in private_body, f"{class_name} token is not private"
+    public_body = class_body.split("private:", 1)[0]
+    assert "NVIntelHandoffU64 handoffEpoch_;" not in public_body
+    assert "NVIntelHandoffU64 transactionToken_;" not in public_body
 
 # The high-level evidence bundle must carry its expected identities only through
 # previously-minted anchors. Do not add sibling expected epoch/token fields next
