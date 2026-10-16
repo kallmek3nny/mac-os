@@ -14,6 +14,8 @@ bool NVPeerMapperProbe::init(OSDictionary *dict)
     if (!super::init(dict)) return false;
     fPCIDevice=nullptr;
     fCopyPublicationLifetimePinned=false;
+    if (nvAmpereChannelRuntimeInit(&fChannelRuntime)!=NV_CHANNEL_RUNTIME_OK)
+        return false;
     return nvAmpereCopyRuntimeInit(&fCopyPublicationRuntime)==
            NV_COPY_RUNTIME_OK;
 }
@@ -105,9 +107,18 @@ bool NVPeerMapperProbe::start(IOService *provider)
                     ? "peer-mapping-validated-awaiting-channel"
                     : "peer-mapping-unavailable");
 
+    // The exact provider owns the channel-observation runtime now, but this
+    // service has no truthful RM/GSP channel allocation source yet. Keep it
+    // explicitly empty until a future observer can supply real allocation and
+    // CE-bind facts. Do not manufacture readiness from mapper availability.
+    setProperty("NVPeerMapperChannelRuntimeSealed",false);
+    setProperty("NVPeerMapperChannelRuntimeWriteAuthorized",false);
+    setProperty("NVPeerMapperChannelRuntimeState",
+                "awaiting-real-channel-observer");
+
     if (mapper) mapper->release();
     registerService();
-    NVMAPLOG("device-specific mapper %s; copy publication peer proof %s",
+    NVMAPLOG("device-specific mapper %s; copy publication peer proof %s; channel observer pending",
              available ? "available" : "unavailable",
              publicationPeerValidated ? "bound" : "not-bound");
     return true;
@@ -115,21 +126,31 @@ bool NVPeerMapperProbe::start(IOService *provider)
 
 void NVPeerMapperProbe::stop(IOService *provider)
 {
-    // There is deliberately no transaction-reuse/retirement path in this
-    // phase. If a future executor starts a transaction, stop() must not silently
-    // dismantle provider ownership underneath it. Mirror the sink quarantine
-    // rule: pin the service/device lifetime, still complete IOService stop(),
-    // and refuse every later dependency release until retirement is proven.
-    if (fCopyPublicationRuntime.transactionActive) {
+    // There is deliberately no channel/copy retirement or reuse path in this
+    // phase. Once a future observer records channel ownership, or a copy
+    // transaction starts, stop() must not silently dismantle provider ownership.
+    // Mirror the sink quarantine rule: pin service/device lifetime, still
+    // complete IOService stop(), and refuse later dependency release until
+    // retirement is proven.
+    const bool channelOwnershipObserved=
+        fChannelRuntime.allocationObserved ||
+        fChannelRuntime.submissionEndpointObserved ||
+        fChannelRuntime.sealed;
+    if (channelOwnershipObserved || fCopyPublicationRuntime.transactionActive) {
         if (!fCopyPublicationLifetimePinned) {
             retain();
             fCopyPublicationLifetimePinned=true;
             setProperty("NVPeerMapperCopyPublicationLifetimePinned",true);
         }
         setProperty("NVPeerMapperCopyPublicationState",
-                    "active-transaction-provider-retained");
+                    fCopyPublicationRuntime.transactionActive
+                        ? "active-transaction-provider-retained"
+                        : "channel-ownership-provider-retained");
+        setProperty("NVPeerMapperChannelRuntimeState",
+                    "ownership-observed-provider-retained");
+        setProperty("NVPeerMapperChannelRuntimeWriteAuthorized",false);
         setProperty("NVPeerMapperCopyPublicationRuntimeWriteAuthorized",false);
-        NVMAPLOG("stop: active copy publication transaction; retaining provider ownership");
+        NVMAPLOG("stop: GA107 channel/copy ownership remains live; retaining provider ownership");
         super::stop(provider);
         return;
     }
