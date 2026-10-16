@@ -4,12 +4,14 @@
 // This state machine sits between a future provider/channel executor and the
 // already-validated post-submit publication bridge. It owns publication order
 // witnesses so callers cannot manufacture copy-before-fence ordering by filling
-// a final snapshot. It contains no GPU VA, IOVA, GPFIFO entry, pushbuffer,
-// register write, work-submission token, or provider pointer, and it authorizes
-// no hardware writes.
+// a final snapshot. Channel readiness must arrive through the separately sealed
+// provider-owned channel runtime. This state contains no GPU VA, IOVA, GPFIFO
+// entry, pushbuffer, register write, work-submission token value, or provider
+// pointer, and it authorizes no hardware writes.
 #ifndef NV_AMPERE_COPY_PUBLICATION_RUNTIME_HPP
 #define NV_AMPERE_COPY_PUBLICATION_RUNTIME_HPP
 
+#include "NVAmpereChannelRuntime.hpp"
 #include "NVAmpereCopyPublicationBridge.hpp"
 
 using NVCopyRuntimeU32 = unsigned int;
@@ -105,13 +107,15 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeSetPeerMapping(
     return NV_COPY_RUNTIME_OK;
 }
 
-// Begin exactly one provider-owned publication transaction. Raw channel
-// mappings/tokens remain in the provider; only the bounded presence/readiness
+// Begin exactly one provider-owned publication transaction. The channel must
+// already have been built monotonically and sealed by NVAmpereChannelRuntime;
+// a caller can no longer inject a complete free-form readiness snapshot here.
+// Raw mappings/tokens remain in the future executor and only bounded presence
 // evidence crosses this boundary. A second transaction cannot begin until a
 // later retirement owner explicitly adds a safe reuse path.
 static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeBegin(
     NVAmpereCopyPublicationRuntime *runtime,
-    const NVAmpereChannelEvidence &channel,
+    const NVAmpereChannelRuntime &channelRuntime,
     NVIntelCopyU64 completedBeforeSubmission,
     NVIntelCopyU64 submittedTrackingValue,
     NVIntelCopyU64 maxCredibleCompletionJump)
@@ -123,6 +127,13 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeBegin(
     if (!runtime->peerMappingValidated)
         return NV_COPY_RUNTIME_ERR_PEER_MAPPING;
 
+    NVAmpereChannelEvidence channel = {};
+    if (nvAmpereChannelRuntimeCopyEvidence(channelRuntime, &channel) !=
+        NV_CHANNEL_RUNTIME_OK)
+        return NV_COPY_RUNTIME_ERR_CHANNEL;
+
+    // Defense in depth: a sealed runtime is still re-evaluated at this exact
+    // transaction boundary before its evidence is copied into publication.
     NVAmpereChannelReadiness readiness = {};
     if (nvAmpereEvaluateChannel(channel, &readiness) != NV_CHANNEL_READY_OK ||
         !readiness.allocationReady || !readiness.ceBoundReady ||
