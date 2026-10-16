@@ -12,9 +12,11 @@ required = [
     "copyRingEntryStored",
     "copyGpPutPublished",
     "copySubmissionKicked",
+    "copyPublicationOrdinal",
     "trackingFenceRingEntryStored",
     "trackingFenceGpPutPublished",
     "trackingFenceSubmissionKicked",
+    "trackingFencePublicationOrdinal",
     "completionObservationMayBegin",
     "runtimeWriteAuthorized = false",
 ]
@@ -23,9 +25,16 @@ for needle in required:
 
 # Publication ordering must be enforced before the inherited provenance anchor
 # is minted. The future executor may report milestones, but this bridge never
-# receives the provider's raw submission objects or addresses.
+# receives the provider's raw submission objects or addresses. An all-true final
+# snapshot is insufficient by itself: the executor-owned ordinal must prove that
+# the copy publication became visible strictly before the tracking fence.
 assert "!e.copySubmissionKicked" in text
 assert "!e.trackingFenceGpPutPublished || !e.copySubmissionKicked" in text
+assert "e.copySubmissionKicked != (e.copyPublicationOrdinal != 0ull)" in text
+assert "e.trackingFencePublicationOrdinal != 0ull" in text
+assert "e.copyPublicationOrdinal >= e.trackingFencePublicationOrdinal" in text
+assert "evidence.copyPublicationOrdinal <" in text
+assert "evidence.trackingFencePublicationOrdinal" in text
 assert text.index("nvAmpereCopyPublicationSequenceValid(evidence)") < text.index(
     "nvIntelBuildSharedCopyTransactionAnchor"
 )
