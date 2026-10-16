@@ -13,7 +13,9 @@ bool NVPeerMapperProbe::init(OSDictionary *dict)
 {
     if (!super::init(dict)) return false;
     fPCIDevice=nullptr;
-    return true;
+    fCopyPublicationLifetimePinned=false;
+    return nvAmpereCopyRuntimeInit(&fCopyPublicationRuntime)==
+           NV_COPY_RUNTIME_OK;
 }
 
 void NVPeerMapperProbe::free(void)
@@ -54,6 +56,20 @@ bool NVPeerMapperProbe::start(IOService *provider)
     }
     fPCIDevice->retain();
 
+    // Re-check exact ownership at start(), not only probe(). Future submission
+    // state must never inherit a provider that changed identity between match
+    // and activation or was instantiated outside the expected personality.
+    const UInt16 vendor=fPCIDevice->configRead16(kIOPCIConfigVendorID);
+    const UInt16 device=fPCIDevice->configRead16(kIOPCIConfigDeviceID);
+    const UInt32 classReg=fPCIDevice->configRead32(kIOPCIConfigRevisionID);
+    const UInt8 baseClass=(UInt8)((classReg>>24)&0xffu);
+    if (vendor!=0x10de || device!=0x25a2 || baseClass!=0x03) {
+        NVMAPLOG("start: exact GA107M provider ownership check failed");
+        OSSafeReleaseNULL(fPCIDevice);
+        super::stop(provider);
+        return false;
+    }
+
     setProperty("NVPeerMapperRequested",true);
     setProperty("NVPeerMapperTargetVendor",(UInt64)0x10de,16);
     setProperty("NVPeerMapperTargetDevice",(UInt64)0x25a2,16);
@@ -65,17 +81,61 @@ bool NVPeerMapperProbe::start(IOService *provider)
     // publish whether it exists, but create no DMA mapping and issue no GPU I/O.
     IOMapper *mapper=IOMapper::copyMapperForDevice(fPCIDevice);
     const bool available=mapper!=nullptr;
+
+    // Bind real provider evidence into the same private state a future channel
+    // executor will advance. The mapping fact is no longer accepted from an
+    // arbitrary final publication snapshot at this seam. No mapper pointer,
+    // IOVA, token, command stream, or publication ordinal is exported.
+    NVCopyRuntimeU32 publicationVerdict=NV_COPY_RUNTIME_OK;
+    if (available)
+        publicationVerdict=nvAmpereCopyRuntimeSetPeerMapping(
+            &fCopyPublicationRuntime,true);
+
+    const bool publicationPeerValidated=
+        available && publicationVerdict==NV_COPY_RUNTIME_OK &&
+        fCopyPublicationRuntime.peerMappingValidated;
+
     setProperty("NVPeerMapperAvailable",available);
     setProperty("NVPeerMapperState",available ? "device-mapper-available" : "device-mapper-unavailable");
+    setProperty("NVPeerMapperCopyPublicationPeerValidated",publicationPeerValidated);
+    setProperty("NVPeerMapperCopyPublicationRuntimeWriteAuthorized",false);
+    setProperty("NVPeerMapperCopyPublicationLifetimePinned",false);
+    setProperty("NVPeerMapperCopyPublicationState",
+                publicationPeerValidated
+                    ? "peer-mapping-validated-awaiting-channel"
+                    : "peer-mapping-unavailable");
 
     if (mapper) mapper->release();
     registerService();
-    NVMAPLOG("device-specific mapper %s",available ? "available" : "unavailable");
+    NVMAPLOG("device-specific mapper %s; copy publication peer proof %s",
+             available ? "available" : "unavailable",
+             publicationPeerValidated ? "bound" : "not-bound");
     return true;
 }
 
 void NVPeerMapperProbe::stop(IOService *provider)
 {
+    // There is deliberately no transaction-reuse/retirement path in this
+    // phase. If a future executor starts a transaction, stop() must not silently
+    // dismantle provider ownership underneath it. Mirror the sink quarantine
+    // rule: pin the service/device lifetime, still complete IOService stop(),
+    // and refuse every later dependency release until retirement is proven.
+    if (fCopyPublicationRuntime.transactionActive) {
+        if (!fCopyPublicationLifetimePinned) {
+            retain();
+            fCopyPublicationLifetimePinned=true;
+            setProperty("NVPeerMapperCopyPublicationLifetimePinned",true);
+        }
+        setProperty("NVPeerMapperCopyPublicationState",
+                    "active-transaction-provider-retained");
+        setProperty("NVPeerMapperCopyPublicationRuntimeWriteAuthorized",false);
+        NVMAPLOG("stop: active copy publication transaction; retaining provider ownership");
+        super::stop(provider);
+        return;
+    }
+
+    (void)nvAmpereCopyRuntimeSetPeerMapping(&fCopyPublicationRuntime,false);
+    setProperty("NVPeerMapperCopyPublicationLifetimePinned",false);
     OSSafeReleaseNULL(fPCIDevice);
     super::stop(provider);
 }

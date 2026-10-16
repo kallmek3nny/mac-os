@@ -6,6 +6,8 @@
 #include <IOKit/IOService.h>
 #include <IOKit/pci/IOPCIDevice.h>
 
+#include "NVAmpereCopyPublicationRuntime.hpp"
+
 class NVPeerMapperProbe : public IOService
 {
     OSDeclareDefaultStructors(NVPeerMapperProbe)
@@ -20,6 +22,12 @@ public:
 
 private:
     IOPCIDevice *fPCIDevice;
+    bool fCopyPublicationLifetimePinned;
+
+    // Provider-owned publication state. The exact-device mapper result is
+    // recorded here by start(); future channel execution can extend the same
+    // state without exporting raw mapper/channel internals through IORegistry.
+    NVAmpereCopyPublicationRuntime fCopyPublicationRuntime;
 };
 
 #endif // NV_PEER_MAPPER_PROBE_HPP
