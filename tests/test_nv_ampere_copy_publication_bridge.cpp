@@ -34,11 +34,13 @@ static NVAmpereCopyPublicationEvidence validEvidence()
     e.copyRingEntryStored = true;
     e.copyGpPutPublished = true;
     e.copySubmissionKicked = true;
+    e.copyPublicationOrdinal = 40ull;
 
     e.trackingFencePushPrepared = true;
     e.trackingFenceRingEntryStored = true;
     e.trackingFenceGpPutPublished = true;
     e.trackingFenceSubmissionKicked = true;
+    e.trackingFencePublicationOrdinal = 41ull;
 
     e.completedBeforeSubmission = 100ull;
     e.submittedTrackingValue = 101ull;
@@ -232,6 +234,7 @@ static void testFenceCannotPublishBeforeCopyKick()
     std::puts("5. tracking fence cannot become visible before copy submission");
     auto e = validEvidence();
     e.copySubmissionKicked = false;
+    e.copyPublicationOrdinal = 0ull;
     NVAmpereCopyPublicationBridge out = {};
     poison(&out);
     const auto before = out;
@@ -247,6 +250,7 @@ static void testPartialPublicationCannotMintAnchor()
     std::puts("6. partial provider publication cannot mint transaction identity");
     auto e = validEvidence();
     e.trackingFenceSubmissionKicked = false;
+    e.trackingFencePublicationOrdinal = 0ull;
     NVAmpereCopyPublicationBridge out = {};
     poison(&out);
     const auto before = out;
@@ -257,9 +261,45 @@ static void testPartialPublicationCannotMintAnchor()
     check(sameState(out, before), "partial publication leaves output untouched");
 }
 
+static void testAmbiguousAllTrueSnapshotRefuses()
+{
+    std::puts("7. all-true milestones still require an ordered witness");
+    auto e = validEvidence();
+    e.trackingFencePublicationOrdinal = e.copyPublicationOrdinal;
+    NVAmpereCopyPublicationBridge out = {};
+    poison(&out);
+    const auto before = out;
+
+    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+              NV_COPY_PUBLICATION_ERR_SEQUENCE,
+          "equal publication ordinals cannot manufacture temporal order");
+    check(sameState(out, before), "ambiguous-order refusal is atomic");
+
+    e.trackingFencePublicationOrdinal = e.copyPublicationOrdinal - 1ull;
+    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+              NV_COPY_PUBLICATION_ERR_SEQUENCE,
+          "reversed publication ordinals cannot manufacture temporal order");
+    check(sameState(out, before), "reversed-order refusal is atomic");
+}
+
+static void testStalePublicationOrdinalRefuses()
+{
+    std::puts("8. publication ordinals cannot outlive their kick milestone");
+    auto e = validEvidence();
+    e.trackingFenceSubmissionKicked = false;
+    NVAmpereCopyPublicationBridge out = {};
+    poison(&out);
+    const auto before = out;
+
+    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+              NV_COPY_PUBLICATION_ERR_SEQUENCE,
+          "stale fence publication ordinal is refused");
+    check(sameState(out, before), "stale-ordinal refusal is atomic");
+}
+
 static void testInvalidTrackingTargetRefusesThroughAnchor()
 {
-    std::puts("7. fence target validity is inherited from lifetime planner");
+    std::puts("9. fence target validity is inherited from lifetime planner");
     auto e = validEvidence();
     e.submittedTrackingValue = e.completedBeforeSubmission;
     NVAmpereCopyPublicationBridge out = {};
@@ -274,7 +314,7 @@ static void testInvalidTrackingTargetRefusesThroughAnchor()
 
 static void testZeroIdentityRefusesThroughAnchor()
 {
-    std::puts("8. zero epoch/token cannot be minted after publication");
+    std::puts("10. zero epoch/token cannot be minted after publication");
     const auto e = validEvidence();
     NVAmpereCopyPublicationBridge out = {};
     poison(&out);
@@ -299,6 +339,8 @@ int main()
     testCopyPublicationOrderingRefuses();
     testFenceCannotPublishBeforeCopyKick();
     testPartialPublicationCannotMintAnchor();
+    testAmbiguousAllTrueSnapshotRefuses();
+    testStalePublicationOrdinalRefuses();
     testInvalidTrackingTargetRefusesThroughAnchor();
     testZeroIdentityRefusesThroughAnchor();
 
