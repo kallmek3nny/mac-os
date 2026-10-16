@@ -1,0 +1,81 @@
+name: Cross-GPU handoff provenance tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  handoff-provenance:
+    name: handoff provenance (${{ matrix.os }}, ${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: g++
+          - os: ubuntu-latest
+            compiler: clang++
+          - os: macos-latest
+            compiler: clang++
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: compile pure handoff provenance tests
+        shell: bash
+        timeout-minutes: 2
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import subprocess
+
+          tests = [
+              ("tests/test_nv_intel_shared_surface_handoff_provenance.cpp",
+               "/tmp/test-nv-intel-shared-surface-handoff-provenance"),
+              ("tests/test_nv_intel_shared_surface_handoff_provenance_teardown_success.cpp",
+               "/tmp/test-nv-intel-shared-surface-handoff-provenance-teardown-success"),
+          ]
+          for source, output in tests:
+              subprocess.run([
+                  os.environ["CXX"], "-std=c++17", "-O2",
+                  "-Wall", "-Wextra", "-Wpedantic", "-Werror",
+                  "-Iphase0-kext", source, "-o", output
+              ], check=True, timeout=30)
+          PY
+
+      - name: run pure handoff provenance tests
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+
+          for binary in [
+              "/tmp/test-nv-intel-shared-surface-handoff-provenance",
+              "/tmp/test-nv-intel-shared-surface-handoff-provenance-teardown-success",
+          ]:
+              subprocess.run([binary], check=True, timeout=30)
+          PY
+
+      - name: verify pure/no-write anti-replay source shape
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run([
+              "python3",
+              "tests/test_nv_intel_shared_surface_handoff_provenance_shape.py"
+          ], check=True, timeout=30)
+          PY
