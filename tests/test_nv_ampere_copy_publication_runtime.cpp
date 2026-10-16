@@ -18,17 +18,16 @@ static void check(bool condition, const char *label)
     }
 }
 
-static NVAmpereChannelEvidence readyChannel()
+static NVAmpereChannelRuntime readyChannelRuntime()
 {
-    NVAmpereChannelEvidence e = {};
-    e.channelClassNum = NV_SUBMIT_C56F_CLASS_ID;
-    e.numGpFifoEntries = 1024u;
-    e.gpGetMapped = true;
-    e.gpPutMapped = true;
-    e.gpFifoMapped = true;
-    e.workSubmissionMapped = true;
-    e.workSubmissionTokenReady = true;
-    return e;
+    NVAmpereChannelRuntime runtime = {};
+    (void)nvAmpereChannelRuntimeInit(&runtime);
+    (void)nvAmpereChannelRuntimeObserveAllocation(
+        &runtime, NV_SUBMIT_C56F_CLASS_ID, 1024u, true, true, true);
+    (void)nvAmpereChannelRuntimeObserveSubmissionEndpoint(
+        &runtime, true, true);
+    (void)nvAmpereChannelRuntimeSeal(&runtime);
+    return runtime;
 }
 
 static bool sameRuntime(const NVAmpereCopyPublicationRuntime &a,
@@ -83,10 +82,10 @@ static NVAmpereCopyPublicationRuntime begunRuntime()
           "runtime initializes");
     check(nvAmpereCopyRuntimeSetPeerMapping(&runtime, true) == NV_COPY_RUNTIME_OK,
           "provider records peer mapping");
-    const auto channel = readyChannel();
+    const auto channel = readyChannelRuntime();
     check(nvAmpereCopyRuntimeBegin(&runtime, channel, 100ull, 101ull, 8ull) ==
               NV_COPY_RUNTIME_OK,
-          "provider begins transaction");
+          "provider begins transaction from sealed channel runtime");
     return runtime;
 }
 
@@ -102,7 +101,7 @@ static void testInitAndOwnershipGate()
               !runtime.runtimeWriteAuthorized,
           "init grants no ownership or write authority");
 
-    const auto channel = readyChannel();
+    const auto channel = readyChannelRuntime();
     const auto before = runtime;
     check(nvAmpereCopyRuntimeBegin(&runtime, channel, 100ull, 101ull, 8ull) ==
               NV_COPY_RUNTIME_ERR_PEER_MAPPING,
@@ -112,17 +111,20 @@ static void testInitAndOwnershipGate()
 
 static void testChannelGateIsAtomic()
 {
-    std::puts("2. real channel readiness is required before publication");
+    std::puts("2. sealed provider channel runtime is required before publication");
     NVAmpereCopyPublicationRuntime runtime = {};
     nvAmpereCopyRuntimeInit(&runtime);
     nvAmpereCopyRuntimeSetPeerMapping(&runtime, true);
-    auto channel = readyChannel();
-    channel.workSubmissionTokenReady = false;
+
+    NVAmpereChannelRuntime channel = {};
+    nvAmpereChannelRuntimeInit(&channel);
+    nvAmpereChannelRuntimeObserveAllocation(
+        &channel, NV_SUBMIT_C56F_CLASS_ID, 1024u, true, true, true);
     const auto before = runtime;
 
     check(nvAmpereCopyRuntimeBegin(&runtime, channel, 100ull, 101ull, 8ull) ==
               NV_COPY_RUNTIME_ERR_CHANNEL,
-          "missing provider submission token refuses");
+          "unsealed channel runtime refuses publication start");
     check(sameRuntime(runtime, before), "channel refusal is atomic");
 }
 
@@ -216,7 +218,8 @@ static void testAnchorAndCompletionBoundary()
               &runtime, NV_COPY_RUNTIME_EVENT_FENCE_KICK_ACCEPTED) ==
               NV_COPY_RUNTIME_ERR_SEQUENCE,
           "publication cannot mutate after completion starts");
-    check(nvAmpereCopyRuntimeBegin(&runtime, readyChannel(), 101ull, 102ull, 8ull) ==
+    check(nvAmpereCopyRuntimeBegin(
+              &runtime, readyChannelRuntime(), 101ull, 102ull, 8ull) ==
               NV_COPY_RUNTIME_ERR_ACTIVE,
           "resource reuse is refused while transaction remains active");
 }
@@ -228,7 +231,7 @@ static void testInvalidTrackingTargetRefusesAtomically()
     nvAmpereCopyRuntimeInit(&runtime);
     nvAmpereCopyRuntimeSetPeerMapping(&runtime, true);
     check(nvAmpereCopyRuntimeBegin(
-              &runtime, readyChannel(), 100ull, 100ull, 8ull) ==
+              &runtime, readyChannelRuntime(), 100ull, 100ull, 8ull) ==
               NV_COPY_RUNTIME_OK,
           "runtime may stage provider facts before anchor validation");
     check(advanceAll(&runtime), "ordered publication completes");
