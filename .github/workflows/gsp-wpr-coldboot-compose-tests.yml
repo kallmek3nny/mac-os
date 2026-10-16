@@ -1,0 +1,36 @@
+name: GSP GA107 cold-boot WPR composition tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  coldboot-compose:
+    name: GA107 cold-boot compose (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: build GA107 cold-boot WPR composition test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -I phase0-kext tests/test_nv_gsp_wpr_coldboot_compose.cpp \
+            -o test_nv_gsp_wpr_coldboot_compose
+
+      - name: run GA107 cold-boot WPR composition test
+        run: ./test_nv_gsp_wpr_coldboot_compose
