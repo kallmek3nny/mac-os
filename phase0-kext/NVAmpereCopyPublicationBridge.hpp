@@ -13,6 +13,7 @@
 #include "NvIntelSharedSurfaceHandoffAnchoredProvenance.hpp"
 
 using NVCopyPublicationU32 = unsigned int;
+using NVCopyPublicationU64 = unsigned long long;
 
 #define NV_COPY_PUBLICATION_OK                     0u
 #define NV_COPY_PUBLICATION_ERR_NULL_OUTPUT        1u
@@ -24,7 +25,9 @@ using NVCopyPublicationU32 = unsigned int;
 
 // Milestones are monotonic observations supplied by the future runtime executor.
 // "published" means the provider-visible publication step has completed, not
-// merely that a host-side plan exists.
+// merely that a host-side plan exists. Publication ordinals are executor-owned
+// monotonic witnesses recorded only after the corresponding provider kick has
+// been accepted. They never contain an address, token, or command-stream value.
 struct NVAmpereCopyPublicationEvidence {
     NVAmpereChannelEvidence channel;
     bool peerMappingValidated;
@@ -33,11 +36,13 @@ struct NVAmpereCopyPublicationEvidence {
     bool copyRingEntryStored;
     bool copyGpPutPublished;
     bool copySubmissionKicked;
+    NVCopyPublicationU64 copyPublicationOrdinal;
 
     bool trackingFencePushPrepared;
     bool trackingFenceRingEntryStored;
     bool trackingFenceGpPutPublished;
     bool trackingFenceSubmissionKicked;
+    NVCopyPublicationU64 trackingFencePublicationOrdinal;
 
     NVIntelCopyU64 completedBeforeSubmission;
     NVIntelCopyU64 submittedTrackingValue;
@@ -84,6 +89,8 @@ static inline bool nvAmpereCopyPublicationSequenceValid(
         return false;
     if (e.copySubmissionKicked && !e.copyGpPutPublished)
         return false;
+    if (e.copySubmissionKicked != (e.copyPublicationOrdinal != 0ull))
+        return false;
 
     if (e.trackingFenceRingEntryStored &&
         (!e.trackingFencePushPrepared || !e.copySubmissionKicked))
@@ -92,6 +99,16 @@ static inline bool nvAmpereCopyPublicationSequenceValid(
         return false;
     if (e.trackingFenceSubmissionKicked &&
         (!e.trackingFenceGpPutPublished || !e.copySubmissionKicked))
+        return false;
+    if (e.trackingFenceSubmissionKicked !=
+        (e.trackingFencePublicationOrdinal != 0ull))
+        return false;
+
+    // A final all-true snapshot alone cannot prove temporal order. The executor
+    // must supply distinct monotonic publication witnesses showing that the copy
+    // kick became provider-visible before the tracking-fence kick.
+    if (e.trackingFenceSubmissionKicked &&
+        e.copyPublicationOrdinal >= e.trackingFencePublicationOrdinal)
         return false;
 
     return true;
@@ -136,7 +153,8 @@ static inline NVCopyPublicationU32 nvAmpereBuildCopyPublicationBridge(
     progress.channelSubmitReady = readiness.submitReady;
     progress.copySubmissionPublished = evidence.copySubmissionKicked;
     progress.trackingFencePublishedAfterCopy =
-        evidence.trackingFenceSubmissionKicked;
+        evidence.copyPublicationOrdinal <
+        evidence.trackingFencePublicationOrdinal;
     progress.completedBeforeSubmission = evidence.completedBeforeSubmission;
     progress.submittedTrackingValue = evidence.submittedTrackingValue;
     progress.maxCredibleCompletionJump = evidence.maxCredibleCompletionJump;
