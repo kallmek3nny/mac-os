@@ -82,6 +82,21 @@ for forbidden_write in (
     assert forbidden_write not in provider, f"unexpected provider write path: {forbidden_write}"
 assert 'setProperty("NVPeerMapperCopyPublicationRuntimeWriteAuthorized",false)' in provider
 
+# An active transaction has no retirement/reuse proof in this phase. Teardown
+# must pin the service/provider lifetime, still complete IOService stop(), and
+# return before peer ownership is cleared or the PCI provider is released.
+assert "bool fCopyPublicationLifetimePinned;" in provider_header
+stop = provider.index("void NVPeerMapperProbe::stop")
+active = provider.index("if (fCopyPublicationRuntime.transactionActive)", stop)
+pin = provider.index("retain();", active)
+mark_pinned = provider.index("fCopyPublicationLifetimePinned=true;", pin)
+super_stop = provider.index("super::stop(provider);", mark_pinned)
+quarantine_return = provider.index("return;", super_stop)
+clear_mapping = provider.index("nvAmpereCopyRuntimeSetPeerMapping(&fCopyPublicationRuntime,false)", quarantine_return)
+release_provider = provider.index("OSSafeReleaseNULL(fPCIDevice);", clear_mapping)
+assert active < pin < mark_pinned < super_stop < quarantine_return < clear_mapping < release_provider
+assert 'setProperty("NVPeerMapperCopyPublicationLifetimePinned",true)' in provider
+
 # Do not publish internal ordering witnesses, raw addresses, IOVAs, or tokens as
 # IORegistry properties from the provider service.
 for forbidden_property in (
