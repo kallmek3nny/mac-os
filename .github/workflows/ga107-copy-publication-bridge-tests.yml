@@ -1,0 +1,84 @@
+name: GA107 copy publication bridge tests
+
+on:
+  push:
+    branches:
+      - agent/ga107-copy-publication-anchor-bridge
+    paths:
+      - 'phase0-kext/NVAmpereCopyPublicationBridge.hpp'
+      - 'phase0-kext/NVAmpereChannel.hpp'
+      - 'phase0-kext/NVAmpereSubmit.hpp'
+      - 'phase0-kext/NVAmpereFence.hpp'
+      - 'phase0-kext/NvIntelSharedCopyLifetime.hpp'
+      - 'phase0-kext/NvIntelSharedSurfaceHandoffAnchoredProvenance.hpp'
+      - 'tests/test_nv_ampere_copy_publication_bridge.cpp'
+      - 'tests/test_nv_ampere_copy_publication_bridge_shape.py'
+      - '.github/workflows/ga107-copy-publication-bridge-tests.yml'
+  pull_request:
+    paths:
+      - 'phase0-kext/NVAmpereCopyPublicationBridge.hpp'
+      - 'phase0-kext/NVAmpereChannel.hpp'
+      - 'phase0-kext/NVAmpereSubmit.hpp'
+      - 'phase0-kext/NVAmpereFence.hpp'
+      - 'phase0-kext/NvIntelSharedCopyLifetime.hpp'
+      - 'phase0-kext/NvIntelSharedSurfaceHandoffAnchoredProvenance.hpp'
+      - 'tests/test_nv_ampere_copy_publication_bridge.cpp'
+      - 'tests/test_nv_ampere_copy_publication_bridge_shape.py'
+      - '.github/workflows/ga107-copy-publication-bridge-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  copy-publication-bridge:
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            cxx: g++
+          - os: ubuntu-latest
+            cxx: clang++
+          - os: macos-latest
+            cxx: clang++
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: compile and run publication bridge tests
+        timeout-minutes: 3
+        env:
+          CXX: ${{ matrix.cxx }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import subprocess
+          from pathlib import Path
+
+          exe = Path('test_nv_ampere_copy_publication_bridge')
+          cmd = [
+              os.environ['CXX'],
+              '-std=c++17', '-O2',
+              '-Wall', '-Wextra', '-Wpedantic', '-Werror',
+              '-Iphase0-kext',
+              'tests/test_nv_ampere_copy_publication_bridge.cpp',
+              '-o', str(exe),
+          ]
+          subprocess.run(cmd, check=True, timeout=30)
+          subprocess.run([str(exe.resolve())], check=True, timeout=30)
+          PY
+
+      - name: verify no-write publication bridge source shape
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run(
+              ['python3', 'tests/test_nv_ampere_copy_publication_bridge_shape.py'],
+              check=True,
+              timeout=30,
+          )
+          PY
