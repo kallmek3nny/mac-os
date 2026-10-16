@@ -1,0 +1,80 @@
+name: Cross-GPU shared-surface handoff tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  shared-surface-handoff:
+    name: shared surface handoff (${{ matrix.os }}, ${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: g++
+          - os: ubuntu-latest
+            compiler: clang++
+          - os: macos-latest
+            compiler: clang++
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: compile pure shared-surface handoff tests
+        shell: bash
+        timeout-minutes: 2
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import subprocess
+
+          tests = [
+              ("tests/test_nv_intel_shared_surface_handoff.cpp",
+               "/tmp/test-nv-intel-shared-surface-handoff"),
+              ("tests/test_nv_intel_shared_surface_handoff_teardown_failure.cpp",
+               "/tmp/test-nv-intel-shared-surface-handoff-teardown-failure"),
+          ]
+          for source, output in tests:
+              subprocess.run([
+                  os.environ["CXX"], "-std=c++17", "-O2",
+                  "-Wall", "-Wextra", "-Wpedantic", "-Werror",
+                  "-Iphase0-kext", source, "-o", output
+              ], check=True, timeout=30)
+          PY
+
+      - name: run pure shared-surface handoff tests
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+
+          for binary in [
+              "/tmp/test-nv-intel-shared-surface-handoff",
+              "/tmp/test-nv-intel-shared-surface-handoff-teardown-failure",
+          ]:
+              subprocess.run([binary], check=True, timeout=30)
+          PY
+
+      - name: verify pure/no-write handoff source shape
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          subprocess.run([
+              "python3", "tests/test_nv_intel_shared_surface_handoff_shape.py"
+          ], check=True, timeout=30)
+          PY
