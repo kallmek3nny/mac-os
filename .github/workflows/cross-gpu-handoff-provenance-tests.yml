@@ -39,13 +39,19 @@ jobs:
           python3 - <<'PY'
           import os
           import subprocess
-          subprocess.run([
-              os.environ["CXX"], "-std=c++17", "-O2",
-              "-Wall", "-Wextra", "-Wpedantic", "-Werror",
-              "-Iphase0-kext",
-              "tests/test_nv_intel_shared_surface_handoff_provenance.cpp",
-              "-o", "/tmp/test-nv-intel-shared-surface-handoff-provenance"
-          ], check=True, timeout=30)
+
+          tests = [
+              ("tests/test_nv_intel_shared_surface_handoff_provenance.cpp",
+               "/tmp/test-nv-intel-shared-surface-handoff-provenance"),
+              ("tests/test_nv_intel_shared_surface_handoff_provenance_teardown_success.cpp",
+               "/tmp/test-nv-intel-shared-surface-handoff-provenance-teardown-success"),
+          ]
+          for source, output in tests:
+              subprocess.run([
+                  os.environ["CXX"], "-std=c++17", "-O2",
+                  "-Wall", "-Wextra", "-Wpedantic", "-Werror",
+                  "-Iphase0-kext", source, "-o", output
+              ], check=True, timeout=30)
           PY
 
       - name: run pure handoff provenance tests
@@ -54,9 +60,12 @@ jobs:
         run: |
           python3 - <<'PY'
           import subprocess
-          subprocess.run([
-              "/tmp/test-nv-intel-shared-surface-handoff-provenance"
-          ], check=True, timeout=30)
+
+          for binary in [
+              "/tmp/test-nv-intel-shared-surface-handoff-provenance",
+              "/tmp/test-nv-intel-shared-surface-handoff-provenance-teardown-success",
+          ]:
+              subprocess.run([binary], check=True, timeout=30)
           PY
 
       - name: verify pure/no-write anti-replay source shape
