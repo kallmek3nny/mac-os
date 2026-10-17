@@ -42,6 +42,19 @@ assert "bool runtimeWriteAuthorized;" in body
 assert "NVCopyRuntimeU64 nextPublicationOrdinal;" in body
 assert "NVAmpereCopyPublicationEvidence evidence;" in body
 
+# Copy publication no longer accepts a free-form channel evidence snapshot. It
+# can begin only from the separately sealed provider-owned channel runtime.
+begin_sig = re.search(
+    r"nvAmpereCopyRuntimeBegin\s*\((?P<args>.*?)\)\n\{",
+    runtime,
+    flags=re.S,
+)
+assert begin_sig, "copy runtime begin function missing"
+assert "const NVAmpereChannelRuntime &channelRuntime" in begin_sig.group("args")
+assert "const NVAmpereChannelEvidence &" not in begin_sig.group("args")
+assert "nvAmpereChannelRuntimeCopyEvidence(channelRuntime, &channel)" in runtime
+assert "nvAmpereEvaluateChannel(channel, &readiness)" in runtime
+
 # Ordering witnesses are assigned only by the runtime when provider kicks are
 # accepted. A caller must not pass an ordinal into advance().
 advance_sig = re.search(
@@ -68,9 +81,19 @@ assert "Reuse" not in runtime
 assert provider.count("vendor!=0x10de || device!=0x25a2 || baseClass!=0x03") >= 2
 assert "nvAmpereCopyRuntimeSetPeerMapping(" in provider
 assert "&fCopyPublicationRuntime,true" in provider
+assert "NVAmpereChannelRuntime fChannelRuntime;" in provider_header
 assert "NVAmpereCopyPublicationRuntime fCopyPublicationRuntime;" in provider_header
+assert "nvAmpereChannelRuntimeInit(&fChannelRuntime)" in provider
 
-# This phase must not fake channel readiness or authorize/perform NVIDIA writes.
+# This provider has no truthful channel-allocation producer yet. Owning the
+# runtime must not be confused with observing or sealing channel readiness.
+assert "nvAmpereChannelRuntimeObserveAllocation(" not in provider
+assert "nvAmpereChannelRuntimeObserveSubmissionEndpoint(" not in provider
+assert "nvAmpereChannelRuntimeSeal(" not in provider
+assert 'setProperty("NVPeerMapperChannelRuntimeSealed",false)' in provider
+assert '"awaiting-real-channel-observer"' in provider
+
+# This phase must not start copy publication or authorize/perform NVIDIA writes.
 assert "nvAmpereCopyRuntimeBegin(" not in provider
 for forbidden_write in (
     "OSWriteLittleInt",
@@ -80,21 +103,29 @@ for forbidden_write in (
     "setBusMasterEnable",
 ):
     assert forbidden_write not in provider, f"unexpected provider write path: {forbidden_write}"
+assert 'setProperty("NVPeerMapperChannelRuntimeWriteAuthorized",false)' in provider
 assert 'setProperty("NVPeerMapperCopyPublicationRuntimeWriteAuthorized",false)' in provider
 
-# An active transaction has no retirement/reuse proof in this phase. Teardown
-# must pin the service/provider lifetime, still complete IOService stop(), and
-# return before peer ownership is cleared or the PCI provider is released.
+# Any observed channel ownership now participates in the same conservative
+# teardown quarantine as an active copy transaction. stop() must pin the service,
+# call super::stop(), and return before mapper ownership or PCI lifetime clears.
 assert "bool fCopyPublicationLifetimePinned;" in provider_header
 stop = provider.index("void NVPeerMapperProbe::stop")
-active = provider.index("if (fCopyPublicationRuntime.transactionActive)", stop)
+channel_ownership = provider.index("const bool channelOwnershipObserved=", stop)
+active = provider.index(
+    "if (channelOwnershipObserved || fCopyPublicationRuntime.transactionActive)",
+    channel_ownership,
+)
 pin = provider.index("retain();", active)
 mark_pinned = provider.index("fCopyPublicationLifetimePinned=true;", pin)
 super_stop = provider.index("super::stop(provider);", mark_pinned)
 quarantine_return = provider.index("return;", super_stop)
 clear_mapping = provider.index("nvAmpereCopyRuntimeSetPeerMapping(&fCopyPublicationRuntime,false)", quarantine_return)
 release_provider = provider.index("OSSafeReleaseNULL(fPCIDevice);", clear_mapping)
-assert active < pin < mark_pinned < super_stop < quarantine_return < clear_mapping < release_provider
+assert channel_ownership < active < pin < mark_pinned < super_stop < quarantine_return < clear_mapping < release_provider
+assert "fChannelRuntime.allocationObserved" in provider[channel_ownership:active]
+assert "fChannelRuntime.submissionEndpointObserved" in provider[channel_ownership:active]
+assert "fChannelRuntime.sealed" in provider[channel_ownership:active]
 assert 'setProperty("NVPeerMapperCopyPublicationLifetimePinned",true)' in provider
 
 # Do not publish internal ordering witnesses, raw addresses, IOVAs, or tokens as
