@@ -34,6 +34,11 @@ for forbidden in (
     assert forbidden not in body, f"forbidden channel-runtime field surface: {forbidden}"
 
 assert "bool initialized = false;" in body
+assert "bool ownershipUncertain = false;" in body
+assert "NV_CHANNEL_RUNTIME_ERR_OWNERSHIP_UNCERTAIN" in text
+assert "nvAmpereChannelRuntimeMarkOwnershipUncertain" in text
+assert "runtime.initialized && !runtime.ownershipUncertain" in text
+assert text.count("if (runtime->ownershipUncertain)") >= 4
 assert "NVAmpereChannelEvidence evidence;" in body
 assert "NVAmpereChannelReadiness readiness;" in body
 assert "bool allocationObserved;" in body

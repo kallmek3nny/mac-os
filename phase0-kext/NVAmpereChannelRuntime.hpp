@@ -22,11 +22,14 @@ using NVChannelRuntimeU32 = unsigned int;
 #define NV_CHANNEL_RUNTIME_ERR_NOT_SEALED        6u
 #define NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED     7u
 #define NV_CHANNEL_RUNTIME_ERR_REINITIALIZATION   8u
-#define NV_CHANNEL_RUNTIME_VERDICT_LIMIT         9u
+#define NV_CHANNEL_RUNTIME_ERR_OWNERSHIP_UNCERTAIN 9u
+#define NV_CHANNEL_RUNTIME_VERDICT_LIMIT         10u
 
 struct NVAmpereChannelRuntime {
     // Default construction is safe for kernel-owned IOService members.
     bool initialized = false;
+    // Terminal uncertainty preserves previous ownership facts for quarantine.
+    bool ownershipUncertain = false;
     NVAmpereChannelEvidence evidence;
     NVAmpereChannelReadiness readiness;
     bool allocationObserved;
@@ -53,6 +56,7 @@ static inline const char *nvAmpereChannelRuntimeVerdictName(
     case NV_CHANNEL_RUNTIME_ERR_NOT_SEALED: return "not-sealed";
     case NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED: return "uninitialized";
     case NV_CHANNEL_RUNTIME_ERR_REINITIALIZATION: return "reinitialization";
+    case NV_CHANNEL_RUNTIME_ERR_OWNERSHIP_UNCERTAIN: return "ownership-uncertain";
     default:                                return "unknown";
     }
 }
@@ -87,6 +91,8 @@ static inline NVChannelRuntimeU32 nvAmpereChannelRuntimeObserveAllocation(
         return NV_CHANNEL_RUNTIME_ERR_NULL;
     if (!runtime->initialized)
         return NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED;
+    if (runtime->ownershipUncertain)
+        return NV_CHANNEL_RUNTIME_ERR_OWNERSHIP_UNCERTAIN;
     if (runtime->allocationObserved || runtime->sealed)
         return NV_CHANNEL_RUNTIME_ERR_STATE;
     if (channelClassNum != NV_SUBMIT_C56F_CLASS_ID ||
@@ -119,6 +125,8 @@ nvAmpereChannelRuntimeObserveSubmissionEndpoint(
         return NV_CHANNEL_RUNTIME_ERR_NULL;
     if (!runtime->initialized)
         return NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED;
+    if (runtime->ownershipUncertain)
+        return NV_CHANNEL_RUNTIME_ERR_OWNERSHIP_UNCERTAIN;
     if (!runtime->allocationObserved || runtime->submissionEndpointObserved ||
         runtime->sealed)
         return NV_CHANNEL_RUNTIME_ERR_STATE;
@@ -144,6 +152,8 @@ static inline NVChannelRuntimeU32 nvAmpereChannelRuntimeSeal(
         return NV_CHANNEL_RUNTIME_ERR_NULL;
     if (!runtime->initialized)
         return NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED;
+    if (runtime->ownershipUncertain)
+        return NV_CHANNEL_RUNTIME_ERR_OWNERSHIP_UNCERTAIN;
     if (runtime->sealed)
         return NV_CHANNEL_RUNTIME_ERR_STATE;
     if (!runtime->allocationObserved || !runtime->submissionEndpointObserved)
@@ -164,10 +174,33 @@ static inline NVChannelRuntimeU32 nvAmpereChannelRuntimeSeal(
     return NV_CHANNEL_RUNTIME_OK;
 }
 
+// Provider loss is not retirement proof. Preserve the allocation and any
+// sealed evidence, but permanently refuse future readiness and submission.
+// No raw mapping, token or hardware-write capability crosses this boundary.
+static inline NVChannelRuntimeU32 nvAmpereChannelRuntimeMarkOwnershipUncertain(
+    NVAmpereChannelRuntime *runtime)
+{
+    if (!runtime)
+        return NV_CHANNEL_RUNTIME_ERR_NULL;
+    if (!runtime->initialized)
+        return NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED;
+    if (!runtime->allocationObserved)
+        return NV_CHANNEL_RUNTIME_ERR_STATE;
+    if (runtime->ownershipUncertain)
+        return NV_CHANNEL_RUNTIME_OK;
+
+    NVAmpereChannelRuntime staged = *runtime;
+    staged.ownershipUncertain = true;
+    staged.runtimeWriteAuthorized = false;
+    *runtime = staged;
+    return NV_CHANNEL_RUNTIME_OK;
+}
+
 static inline bool nvAmpereChannelRuntimeReady(
     const NVAmpereChannelRuntime &runtime)
 {
-    return runtime.initialized && runtime.sealed && runtime.allocationObserved &&
+    return runtime.initialized && !runtime.ownershipUncertain &&
+           runtime.sealed && runtime.allocationObserved &&
            runtime.submissionEndpointObserved &&
            runtime.readiness.allocationReady &&
            runtime.readiness.ceBoundReady && runtime.readiness.submitReady &&
@@ -182,6 +215,8 @@ static inline NVChannelRuntimeU32 nvAmpereChannelRuntimeCopyEvidence(
 {
     if (!out)
         return NV_CHANNEL_RUNTIME_ERR_NULL;
+    if (runtime.ownershipUncertain)
+        return NV_CHANNEL_RUNTIME_ERR_OWNERSHIP_UNCERTAIN;
     if (!nvAmpereChannelRuntimeReady(runtime))
         return NV_CHANNEL_RUNTIME_ERR_NOT_SEALED;
 

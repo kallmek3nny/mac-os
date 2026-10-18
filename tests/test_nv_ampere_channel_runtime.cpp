@@ -19,6 +19,7 @@ static bool sameRuntime(const NVAmpereChannelRuntime &a,
                         const NVAmpereChannelRuntime &b)
 {
     return a.initialized == b.initialized &&
+           a.ownershipUncertain == b.ownershipUncertain &&
            a.evidence.channelClassNum == b.evidence.channelClassNum &&
            a.evidence.numGpFifoEntries == b.evidence.numGpFifoEntries &&
            a.evidence.gpGetMapped == b.evidence.gpGetMapped &&
@@ -275,6 +276,64 @@ static void testInitIsOneShot()
           "cannot erase sealed ownership");
 }
 
+
+static void testOwnershipUncertaintyQuarantinesChannel()
+{
+    std::puts("9. channel loss is terminal without erasing ownership history");
+    NVAmpereChannelRuntime runtime = {};
+    const auto empty = runtime;
+    check(nvAmpereChannelRuntimeMarkOwnershipUncertain(&runtime) ==
+              NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED &&
+              sameRuntime(runtime, empty), "uninitialized loss refuses atomically");
+    check(nvAmpereChannelRuntimeInit(&runtime) == NV_CHANNEL_RUNTIME_OK,
+          "init accepted");
+    const auto clean = runtime;
+    check(nvAmpereChannelRuntimeMarkOwnershipUncertain(&runtime) ==
+              NV_CHANNEL_RUNTIME_ERR_STATE &&
+              sameRuntime(runtime, clean), "empty runtime cannot invent ownership");
+
+    check(nvAmpereChannelRuntimeObserveAllocation(&runtime,
+              NV_SUBMIT_C56F_CLASS_ID, 1024u, true, true, true) ==
+              NV_CHANNEL_RUNTIME_OK, "allocation observed");
+    check(nvAmpereChannelRuntimeMarkOwnershipUncertain(&runtime) ==
+              NV_CHANNEL_RUNTIME_OK, "partially observed ownership lost");
+    const auto lost = runtime;
+    check(runtime.allocationObserved && runtime.ownershipUncertain &&
+              !nvAmpereChannelRuntimeReady(runtime), "retained but not ready");
+    check(nvAmpereChannelRuntimeObserveSubmissionEndpoint(&runtime, true, true) ==
+              NV_CHANNEL_RUNTIME_ERR_OWNERSHIP_UNCERTAIN,
+          "lost owner cannot acquire submission readiness");
+    check(nvAmpereChannelRuntimeSeal(&runtime) ==
+              NV_CHANNEL_RUNTIME_ERR_OWNERSHIP_UNCERTAIN,
+          "lost owner cannot seal");
+    check(nvAmpereChannelRuntimeObserveAllocation(&runtime,
+              NV_SUBMIT_C56F_CLASS_ID, 1024u, true, true, true) ==
+              NV_CHANNEL_RUNTIME_ERR_OWNERSHIP_UNCERTAIN,
+          "cannot reobserve lost allocation");
+    check(nvAmpereChannelRuntimeInit(&runtime) ==
+              NV_CHANNEL_RUNTIME_ERR_REINITIALIZATION,
+          "cannot erase loss via init");
+    check(nvAmpereChannelRuntimeMarkOwnershipUncertain(&runtime) ==
+              NV_CHANNEL_RUNTIME_OK && sameRuntime(runtime, lost),
+          "loss observation is idempotent and atomic");
+
+    runtime = sealedRuntime();
+    NVAmpereChannelEvidence out = {};
+    out.channelClassNum = 0xdeadbeefu;
+    const auto sealed = runtime;
+    check(nvAmpereChannelRuntimeMarkOwnershipUncertain(&runtime) ==
+              NV_CHANNEL_RUNTIME_OK, "sealed owner can become uncertain");
+    check(runtime.sealed && runtime.allocationObserved &&
+              runtime.submissionEndpointObserved &&
+              runtime.evidence.channelClassNum == sealed.evidence.channelClassNum &&
+              !nvAmpereChannelRuntimeReady(runtime),
+          "sealed history retained, readiness revoked");
+    check(nvAmpereChannelRuntimeCopyEvidence(runtime, &out) ==
+              NV_CHANNEL_RUNTIME_ERR_OWNERSHIP_UNCERTAIN &&
+              out.channelClassNum == 0xdeadbeefu,
+          "copy refuses without clobbering caller output");
+}
+
 int main()
 {
     testInitHasNoAuthority();
@@ -285,6 +344,7 @@ int main()
     testUnsealedExportIsAtomic();
     testSealedStateCannotMutate();
     testInitIsOneShot();
+    testOwnershipUncertaintyQuarantinesChannel();
 
     std::printf("%u checks, %u failures\n", gChecks, gFailures);
     return gFailures == 0u ? 0 : 1;
