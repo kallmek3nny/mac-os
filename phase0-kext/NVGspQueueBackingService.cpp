@@ -15,6 +15,8 @@ OSDefineMetaClassAndStructors(NVGspQueueBackingService, IOService);
 bool NVGspQueueBackingService::init(OSDictionary *dict)
 {
     if (!super::init(dict)) return false;
+    fStateLock=IOLockAlloc();
+    if (!fStateLock) return false;
     fPCI=nullptr;
     fBacking=nullptr;
     fDMA=nullptr;
@@ -28,9 +30,12 @@ bool NVGspQueueBackingService::init(OSDictionary *dict)
 void NVGspQueueBackingService::releaseResources(void)
 {
     // Revoke all private snapshots before unbinding their underlying IOVAs.
+    // Serialize snapshot revocation with any kernel-only consumer read.
+    if (fStateLock) IOLockLock(fStateLock);
     fPrepared=false;
     fPreparedLayout={};
     fPreparedInitArgs={};
+    if (fStateLock) IOLockUnlock(fStateLock);
     if (fDMABound && fDMA) {
         fDMA->clearMemoryDescriptor();
         fDMABound=false;
@@ -43,18 +48,32 @@ void NVGspQueueBackingService::releaseResources(void)
 void NVGspQueueBackingService::free(void)
 {
     releaseResources();
+    if (fStateLock) {
+        IOLockFree(fStateLock);
+        fStateLock=nullptr;
+    }
     super::free();
 }
 
 bool NVGspQueueBackingService::copyPreparedInitArgs(
     NVGspQueueInitArguments *out) const
 {
-    if (!out || !fPrepared || !fBacking || !fDMA || !fDMABound)
+    if (!out || !fStateLock)
         return false;
-    // An ABI and lifetime check on every export; refusing does not alter *out.
-    return nvGspCopyPrivateQueueHandoff(
-        &fPreparedLayout, &fPreparedInitArgs, true, true, true, false, out) ==
-        NV_GSP_QUEUE_PRIVATE_OK;
+
+    // Snapshot with the producer teardown lock held. A successful copy is
+    // never a DMA lifetime lease or permission to notify GSP.
+    NVGspQueueInitArguments staged={};
+    IOLockLock(fStateLock);
+    const bool valid=fPrepared && fBacking && fDMA && fDMABound &&
+        nvGspCopyPrivateQueueHandoff(
+            &fPreparedLayout, &fPreparedInitArgs, true, true, true, false,
+            &staged)==NV_GSP_QUEUE_PRIVATE_OK;
+    IOLockUnlock(fStateLock);
+    if (!valid)
+        return false;
+    *out=staged;
+    return true;
 }
 
 IOService *NVGspQueueBackingService::probe(IOService *provider, SInt32 *score)
@@ -292,9 +311,11 @@ bool NVGspQueueBackingService::start(IOService *provider)
         return true;
     }
 
+    IOLockLock(fStateLock);
     fPreparedLayout=layout;
     fPreparedInitArgs=memoryPlan.initArgs;
     fPrepared=true;
+    IOLockUnlock(fStateLock);
     setProperty("NVGspQueueBackingInitFlags",memoryPlan.initArgs.flags,64);
     setProperty("NVGspQueueBackingInitCommandOffset",memoryPlan.initArgs.cmdQueueOffset,64);
     setProperty("NVGspQueueBackingInitStatusOffset",memoryPlan.initArgs.statQueueOffset,64);

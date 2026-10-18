@@ -3,6 +3,7 @@
 #define NV_GSP_QUEUE_BACKING_SERVICE_HPP
 
 #include <IOKit/IOService.h>
+#include <IOKit/IOLib.h>
 #include <IOKit/pci/IOPCIDevice.h>
 #include <IOKit/IOBufferMemoryDescriptor.h>
 #include <IOKit/IODMACommand.h>
@@ -31,6 +32,7 @@ private:
     IOBufferMemoryDescriptor *fBacking;
     IODMACommand *fDMA;
     bool fDMABound;
+    IOLock *fStateLock;
     bool fPrepared;
     NVGspQueuePlan fPreparedLayout;
     NVGspQueueInitArguments fPreparedInitArgs;

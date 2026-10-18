@@ -120,6 +120,7 @@ jobs:
 
 
       - name: build private GSP queue ownership handoff test
+        timeout-minutes: 8
         shell: bash
         run: |
           set -euxo pipefail
@@ -128,9 +129,11 @@ jobs:
             -o test_nv_gsp_private_queue_handoff
 
       - name: run private GSP queue ownership handoff test
+        timeout-minutes: 2
         run: ./test_nv_gsp_private_queue_handoff
 
       - name: check private GSP queue IOKit evidence boundary
+        timeout-minutes: 2
         shell: bash
         run: |
           set -euxo pipefail

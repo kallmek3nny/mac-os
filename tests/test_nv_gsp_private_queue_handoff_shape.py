@@ -28,6 +28,7 @@ assert 'copyPreparedInitArgs(NVGspQueueInitArguments *out) const' in header
 assert "nvGspCopyPrivateQueueHandoff(" in queue
 assert "fPreparedInitArgs=memoryPlan.initArgs;" in queue
 assert "fPrepared=false;" in queue and "fPreparedInitArgs={};" in queue
+assert "IOLockLock(fStateLock);" in queue and "IOLockUnlock(fStateLock);" in queue
 assert 'OSDynamicCast(NVGspQueueBackingService,queue)' in boot
 assert "backing->copyPreparedInitArgs(&queueArgs)" in boot
 assert 'numberProperty(queue,' not in boot
