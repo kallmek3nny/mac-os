@@ -18,7 +18,8 @@ using NVGspDmaU64 = unsigned long long;
 #define NV_GSP_QUEUE_DMA_SHORT_TRANSFER      7u
 #define NV_GSP_QUEUE_DMA_OUTPUT_SHORT        8u
 #define NV_GSP_QUEUE_DMA_OVERFLOW            9u
-#define NV_GSP_QUEUE_DMA_LIMIT               10u
+#define NV_GSP_QUEUE_DMA_ALIAS               10u
+#define NV_GSP_QUEUE_DMA_LIMIT               11u
 
 struct NVGspQueueDmaSegment {
     NVGspDmaU64 address;
@@ -52,6 +53,7 @@ static inline const char *nvGspQueueDmaVerdictName(NVGspDmaU32 verdict)
         case NV_GSP_QUEUE_DMA_SHORT_TRANSFER:    return "short-transfer";
         case NV_GSP_QUEUE_DMA_OUTPUT_SHORT:      return "output-short";
         case NV_GSP_QUEUE_DMA_OVERFLOW:          return "overflow";
+        case NV_GSP_QUEUE_DMA_ALIAS:             return "aliased-pages";
         default:                                 return "unknown";
     }
 }
@@ -73,7 +75,8 @@ static inline NVGspDmaU32 nvGspFlattenQueueDmaSegments(
     if (!layout) return NV_GSP_QUEUE_DMA_NULL_LAYOUT;
     if (!segments) return NV_GSP_QUEUE_DMA_NULL_SEGMENTS;
     if (!outPageAddress || !outPlan) return NV_GSP_QUEUE_DMA_NULL_OUTPUT;
-    if (!segmentCount) return NV_GSP_QUEUE_DMA_BAD_SEGMENT_COUNT;
+    if (!segmentCount || segmentCount > layout->pageTableEntryCount)
+        return NV_GSP_QUEUE_DMA_BAD_SEGMENT_COUNT;
     if (outPageCapacity < layout->pageTableEntryCount)
         return NV_GSP_QUEUE_DMA_OUTPUT_SHORT;
     if (!layout->sharedBytes ||
@@ -92,6 +95,18 @@ static inline NVGspDmaU32 nvGspFlattenQueueDmaSegments(
             return NV_GSP_QUEUE_DMA_BAD_SEGMENT;
         if (address > ~0ull - (length - NV_GSP_QUEUE_PAGE_BYTES))
             return NV_GSP_QUEUE_DMA_OVERFLOW;
+        // All earlier segments passed alignment and extent validation. Two
+        // descriptor spans sharing even one device-visible page would let GSP
+        // alias queue headers/data and make their lifetime ownership ambiguous.
+        // Compare inclusive ends to avoid a wrapping exclusive-end address.
+        const NVGspDmaU64 end = address + length - 1ull;
+        for (NVGspDmaU32 prior = 0u; prior < s; ++prior) {
+            const NVGspDmaU64 priorBegin = segments[prior].address;
+            const NVGspDmaU64 priorEnd =
+                priorBegin + segments[prior].length - 1ull;
+            if (address <= priorEnd && priorBegin <= end)
+                return NV_GSP_QUEUE_DMA_ALIAS;
+        }
         if (total > ~0ull - length)
             return NV_GSP_QUEUE_DMA_OVERFLOW;
         total += length;
