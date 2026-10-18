@@ -59,6 +59,7 @@ static bool sameRuntime(const NVAmpereCopyPublicationRuntime &a,
            x.submittedTrackingValue == y.submittedTrackingValue &&
            x.maxCredibleCompletionJump == y.maxCredibleCompletionJump &&
            a.nextPublicationOrdinal == b.nextPublicationOrdinal &&
+           a.acceptedEventCount == b.acceptedEventCount &&
            a.peerMappingValidated == b.peerMappingValidated &&
            a.transactionActive == b.transactionActive &&
            a.anchorMinted == b.anchorMinted &&
@@ -494,6 +495,121 @@ static void testProviderStartGateIsFailClosed()
           "reinit cannot clear quarantined copy lifetime");
 }
 
+
+static void checkCorruptStageRefused(NVAmpereCopyPublicationRuntime runtime,
+                                     NVCopyRuntimeU32 next,
+                                     const char *label)
+{
+    const auto before = runtime;
+    check(nvAmpereCopyRuntimeExpectedEvent(runtime) == 0u, label);
+    check(nvAmpereCopyRuntimeAdvance(&runtime, next) ==
+              NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE,
+          "corrupt history cannot advance publication");
+    check(sameRuntime(runtime, before),
+          "refused publication does not repair or erase corrupt history");
+}
+
+static void testMilestoneIntegrityAndWitnesses()
+{
+    std::puts("12. runtime-owned milestone counter rejects altered history");
+    auto runtime = begunRuntime();
+    check(runtime.acceptedEventCount == 0u &&
+              nvAmpereCopyRuntimeExpectedEvent(runtime) ==
+                  NV_COPY_RUNTIME_EVENT_COPY_PUSH_PREPARED,
+          "begun runtime expects first milestone only");
+
+    auto drift = runtime;
+    drift.evidence.copyPushPrepared = true;
+    checkCorruptStageRefused(drift, NV_COPY_RUNTIME_EVENT_COPY_RING_STORED,
+                            "early copied flag cannot skip provider event");
+
+    drift = runtime;
+    drift.acceptedEventCount = 8u;
+    checkCorruptStageRefused(drift, NV_COPY_RUNTIME_EVENT_FENCE_KICK_ACCEPTED,
+                            "forged milestone count cannot skip all events");
+
+    drift = runtime;
+    drift.evidence.channel.gpFifoMapped = false;
+    checkCorruptStageRefused(drift, NV_COPY_RUNTIME_EVENT_COPY_PUSH_PREPARED,
+                            "channel mapping drift cannot continue publication");
+
+    drift = runtime;
+    drift.evidence.peerMappingValidated = false;
+    checkCorruptStageRefused(drift, NV_COPY_RUNTIME_EVENT_COPY_PUSH_PREPARED,
+                            "mapping proof drift cannot continue publication");
+    const auto badPeer = drift;
+    check(nvAmpereCopyRuntimeSetPeerMapping(&drift, true) ==
+              NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE,
+          "peer proof cannot silently repair active history");
+    check(sameRuntime(drift, badPeer),
+          "active peer refusal is atomic");
+
+    drift = runtime;
+    drift.runtimeWriteAuthorized = true;
+    checkCorruptStageRefused(drift, NV_COPY_RUNTIME_EVENT_COPY_PUSH_PREPARED,
+                            "unexpected hardware-write authority rejected");
+
+    for (NVCopyRuntimeU32 i = 0u; i < 8u; ++i) {
+        check(runtime.acceptedEventCount == i,
+              "accepted event count agrees with actual provider milestones");
+        check(nvAmpereCopyRuntimeExpectedEvent(runtime) == i + 1u,
+              "only exact next monotonic provider event accepted");
+        check(nvAmpereCopyRuntimeAdvance(&runtime, i + 1u) ==
+                  NV_COPY_RUNTIME_OK,
+              "runtime advanced by one provider milestone");
+        check(runtime.acceptedEventCount == i + 1u,
+              "successful milestone increments owned counter once");
+    }
+    check(nvAmpereCopyRuntimeExpectedEvent(runtime) == 0u &&
+              runtime.evidence.copyPublicationOrdinal == 1ull &&
+              runtime.evidence.trackingFencePublicationOrdinal == 2ull,
+          "complete sequence has precisely two ordered witnesses");
+
+    drift = runtime;
+    drift.evidence.copyRingEntryStored = false;
+    const auto brokenFinal = drift;
+    NVAmpereCopyPublicationBridge bridge = {};
+    bridge.valid = true;
+    check(nvAmpereCopyRuntimeMintAnchor(&drift, kEpoch, kToken, &bridge) ==
+              NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE,
+          "cannot mint anchor after milestone rollback");
+    check(sameRuntime(drift, brokenFinal) && bridge.valid,
+          "rejected anchor preserves provider history and caller output");
+
+    drift = runtime;
+    drift.evidence.trackingFencePublicationOrdinal = 1ull;
+    check(nvAmpereCopyRuntimeMintAnchor(&drift, kEpoch, kToken, &bridge) ==
+              NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE,
+          "forged fence ordinal cannot anchor transaction");
+
+    drift = runtime;
+    drift.nextPublicationOrdinal = 9ull;
+    check(nvAmpereCopyRuntimeMintAnchor(&drift, kEpoch, kToken, &bridge) ==
+              NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE,
+          "forged next witness cannot anchor transaction");
+
+    check(nvAmpereCopyRuntimeMintAnchor(&runtime, kEpoch, kToken, &bridge) ==
+              NV_COPY_RUNTIME_OK,
+          "intact provider milestones still mint an anchor");
+    drift = runtime;
+    drift.evidence.channel.gpPutMapped = false;
+    const auto brokenAnchor = drift;
+    check(nvAmpereCopyRuntimeBeginCompletionObservation(&drift) ==
+              NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE,
+          "post-anchor channel drift cannot start completion");
+    check(sameRuntime(drift, brokenAnchor),
+          "post-anchor refusal preserves pinned transaction");
+    check(nvAmpereCopyRuntimeBeginCompletionObservation(&runtime) ==
+              NV_COPY_RUNTIME_OK,
+          "intact anchored evidence still allows completion observation");
+
+    drift = runtime;
+    drift.acceptedEventCount = 0u;
+    check(nvAmpereCopyRuntimeMarkOwnershipUncertain(&drift) ==
+              NV_COPY_RUNTIME_OK && drift.providerOwnershipUncertain,
+          "uncertain ownership can always quarantine inconsistent history");
+}
+
 int main()
 {
     testInitAndOwnershipGate();
@@ -507,6 +623,7 @@ int main()
     testProviderUncertaintyBlocksPublication();
     testInconsistentSealedChannelCannotBegin();
     testProviderStartGateIsFailClosed();
+    testMilestoneIntegrityAndWitnesses();
 
     std::printf("%u checks, %u failures\n", gChecks, gFailures);
     return gFailures == 0u ? 0 : 1;

@@ -173,4 +173,25 @@ assert guard_idx < start_body.index("super::start(provider)")
 assert guard_idx < start_body.index("fPCIDevice=OSDynamicCast(")
 assert "fCopyPublicationLifetimePinned, fPCIDevice!=nullptr" in start_body
 
+# A mutable snapshot must never skip, repeat, or rewind milestones.
+# The provider runtime owns a single monotonically increasing accepted count,
+# validates every stage's evidence against it, and refuses inconsistent states
+# before changing another ordinal, minting an anchor, or starting completion.
+assert "NVCopyRuntimeU32 acceptedEventCount;" in body
+assert "NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE" in runtime
+assert "nvAmpereCopyRuntimeEvidenceConsistent(" in runtime
+assert "++staged.acceptedEventCount;" in runtime
+for field in (
+    "copyPushPrepared", "copyRingEntryStored", "copyGpPutPublished",
+    "copySubmissionKicked", "trackingFencePushPrepared",
+    "trackingFenceRingEntryStored", "trackingFenceGpPutPublished",
+    "trackingFenceSubmissionKicked",
+):
+    assert f"e.{field} != (stage >=" in runtime, field
+assert "e.copyPublicationOrdinal != (stage >= 4u ? 1ull : 0ull)" in runtime
+assert "e.trackingFencePublicationOrdinal != (stage >= 8u ? 2ull : 0ull)" in runtime
+assert "runtime.nextPublicationOrdinal != (stage >= 8u ? 3ull : 2ull)" in runtime
+assert runtime.count("nvAmpereCopyRuntimeEvidenceConsistent(*runtime)") >= 3
+assert "nvAmpereEvaluateChannel(e.channel, &readiness)" in runtime
+
 print("GA107 provider publication runtime shape: ok")
