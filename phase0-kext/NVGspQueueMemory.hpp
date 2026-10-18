@@ -20,7 +20,8 @@ using NVGspMemU64 = unsigned long long;
 #define NV_GSP_QUEUE_MEMORY_BAD_PAGE_COUNT         5u
 #define NV_GSP_QUEUE_MEMORY_BAD_PAGE_ADDRESS       6u
 #define NV_GSP_QUEUE_MEMORY_BAD_LAYOUT             7u
-#define NV_GSP_QUEUE_MEMORY_LIMIT                  8u
+#define NV_GSP_QUEUE_MEMORY_ALIASED_PAGE           8u
+#define NV_GSP_QUEUE_MEMORY_LIMIT                  9u
 
 // Mirrors NVIDIA's ABI-stable MESSAGE_QUEUE_INIT_ARGUMENTS field-for-field.
 // Natural C++ layout is 64 bytes: four 64-bit fields, six 32-bit fields, 8
@@ -67,8 +68,28 @@ static inline const char *nvGspQueueMemoryVerdictName(NVGspMemU32 verdict)
         case NV_GSP_QUEUE_MEMORY_BAD_PAGE_COUNT:   return "bad-page-count";
         case NV_GSP_QUEUE_MEMORY_BAD_PAGE_ADDRESS: return "bad-page-address";
         case NV_GSP_QUEUE_MEMORY_BAD_LAYOUT:       return "bad-layout";
+        case NV_GSP_QUEUE_MEMORY_ALIASED_PAGE:     return "aliased-page";
         default:                                   return "unknown";
     }
+}
+
+// Even a correctly sized table cannot safely share one IOVA between logically
+// different GSP pages. Check alignment and uniqueness before writing any
+// descriptor or returning cached initialization arguments.
+static inline NVGspMemU32 nvGspValidateQueuePageAddresses(
+    const NVGspMemU64 *pages, NVGspMemU32 pageCount)
+{
+    for (NVGspMemU32 i = 0u; i < pageCount; ++i) {
+        if ((pages[i] & (NV_GSP_QUEUE_PAGE_BYTES - 1u)) != 0ull)
+            return NV_GSP_QUEUE_MEMORY_BAD_PAGE_ADDRESS;
+    }
+    for (NVGspMemU32 i = 0u; i < pageCount; ++i) {
+        for (NVGspMemU32 j = 0u; j < i; ++j) {
+            if (pages[i] == pages[j])
+                return NV_GSP_QUEUE_MEMORY_ALIASED_PAGE;
+        }
+    }
+    return NV_GSP_QUEUE_MEMORY_OK;
 }
 
 // NVIDIA GspMsgQueuesInit() stores the AT_GPU address of EVERY shared 4 KiB
@@ -103,10 +124,10 @@ static inline NVGspMemU32 nvGspBuildQueueMemoryPlan(
         pageAddressCount != layout->pageTableEntryCount)
         return NV_GSP_QUEUE_MEMORY_BAD_PAGE_COUNT;
 
-    for (NVGspMemU32 i = 0u; i < pageAddressCount; ++i) {
-        if ((gpuVisiblePageAddress[i] & (NV_GSP_QUEUE_PAGE_BYTES - 1u)) != 0ull)
-            return NV_GSP_QUEUE_MEMORY_BAD_PAGE_ADDRESS;
-    }
+    const NVGspMemU32 addressVerdict =
+        nvGspValidateQueuePageAddresses(gpuVisiblePageAddress,pageAddressCount);
+    if (addressVerdict != NV_GSP_QUEUE_MEMORY_OK)
+        return addressVerdict;
 
     const NVGspMemU32 commandPages = layout->commandQueueBytes >> NV_GSP_QUEUE_PAGE_SHIFT;
     const NVGspMemU32 statusPages = layout->statusQueueBytes >> NV_GSP_QUEUE_PAGE_SHIFT;
@@ -160,10 +181,10 @@ static inline NVGspMemU32 nvGspWriteQueuePageTable(
         outEntryCapacity < layout->pageTableEntryCount)
         return NV_GSP_QUEUE_MEMORY_BAD_PAGE_COUNT;
 
-    for (NVGspMemU32 i = 0u; i < pageAddressCount; ++i) {
-        if ((gpuVisiblePageAddress[i] & (NV_GSP_QUEUE_PAGE_BYTES - 1u)) != 0ull)
-            return NV_GSP_QUEUE_MEMORY_BAD_PAGE_ADDRESS;
-    }
+    const NVGspMemU32 addressVerdict =
+        nvGspValidateQueuePageAddresses(gpuVisiblePageAddress,pageAddressCount);
+    if (addressVerdict != NV_GSP_QUEUE_MEMORY_OK)
+        return addressVerdict;
 
     for (NVGspMemU32 i = 0u; i < pageAddressCount; ++i)
         outEntries[i] = gpuVisiblePageAddress[i];
