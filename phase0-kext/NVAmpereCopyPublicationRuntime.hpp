@@ -345,4 +345,24 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeBeginCompletionObservation(
     return NV_COPY_RUNTIME_OK;
 }
 
+// A stop/restart cannot substitute for channel or transaction retirement.
+// The provider may enter start() only while it owns no prior channel/copy
+// lifetime and is not retaining a prior PCI dependency. The historical proof
+// fields are intentionally inspected rather than zeroed.
+static inline bool nvAmpereProviderRuntimeMayStart(
+    const NVAmpereChannelRuntime &channel,
+    const NVAmpereCopyPublicationRuntime &publication,
+    bool lifetimePinned,
+    bool pciDependencyRetained)
+{
+    return channel.initialized && publication.initialized &&
+           !lifetimePinned && !pciDependencyRetained &&
+           !channel.ownershipUncertain &&
+           !publication.providerOwnershipUncertain &&
+           !channel.allocationObserved &&
+           !channel.submissionEndpointObserved && !channel.sealed &&
+           !publication.transactionActive && !publication.anchorMinted &&
+           !publication.completionObservationStarted;
+}
+
 #endif // NV_AMPERE_COPY_PUBLICATION_RUNTIME_HPP

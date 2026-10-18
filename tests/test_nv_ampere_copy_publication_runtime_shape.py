@@ -152,4 +152,25 @@ for forbidden_property in (
 ):
     assert forbidden_property not in provider
 
+# A clean IOKit restart must not revive previously owned or quarantined
+# channel/copy state. Check the pure guard and its placement before every
+# provider start side effect, including super::start() and PCI retention.
+assert "nvAmpereProviderRuntimeMayStart(" in runtime
+for field in (
+    "!lifetimePinned", "!pciDependencyRetained",
+    "!channel.ownershipUncertain", "!publication.providerOwnershipUncertain",
+    "!channel.allocationObserved", "!channel.submissionEndpointObserved",
+    "!channel.sealed", "!publication.transactionActive",
+    "!publication.anchorMinted", "!publication.completionObservationStarted",
+):
+    assert field in runtime, f"missing restart guard: {field}"
+start_idx = provider.index("bool NVPeerMapperProbe::start")
+start_end = provider.index("void NVPeerMapperProbe::stop", start_idx)
+start_body = provider[start_idx:start_end]
+guard_idx = start_body.index("nvAmpereProviderRuntimeMayStart(")
+assert guard_idx < start_body.index("PE_parse_boot_argn(")
+assert guard_idx < start_body.index("super::start(provider)")
+assert guard_idx < start_body.index("fPCIDevice=OSDynamicCast(")
+assert "fCopyPublicationLifetimePinned, fPCIDevice!=nullptr" in start_body
+
 print("GA107 provider publication runtime shape: ok")

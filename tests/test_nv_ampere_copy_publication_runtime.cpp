@@ -413,6 +413,87 @@ static void testProviderUncertaintyBlocksPublication()
           "anchored resources remain quarantined");
 }
 
+
+static void testInconsistentSealedChannelCannotBegin()
+{
+    std::puts("10. copy start revalidates sealed channel export");
+    NVAmpereCopyPublicationRuntime runtime = {};
+    check(nvAmpereCopyRuntimeInit(&runtime) == NV_COPY_RUNTIME_OK,
+          "runtime initializes");
+    check(nvAmpereCopyRuntimeSetPeerMapping(&runtime, true) ==
+              NV_COPY_RUNTIME_OK, "mapper proof recorded");
+
+    auto channel = readyChannelRuntime();
+    channel.evidence.gpPutMapped = false;
+    const auto before = runtime;
+    check(nvAmpereCopyRuntimeBegin(&runtime, channel, 100ull, 101ull, 8ull) ==
+              NV_COPY_RUNTIME_ERR_CHANNEL,
+          "changed sealed mapping fails copy start");
+    check(sameRuntime(runtime, before),
+          "inconsistent channel refusal leaves copy runtime unchanged");
+
+    channel = readyChannelRuntime();
+    channel.readiness.submitReady = false;
+    check(nvAmpereCopyRuntimeBegin(&runtime, channel, 100ull, 101ull, 8ull) ==
+              NV_COPY_RUNTIME_ERR_CHANNEL,
+          "changed cached readiness fails copy start");
+    check(sameRuntime(runtime, before),
+          "cached readiness refusal is atomic");
+}
+
+
+static void testProviderStartGateIsFailClosed()
+{
+    std::puts("11. provider start refuses prior ownership and uncertain lifetime");
+    NVAmpereChannelRuntime channel = {};
+    NVAmpereCopyPublicationRuntime publication = {};
+    check(!nvAmpereProviderRuntimeMayStart(channel, publication, false, false),
+          "uninitialized provider cannot start");
+    check(nvAmpereChannelRuntimeInit(&channel) == NV_CHANNEL_RUNTIME_OK &&
+              nvAmpereCopyRuntimeInit(&publication) == NV_COPY_RUNTIME_OK,
+          "provider runtimes initialized");
+    check(nvAmpereProviderRuntimeMayStart(channel, publication, false, false),
+          "fresh provider may start");
+    check(!nvAmpereProviderRuntimeMayStart(channel, publication, true, false),
+          "retained service cannot restart");
+    check(!nvAmpereProviderRuntimeMayStart(channel, publication, false, true),
+          "retained PCI dependency cannot be overwritten");
+
+    check(nvAmpereCopyRuntimeSetPeerMapping(&publication, true) ==
+              NV_COPY_RUNTIME_OK, "mapper proof accepted");
+    check(nvAmpereProviderRuntimeMayStart(channel, publication, false, false),
+          "clean provider mapping evidence alone is not an active channel");
+    check(nvAmpereChannelRuntimeObserveAllocation(&channel,
+              NV_SUBMIT_C56F_CLASS_ID, 1024u, true, true, true) ==
+              NV_CHANNEL_RUNTIME_OK, "channel allocated");
+    check(!nvAmpereProviderRuntimeMayStart(channel, publication, false, false),
+          "channel allocation ownership refuses restart");
+    check(nvAmpereChannelRuntimeMarkOwnershipUncertain(&channel) ==
+              NV_CHANNEL_RUNTIME_OK, "channel ownership quarantined");
+    check(!nvAmpereProviderRuntimeMayStart(channel, publication, false, false),
+          "quarantined channel refuses restart");
+
+    channel = readyChannelRuntime();
+    check(!nvAmpereProviderRuntimeMayStart(channel, publication, false, false),
+          "sealed channel cannot restart");
+    channel = {};
+    check(nvAmpereChannelRuntimeInit(&channel) == NV_CHANNEL_RUNTIME_OK,
+          "fresh channel state for publication scenario");
+
+    check(nvAmpereCopyRuntimeBegin(&publication, readyChannelRuntime(),
+              100ull, 101ull, 8ull) == NV_COPY_RUNTIME_OK,
+          "copy publication begins");
+    check(!nvAmpereProviderRuntimeMayStart(channel, publication, false, false),
+          "active copy transaction refuses provider restart");
+    check(nvAmpereCopyRuntimeMarkOwnershipUncertain(&publication) ==
+              NV_COPY_RUNTIME_OK, "copy publication quarantined");
+    check(!nvAmpereProviderRuntimeMayStart(channel, publication, false, false),
+          "uncertain copy provider refuses restart");
+    check(nvAmpereCopyRuntimeInit(&publication) ==
+              NV_COPY_RUNTIME_ERR_REINITIALIZATION,
+          "reinit cannot clear quarantined copy lifetime");
+}
+
 int main()
 {
     testInitAndOwnershipGate();
@@ -424,6 +505,8 @@ int main()
     testPeerMappingCannotDisappearMidTransaction();
     testInitIsOneShot();
     testProviderUncertaintyBlocksPublication();
+    testInconsistentSealedChannelCannotBegin();
+    testProviderStartGateIsFailClosed();
 
     std::printf("%u checks, %u failures\n", gChecks, gFailures);
     return gFailures == 0u ? 0 : 1;

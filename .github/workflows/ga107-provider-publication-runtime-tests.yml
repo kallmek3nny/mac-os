@@ -7,6 +7,7 @@ on:
       - agent/ga107-provider-channel-runtime
       - agent/ga107-runtime-reinitialization-safety
       - agent/ga107-channel-ownership-uncertainty
+      - agent/ga107-sealed-evidence-and-provider-restart
     paths:
       - 'phase0-kext/NVAmpereChannelRuntime.hpp'
       - 'phase0-kext/NVAmpereCopyPublicationRuntime.hpp'

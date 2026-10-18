@@ -46,6 +46,17 @@ IOService *NVPeerMapperProbe::probe(IOService *provider, SInt32 *score)
 
 bool NVPeerMapperProbe::start(IOService *provider)
 {
+    // Deny repeated start while a service, channel, or transaction owns a
+    // retained lifetime. A provider stop cannot fabricate retirement proof.
+    // Check before super::start(), PCI access, mapper acquisition or registry
+    // updates so refused activation leaves all prior ownership untouched.
+    if (!nvAmpereProviderRuntimeMayStart(
+            fChannelRuntime, fCopyPublicationRuntime,
+            fCopyPublicationLifetimePinned, fPCIDevice!=nullptr)) {
+        NVMAPLOG("start: retained or uncertain provider lifetime; refusing restart");
+        return false;
+    }
+
     int enabled=0;
     if (!PE_parse_boot_argn("igsink-peer-map",&enabled,sizeof(enabled)) || enabled!=1)
         return false;
