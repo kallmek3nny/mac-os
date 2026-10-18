@@ -15,8 +15,7 @@ OSDefineMetaClassAndStructors(NVGspQueueBackingService, IOService);
 bool NVGspQueueBackingService::init(OSDictionary *dict)
 {
     if (!super::init(dict)) return false;
-    fStateLock=IOLockAlloc();
-    if (!fStateLock) return false;
+    // Keep the failure path safe even if allocation fails during init.
     fPCI=nullptr;
     fBacking=nullptr;
     fDMA=nullptr;
@@ -24,7 +23,8 @@ bool NVGspQueueBackingService::init(OSDictionary *dict)
     fPrepared=false;
     fPreparedLayout={};
     fPreparedInitArgs={};
-    return true;
+    fStateLock=IOLockAlloc();
+    return fStateLock!=nullptr;
 }
 
 void NVGspQueueBackingService::releaseResources(void)
