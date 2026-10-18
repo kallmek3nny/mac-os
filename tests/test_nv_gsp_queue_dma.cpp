@@ -79,6 +79,60 @@ static void testOneSegmentPerPage(void) {
     }
 }
 
+
+static void testAliasedSegmentsRefusedAtomically(void) {
+    std::printf("\n4. GSP queue DMA descriptors must never alias a page\n");
+    const NVGspQueuePlan layout=normalLayout();
+    NVGspDmaU64 pages[129];
+    std::memset(pages,0x5a,sizeof(pages));
+    NVGspDmaU64 priorPages[129];
+    std::memcpy(priorPages,pages,sizeof(pages));
+    NVGspQueueDmaPlan plan;
+    std::memset(&plan,0xa5,sizeof(plan));
+    const NVGspQueueDmaPlan priorPlan=plan;
+
+    // Three segments cover exactly the expected byte count, but status
+    // overlaps the final command page in IOVA space. Count/size alone
+    // cannot detect that this maps two logically distinct pages as one.
+    NVGspQueueDmaSegment overlap[3]={
+        {0x100000000ull,0x1000ull},
+        {0x200000000ull,0x40000ull},
+        {0x20003f000ull,0x40000ull}
+    };
+    checkU32("adjacent queue sections alias",
+        nvGspFlattenQueueDmaSegments(&layout,overlap,3u,pages,129u,&plan),
+        NV_GSP_QUEUE_DMA_ALIAS);
+    check("alias leaves pages unchanged",
+          std::memcmp(pages,priorPages,sizeof(pages))==0);
+    check("alias leaves plan unchanged",
+          std::memcmp(&plan,&priorPlan,sizeof(plan))==0);
+
+    overlap[2].address=overlap[0].address;
+    checkU32("repeated page-table IOVA",
+        nvGspFlattenQueueDmaSegments(&layout,overlap,3u,pages,129u,&plan),
+        NV_GSP_QUEUE_DMA_ALIAS);
+    check("repeated page leaves pages unchanged",
+          std::memcmp(pages,priorPages,sizeof(pages))==0);
+
+    // Touching at an exclusive end is legal. Last page starts immediately
+    // after the command span, with zero shared pages.
+    overlap[1].address=0x100001000ull;
+    overlap[2].address=0x100041000ull;
+    checkU32("adjacent but disjoint extents",
+        nvGspFlattenQueueDmaSegments(&layout,overlap,3u,pages,129u,&plan),
+        NV_GSP_QUEUE_DMA_OK);
+    checkU64("status starts at independent page",
+             pages[65],overlap[2].address);
+
+    // Every valid segment contains at least one GSP page. The count guard
+    // must refuse an oversized untrusted descriptor list before reading it.
+    checkU32("too many DMA segments",
+        nvGspFlattenQueueDmaSegments(&layout,overlap,130u,pages,129u,&plan),
+        NV_GSP_QUEUE_DMA_BAD_SEGMENT_COUNT);
+    check("refused count retains previous successful plan",
+          plan.inputSegmentCount==3u && plan.outputPageCount==129u);
+}
+
 static void testRefusalsAreAtomic(void) {
     std::printf("\n4. bad DMA spans refuse before page-table mutation\n");
     const NVGspQueuePlan layout=normalLayout();
@@ -130,6 +184,7 @@ int main(void) {
     testSingleContiguous();
     testThreeNoncontiguous();
     testOneSegmentPerPage();
+    testAliasedSegmentsRefusedAtomically();
     testRefusalsAreAtomic();
     testVerdicts();
     std::printf("\n%d checks, %d failures\n",gChecks,gFailures);
