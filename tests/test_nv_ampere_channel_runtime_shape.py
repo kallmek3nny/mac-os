@@ -37,7 +37,20 @@ assert "bool initialized = false;" in body
 assert "bool ownershipUncertain = false;" in body
 assert "NV_CHANNEL_RUNTIME_ERR_OWNERSHIP_UNCERTAIN" in text
 assert "nvAmpereChannelRuntimeMarkOwnershipUncertain" in text
-assert "runtime.initialized && !runtime.ownershipUncertain" in text
+assert "NV_CHANNEL_RUNTIME_ERR_INCONSISTENT_SNAPSHOT" in text
+ready = re.search(
+    r"static inline bool nvAmpereChannelRuntimeReady\s*\(.*?\)\s*\{(?P<body>.*?)\n\}",
+    text, flags=re.S,
+)
+assert ready, "readiness function not found"
+ready_body = ready.group("body")
+assert "nvAmpereEvaluateChannel(runtime.evidence, &current)" in ready_body
+assert "NV_CHANNEL_READY_OK" in ready_body
+assert "runtime.ownershipUncertain" in ready_body
+assert "runtime.runtimeWriteAuthorized" in ready_body
+for flag in ("allocationReady", "ceBoundReady", "submitReady"):
+    assert f"runtime.readiness.{flag} == current.{flag}" in ready_body
+assert "if (!nvAmpereChannelRuntimeReady(runtime))" in text
 assert text.count("if (runtime->ownershipUncertain)") >= 4
 assert "NVAmpereChannelEvidence evidence;" in body
 assert "NVAmpereChannelReadiness readiness;" in body

@@ -334,6 +334,70 @@ static void testOwnershipUncertaintyQuarantinesChannel()
           "copy refuses without clobbering caller output");
 }
 
+
+static void checkInvalidSealedSnapshot(const NVAmpereChannelRuntime &runtime,
+                                       const char *label)
+{
+    NVAmpereChannelEvidence out = {};
+    out.channelClassNum = 0xdeadbeefu;
+    out.numGpFifoEntries = 77u;
+    const auto before = runtime;
+    check(!nvAmpereChannelRuntimeReady(runtime), label);
+    check(nvAmpereChannelRuntimeCopyEvidence(runtime, &out) ==
+              NV_CHANNEL_RUNTIME_ERR_INCONSISTENT_SNAPSHOT,
+          "inconsistent sealed evidence cannot be exported");
+    check(out.channelClassNum == 0xdeadbeefu &&
+              out.numGpFifoEntries == 77u,
+          "rejected export leaves caller output unchanged");
+    check(sameRuntime(runtime, before), "readiness check never mutates runtime");
+}
+
+static void testSealedEvidenceRevalidatedAtExport()
+{
+    std::puts("10. seal-time readiness must be revalidated before export");
+    auto runtime = sealedRuntime();
+    check(nvAmpereChannelRuntimeReady(runtime),
+          "untouched sealed channel remains ready");
+    runtime.evidence.channelClassNum = 0u;
+    checkInvalidSealedSnapshot(runtime, "changed channel class rejected");
+
+    runtime = sealedRuntime();
+    runtime.evidence.numGpFifoEntries = 1u;
+    checkInvalidSealedSnapshot(runtime, "sentinel-capacity loss rejected");
+
+    runtime = sealedRuntime();
+    runtime.evidence.gpGetMapped = false;
+    checkInvalidSealedSnapshot(runtime, "gpGet mapping loss rejected");
+
+    runtime = sealedRuntime();
+    runtime.evidence.gpPutMapped = false;
+    checkInvalidSealedSnapshot(runtime, "gpPut mapping loss rejected");
+
+    runtime = sealedRuntime();
+    runtime.evidence.gpFifoMapped = false;
+    checkInvalidSealedSnapshot(runtime, "GPFIFO mapping loss rejected");
+
+    runtime = sealedRuntime();
+    runtime.evidence.workSubmissionMapped = false;
+    checkInvalidSealedSnapshot(runtime, "submission mapping loss rejected");
+
+    runtime = sealedRuntime();
+    runtime.evidence.workSubmissionTokenReady = false;
+    checkInvalidSealedSnapshot(runtime, "submission token loss rejected");
+
+    runtime = sealedRuntime();
+    runtime.readiness.ceBoundReady = false;
+    checkInvalidSealedSnapshot(runtime, "cached readiness mismatch rejected");
+
+    runtime = sealedRuntime();
+    runtime.runtimeWriteAuthorized = true;
+    checkInvalidSealedSnapshot(runtime, "write-authorization mutation rejected");
+
+    runtime = sealedRuntime();
+    runtime.submissionEndpointObserved = false;
+    checkInvalidSealedSnapshot(runtime, "missing observation ownership rejected");
+}
+
 int main()
 {
     testInitHasNoAuthority();
@@ -345,6 +409,7 @@ int main()
     testSealedStateCannotMutate();
     testInitIsOneShot();
     testOwnershipUncertaintyQuarantinesChannel();
+    testSealedEvidenceRevalidatedAtExport();
 
     std::printf("%u checks, %u failures\n", gChecks, gFailures);
     return gFailures == 0u ? 0 : 1;

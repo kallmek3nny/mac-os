@@ -413,6 +413,34 @@ static void testProviderUncertaintyBlocksPublication()
           "anchored resources remain quarantined");
 }
 
+
+static void testInconsistentSealedChannelCannotBegin()
+{
+    std::puts("10. copy start revalidates sealed channel export");
+    NVAmpereCopyPublicationRuntime runtime = {};
+    check(nvAmpereCopyRuntimeInit(&runtime) == NV_COPY_RUNTIME_OK,
+          "runtime initializes");
+    check(nvAmpereCopyRuntimeSetPeerMapping(&runtime, true) ==
+              NV_COPY_RUNTIME_OK, "mapper proof recorded");
+
+    auto channel = readyChannelRuntime();
+    channel.evidence.gpPutMapped = false;
+    const auto before = runtime;
+    check(nvAmpereCopyRuntimeBegin(&runtime, channel, 100ull, 101ull, 8ull) ==
+              NV_COPY_RUNTIME_ERR_CHANNEL,
+          "changed sealed mapping fails copy start");
+    check(sameRuntime(runtime, before),
+          "inconsistent channel refusal leaves copy runtime unchanged");
+
+    channel = readyChannelRuntime();
+    channel.readiness.submitReady = false;
+    check(nvAmpereCopyRuntimeBegin(&runtime, channel, 100ull, 101ull, 8ull) ==
+              NV_COPY_RUNTIME_ERR_CHANNEL,
+          "changed cached readiness fails copy start");
+    check(sameRuntime(runtime, before),
+          "cached readiness refusal is atomic");
+}
+
 int main()
 {
     testInitAndOwnershipGate();
@@ -424,6 +452,7 @@ int main()
     testPeerMappingCannotDisappearMidTransaction();
     testInitIsOneShot();
     testProviderUncertaintyBlocksPublication();
+    testInconsistentSealedChannelCannotBegin();
 
     std::printf("%u checks, %u failures\n", gChecks, gFailures);
     return gFailures == 0u ? 0 : 1;
