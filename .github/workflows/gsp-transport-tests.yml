@@ -118,6 +118,24 @@ jobs:
       - name: run GSP RPC response semantics test
         run: ./test_nv_gsp_rpc_response
 
+
+      - name: build private GSP queue ownership handoff test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror \
+            -I phase0-kext tests/test_nv_gsp_private_queue_handoff.cpp \
+            -o test_nv_gsp_private_queue_handoff
+
+      - name: run private GSP queue ownership handoff test
+        run: ./test_nv_gsp_private_queue_handoff
+
+      - name: check private GSP queue IOKit evidence boundary
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 tests/test_nv_gsp_private_queue_handoff_shape.py
+
       - name: build GSP queue observation classifier
         shell: bash
         run: |

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Opt-in allocation-only GSP boot-argument rehearsal. NO GPU/MMIO writes.
 #include "NVGspBootArgsRehearsalService.hpp"
+#include "NVGspQueueBackingService.hpp"
 
 #include <IOKit/IOLib.h>
 #include <IOKit/IOMapper.h>
 #include <IOKit/IORegistryEntry.h>
 #include <libkern/c++/OSBoolean.h>
-#include <libkern/c++/OSNumber.h>
 #include <pexpert/pexpert.h>
 #include <mach/task.h>
 
@@ -16,15 +16,6 @@ OSDefineMetaClassAndStructors(NVGspBootArgsRehearsalService, IOService);
 
 namespace {
 static const UInt64 kQueueBackingWaitNs = 2000000000ull;
-
-static bool numberProperty(IOService *service, const char *key, UInt64 &value)
-{
-    if (!service || !key) return false;
-    OSNumber *number=OSDynamicCast(OSNumber,service->getProperty(key));
-    if (!number) return false;
-    value=number->unsigned64BitValue();
-    return true;
-}
 
 static bool trueProperty(IOService *service, const char *key)
 {
@@ -173,40 +164,21 @@ bool NVGspBootArgsRehearsalService::start(IOService *provider)
         return true;
     }
 
-    UInt64 shared=0,flags=0,cmdOff=0,statusOff=0,hdr=0,minBytes=0,maxBytes=0;
-    UInt64 headerAlign=0,elementAlign=0,pteCount=0;
-    const bool queueReady=trueProperty(queue,"NVGspQueueBackingPrepared") &&
-        numberProperty(queue,"NVGspQueueBackingCandidateSharedMemGpuAddress",shared) &&
-        numberProperty(queue,"NVGspQueueBackingInitFlags",flags) &&
-        numberProperty(queue,"NVGspQueueBackingInitCommandOffset",cmdOff) &&
-        numberProperty(queue,"NVGspQueueBackingInitStatusOffset",statusOff) &&
-        numberProperty(queue,"NVGspQueueBackingInitElementHeaderBytes",hdr) &&
-        numberProperty(queue,"NVGspQueueBackingInitElementMinBytes",minBytes) &&
-        numberProperty(queue,"NVGspQueueBackingInitElementMaxBytes",maxBytes) &&
-        numberProperty(queue,"NVGspQueueBackingInitHeaderAlign",headerAlign) &&
-        numberProperty(queue,"NVGspQueueBackingInitElementAlignShift",elementAlign) &&
-        numberProperty(queue,"NVGspQueueBackingInitPageTableEntryCount",pteCount);
+    // Queue addresses are kernel-private. IORegistry readiness alone is not a
+    // transport for DMA addresses and does not prove firmware ownership.
+    NVGspQueueInitArguments queueArgs={};
+    NVGspQueueBackingService *backing=
+        OSDynamicCast(NVGspQueueBackingService,queue);
+    const bool queueReady=backing &&
+        trueProperty(queue,"NVGspQueueBackingPrepared") &&
+        backing->copyPreparedInitArgs(&queueArgs);
     queue->release();
 
-    if (!queueReady || !shared ||
-        hdr>0xffffffffull || minBytes>0xffffffffull || maxBytes>0xffffffffull ||
-        headerAlign>0xffffffffull || elementAlign>0xffffffffull || pteCount>0xffffffffull) {
+    if (!queueReady) {
         publishState("queue-init-args-unavailable");
         registerService();
         return true;
     }
-
-    NVGspQueueInitArguments queueArgs={};
-    queueArgs.flags=flags;
-    queueArgs.sharedMemPhysAddr=shared;
-    queueArgs.cmdQueueOffset=cmdOff;
-    queueArgs.statQueueOffset=statusOff;
-    queueArgs.queueElementHdrSize=(UInt32)hdr;
-    queueArgs.queueElementSizeMin=(UInt32)minBytes;
-    queueArgs.queueElementSizeMax=(UInt32)maxBytes;
-    queueArgs.queueHeaderAlign=(UInt32)headerAlign;
-    queueArgs.queueElementAlign=(UInt32)elementAlign;
-    queueArgs.pageTableEntryCount=(UInt32)pteCount;
 
     // Open RM uses one 4 KiB contiguous cached sysmem page for RMARGS and one
     // 4 KiB contiguous uncached sysmem page for the LibOS memory-region list.
@@ -306,26 +278,19 @@ bool NVGspBootArgsRehearsalService::start(IOService *provider)
         return true;
     }
 
-    setProperty("NVGspBootArgsRmArgsGpuAddress",rmGpu,64);
-    setProperty("NVGspBootArgsLibosListGpuAddress",listGpu,64);
+    // Do not publish DMA mappings into IORegistry, even for a rehearsal.
     setProperty("NVGspBootArgsRmArgsBytes",(UInt64)NV_GSP_CACHED_ARGS_PAGE_BYTES,32);
     setProperty("NVGspBootArgsLibosListBytes",(UInt64)NV_GSP_LIBOS_INIT_LIST_BYTES,32);
     setProperty("NVGspBootArgsRmArgsIndex",(UInt64)listPlan.rmArgsIndex,32);
     setProperty("NVGspBootArgsTerminatorIndex",(UInt64)listPlan.terminatorIndex,32);
     setProperty("NVGspBootArgsMailbox0Register",(UInt64)mailbox.writes[0].reg,32);
-    setProperty("NVGspBootArgsMailbox0Value",(UInt64)mailbox.writes[0].value,32);
     setProperty("NVGspBootArgsMailbox1Register",(UInt64)mailbox.writes[1].reg,32);
-    setProperty("NVGspBootArgsMailbox1Value",(UInt64)mailbox.writes[1].value,32);
-    setProperty("NVGspBootArgsQueueSharedMemGpuAddress",shared,64);
     setProperty("NVGspBootArgsMemoryPrepared",true);
     setProperty("NVGspBootArgsAddressKind","ga107-device-iovm-rehearsal-not-installed");
     publishState("owned-bootargs-rehearsal-gsp-not-notified");
     registerService();
 
-    NVBOOTARGSLOG("prepared RMARGS=%llx LibOS-list=%llx; would write mailbox %08x/%08x, but MMIO remains disabled",
-                  (unsigned long long)rmGpu,
-                  (unsigned long long)listGpu,
-                  mailbox.writes[0].value,mailbox.writes[1].value);
+    NVBOOTARGSLOG("prepared private RMARGS and LibOS list; mailbox not written");
     return true;
 }
 

@@ -19,11 +19,18 @@ bool NVGspQueueBackingService::init(OSDictionary *dict)
     fBacking=nullptr;
     fDMA=nullptr;
     fDMABound=false;
+    fPrepared=false;
+    fPreparedLayout={};
+    fPreparedInitArgs={};
     return true;
 }
 
 void NVGspQueueBackingService::releaseResources(void)
 {
+    // Revoke all private snapshots before unbinding their underlying IOVAs.
+    fPrepared=false;
+    fPreparedLayout={};
+    fPreparedInitArgs={};
     if (fDMABound && fDMA) {
         fDMA->clearMemoryDescriptor();
         fDMABound=false;
@@ -37,6 +44,17 @@ void NVGspQueueBackingService::free(void)
 {
     releaseResources();
     super::free();
+}
+
+bool NVGspQueueBackingService::copyPreparedInitArgs(
+    NVGspQueueInitArguments *out) const
+{
+    if (!out || !fPrepared || !fBacking || !fDMA || !fDMABound)
+        return false;
+    // An ABI and lifetime check on every export; refusing does not alter *out.
+    return nvGspCopyPrivateQueueHandoff(
+        &fPreparedLayout, &fPreparedInitArgs, true, true, true, false, out) ==
+        NV_GSP_QUEUE_PRIVATE_OK;
 }
 
 IOService *NVGspQueueBackingService::probe(IOService *provider, SInt32 *score)
@@ -206,8 +224,8 @@ bool NVGspQueueBackingService::start(IOService *provider)
         return true;
     }
 
-    setProperty("NVGspQueueBackingGpuPageFirst",dmaPlan.firstPageAddress,64);
-    setProperty("NVGspQueueBackingGpuPageLast",dmaPlan.lastPageAddress,64);
+    // Raw IOVAs remain private to the DMA-backed provider; public properties
+    // report only geometry and readiness, never allocator-derived addresses.
     setProperty("NVGspQueueBackingMappedBytes",dmaPlan.mappedBytes,64);
     setProperty("NVGspQueueBackingSingleDmaSegment",dmaPlan.inputWasSingleContiguousSegment);
 
@@ -274,7 +292,9 @@ bool NVGspQueueBackingService::start(IOService *provider)
         return true;
     }
 
-    setProperty("NVGspQueueBackingCandidateSharedMemGpuAddress",memoryPlan.initArgs.sharedMemPhysAddr,64);
+    fPreparedLayout=layout;
+    fPreparedInitArgs=memoryPlan.initArgs;
+    fPrepared=true;
     setProperty("NVGspQueueBackingInitFlags",memoryPlan.initArgs.flags,64);
     setProperty("NVGspQueueBackingInitCommandOffset",memoryPlan.initArgs.cmdQueueOffset,64);
     setProperty("NVGspQueueBackingInitStatusOffset",memoryPlan.initArgs.statQueueOffset,64);
@@ -289,9 +309,8 @@ bool NVGspQueueBackingService::start(IOService *provider)
     publishState("owned-memory-prepared-gsp-not-notified");
     registerService();
 
-    NVQMEMLOG("prepared %u shared page(s), candidate sharedMem=%llx; GSP not notified",
-              layout.pageTableEntryCount,
-              (unsigned long long)memoryPlan.initArgs.sharedMemPhysAddr);
+    NVQMEMLOG("prepared %u shared page(s); GSP not notified",
+              layout.pageTableEntryCount);
     return true;
 }
 

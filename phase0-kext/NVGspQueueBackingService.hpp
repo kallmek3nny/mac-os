@@ -9,6 +9,7 @@
 
 #include "NVGspQueueDma.hpp"
 #include "NVGspQueueTx.hpp"
+#include "NVGspQueuePrivateHandoff.hpp"
 
 class NVGspQueueBackingService : public IOService
 {
@@ -21,11 +22,18 @@ public:
     virtual bool start(IOService *provider) APPLE_KEXT_OVERRIDE;
     virtual void stop(IOService *provider) APPLE_KEXT_OVERRIDE;
 
+    // Private kernel-only snapshot. Never export the IOVA through IORegistry.
+    // Rehearsal consumers must not treat this as GSP notification or a lease.
+    bool copyPreparedInitArgs(NVGspQueueInitArguments *out) const;
+
 private:
     IOPCIDevice *fPCI;
     IOBufferMemoryDescriptor *fBacking;
     IODMACommand *fDMA;
     bool fDMABound;
+    bool fPrepared;
+    NVGspQueuePlan fPreparedLayout;
+    NVGspQueueInitArguments fPreparedInitArgs;
 
     void releaseResources(void);
     void publishState(const char *state);
