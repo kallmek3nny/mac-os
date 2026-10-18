@@ -38,7 +38,12 @@ for forbidden in (
 ):
     assert forbidden not in body, f"forbidden runtime-state field surface: {forbidden}"
 
+assert "bool initialized = false;" in body
 assert "bool runtimeWriteAuthorized;" in body
+assert "NV_COPY_RUNTIME_ERR_UNINITIALIZED" in runtime
+assert "NV_COPY_RUNTIME_ERR_REINITIALIZATION" in runtime
+assert "if (runtime->initialized)" in runtime
+assert runtime.count("if (!runtime->initialized)") >= 5
 assert "NVCopyRuntimeU64 nextPublicationOrdinal;" in body
 assert "NVAmpereCopyPublicationEvidence evidence;" in body
 

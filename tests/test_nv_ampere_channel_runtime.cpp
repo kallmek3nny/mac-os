@@ -18,7 +18,8 @@ static void check(bool condition, const char *label)
 static bool sameRuntime(const NVAmpereChannelRuntime &a,
                         const NVAmpereChannelRuntime &b)
 {
-    return a.evidence.channelClassNum == b.evidence.channelClassNum &&
+    return a.initialized == b.initialized &&
+           a.evidence.channelClassNum == b.evidence.channelClassNum &&
            a.evidence.numGpFifoEntries == b.evidence.numGpFifoEntries &&
            a.evidence.gpGetMapped == b.evidence.gpGetMapped &&
            a.evidence.gpPutMapped == b.evidence.gpPutMapped &&
@@ -229,6 +230,51 @@ static void testSealedStateCannotMutate()
     check(sameRuntime(runtime, before), "re-seal refusal is atomic");
 }
 
+
+static void testInitIsOneShot()
+{
+    std::puts("8. uninitialized access and reinitialization are refused atomically");
+    NVAmpereChannelRuntime state = {};
+    const auto empty = state;
+    check(nvAmpereChannelRuntimeObserveAllocation(&state, NV_SUBMIT_C56F_CLASS_ID,
+              1024u, true, true, true) == NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED,
+          "cannot observe allocation before init");
+    check(nvAmpereChannelRuntimeObserveSubmissionEndpoint(&state, true, true) ==
+              NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED,
+          "cannot observe submission before init");
+    check(nvAmpereChannelRuntimeSeal(&state) == NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED,
+          "cannot seal before init");
+    check(!nvAmpereChannelRuntimeReady(state) && sameRuntime(state, empty),
+          "uninitialized state remains empty");
+
+    check(nvAmpereChannelRuntimeInit(&state) == NV_CHANNEL_RUNTIME_OK,
+          "initialization accepted once");
+    const auto initialized = state;
+    check(nvAmpereChannelRuntimeInit(&state) ==
+              NV_CHANNEL_RUNTIME_ERR_REINITIALIZATION &&
+              sameRuntime(state, initialized),
+          "second init refused without changing state");
+
+    check(nvAmpereChannelRuntimeObserveAllocation(&state, NV_SUBMIT_C56F_CLASS_ID,
+              1024u, true, true, true) == NV_CHANNEL_RUNTIME_OK,
+          "channel allocation observed");
+    const auto allocated = state;
+    check(nvAmpereChannelRuntimeInit(&state) ==
+              NV_CHANNEL_RUNTIME_ERR_REINITIALIZATION &&
+              sameRuntime(state, allocated),
+          "cannot reset channel allocation ownership");
+
+    check(nvAmpereChannelRuntimeObserveSubmissionEndpoint(&state, true, true) ==
+              NV_CHANNEL_RUNTIME_OK &&
+              nvAmpereChannelRuntimeSeal(&state) == NV_CHANNEL_RUNTIME_OK,
+          "channel sealed");
+    const auto sealed = state;
+    check(nvAmpereChannelRuntimeInit(&state) ==
+              NV_CHANNEL_RUNTIME_ERR_REINITIALIZATION &&
+              sameRuntime(state, sealed) && nvAmpereChannelRuntimeReady(state),
+          "cannot erase sealed ownership");
+}
+
 int main()
 {
     testInitHasNoAuthority();
@@ -238,6 +284,7 @@ int main()
     testSealAndEvidenceBoundary();
     testUnsealedExportIsAtomic();
     testSealedStateCannotMutate();
+    testInitIsOneShot();
 
     std::printf("%u checks, %u failures\n", gChecks, gFailures);
     return gFailures == 0u ? 0 : 1;

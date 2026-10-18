@@ -33,6 +33,7 @@ for forbidden in (
 ):
     assert forbidden not in body, f"forbidden channel-runtime field surface: {forbidden}"
 
+assert "bool initialized = false;" in body
 assert "NVAmpereChannelEvidence evidence;" in body
 assert "NVAmpereChannelReadiness readiness;" in body
 assert "bool allocationObserved;" in body
@@ -48,6 +49,10 @@ seal = text.index("nvAmpereChannelRuntimeSeal")
 copy = text.index("nvAmpereChannelRuntimeCopyEvidence")
 assert allocation < submission < seal < copy
 assert "nvAmpereEvaluateChannel(runtime->evidence, &readiness)" in text
+assert "NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED" in text
+assert "NV_CHANNEL_RUNTIME_ERR_REINITIALIZATION" in text
+assert "if (runtime->initialized)" in text
+assert text.count("if (!runtime->initialized)") >= 3
 assert "nvAmpereChannelRuntimeReady(runtime)" in text
 assert "NV_CHANNEL_RUNTIME_ERR_NOT_SEALED" in text
 
