@@ -39,6 +39,10 @@ for forbidden in (
     assert forbidden not in body, f"forbidden runtime-state field surface: {forbidden}"
 
 assert "bool initialized = false;" in body
+assert "bool providerOwnershipUncertain = false;" in body
+assert "NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN" in runtime
+assert "nvAmpereCopyRuntimeMarkOwnershipUncertain" in runtime
+assert runtime.count("if (runtime->providerOwnershipUncertain)") >= 6
 assert "bool runtimeWriteAuthorized;" in body
 assert "NV_COPY_RUNTIME_ERR_UNINITIALIZED" in runtime
 assert "NV_COPY_RUNTIME_ERR_REINITIALIZATION" in runtime
@@ -131,6 +135,10 @@ assert channel_ownership < active < pin < mark_pinned < super_stop < quarantine_
 assert "fChannelRuntime.allocationObserved" in provider[channel_ownership:active]
 assert "fChannelRuntime.submissionEndpointObserved" in provider[channel_ownership:active]
 assert "fChannelRuntime.sealed" in provider[channel_ownership:active]
+assert "nvAmpereChannelRuntimeMarkOwnershipUncertain(&fChannelRuntime)" in provider[active:pin]
+assert "nvAmpereCopyRuntimeMarkOwnershipUncertain(&fCopyPublicationRuntime)" in provider[active:pin]
+assert "NVPeerMapperChannelOwnershipUncertain" in provider
+assert "NVPeerMapperCopyPublicationOwnershipUncertain" in provider
 assert 'setProperty("NVPeerMapperCopyPublicationLifetimePinned",true)' in provider
 
 # Do not publish internal ordering witnesses, raw addresses, IOVAs, or tokens as

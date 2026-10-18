@@ -112,6 +112,8 @@ bool NVPeerMapperProbe::start(IOService *provider)
     // explicitly empty until a future observer can supply real allocation and
     // CE-bind facts. Do not manufacture readiness from mapper availability.
     setProperty("NVPeerMapperChannelRuntimeSealed",false);
+    setProperty("NVPeerMapperChannelOwnershipUncertain",false);
+    setProperty("NVPeerMapperCopyPublicationOwnershipUncertain",false);
     setProperty("NVPeerMapperChannelRuntimeWriteAuthorized",false);
     setProperty("NVPeerMapperChannelRuntimeState",
                 "awaiting-real-channel-observer");
@@ -137,6 +139,15 @@ void NVPeerMapperProbe::stop(IOService *provider)
         fChannelRuntime.submissionEndpointObserved ||
         fChannelRuntime.sealed;
     if (channelOwnershipObserved || fCopyPublicationRuntime.transactionActive) {
+        // Stop is not retirement. Revoke channel readiness and copy-publication
+        // progress before pinning the exact-device provider. No pointer, token,
+        // IOVA, or command stream is exposed through this read-only seam.
+        if (channelOwnershipObserved)
+            (void)nvAmpereChannelRuntimeMarkOwnershipUncertain(&fChannelRuntime);
+        (void)nvAmpereCopyRuntimeMarkOwnershipUncertain(&fCopyPublicationRuntime);
+        setProperty("NVPeerMapperChannelOwnershipUncertain",
+                    fChannelRuntime.ownershipUncertain);
+        setProperty("NVPeerMapperCopyPublicationOwnershipUncertain",true);
         if (!fCopyPublicationLifetimePinned) {
             retain();
             fCopyPublicationLifetimePinned=true;
@@ -147,7 +158,9 @@ void NVPeerMapperProbe::stop(IOService *provider)
                         ? "active-transaction-provider-retained"
                         : "channel-ownership-provider-retained");
         setProperty("NVPeerMapperChannelRuntimeState",
-                    "ownership-observed-provider-retained");
+                    channelOwnershipObserved
+                        ? "ownership-uncertain-provider-retained"
+                        : "no-channel-observed-provider-retained");
         setProperty("NVPeerMapperChannelRuntimeWriteAuthorized",false);
         setProperty("NVPeerMapperCopyPublicationRuntimeWriteAuthorized",false);
         NVMAPLOG("stop: GA107 channel/copy ownership remains live; retaining provider ownership");

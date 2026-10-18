@@ -36,6 +36,7 @@ static bool sameRuntime(const NVAmpereCopyPublicationRuntime &a,
     const auto &x = a.evidence;
     const auto &y = b.evidence;
     return a.initialized == b.initialized &&
+           a.providerOwnershipUncertain == b.providerOwnershipUncertain &&
            x.channel.channelClassNum == y.channel.channelClassNum &&
            x.channel.numGpFifoEntries == y.channel.numGpFifoEntries &&
            x.channel.gpGetMapped == y.channel.gpGetMapped &&
@@ -339,6 +340,79 @@ static void testInitIsOneShot()
           "post-anchor ownership cannot be reset");
 }
 
+
+static void testProviderUncertaintyBlocksPublication()
+{
+    std::puts("9. provider loss permanently quarantines publication");
+    NVAmpereCopyPublicationRuntime runtime = {};
+    const auto empty = runtime;
+    check(nvAmpereCopyRuntimeMarkOwnershipUncertain(&runtime) ==
+              NV_COPY_RUNTIME_ERR_UNINITIALIZED &&
+              sameRuntime(runtime, empty), "uninitialized loss refuses");
+    check(nvAmpereCopyRuntimeInit(&runtime) == NV_COPY_RUNTIME_OK,
+          "runtime initialized");
+    check(nvAmpereCopyRuntimeSetPeerMapping(&runtime, true) ==
+              NV_COPY_RUNTIME_OK, "mapper available");
+    check(nvAmpereCopyRuntimeMarkOwnershipUncertain(&runtime) ==
+              NV_COPY_RUNTIME_OK, "provider uncertain before transaction");
+    const auto lost = runtime;
+    check(nvAmpereCopyRuntimeBegin(&runtime, readyChannelRuntime(),
+              100ull, 101ull, 8ull) ==
+              NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN,
+          "sealed channel cannot revive stopped provider");
+    check(nvAmpereCopyRuntimeSetPeerMapping(&runtime, true) ==
+              NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN,
+          "mapper cannot be rebound after stop");
+    check(nvAmpereCopyRuntimeInit(&runtime) ==
+              NV_COPY_RUNTIME_ERR_REINITIALIZATION,
+          "no reinit to erase quarantine");
+    check(nvAmpereCopyRuntimeMarkOwnershipUncertain(&runtime) ==
+              NV_COPY_RUNTIME_OK && sameRuntime(runtime, lost),
+          "quarantine absorbing and idempotent");
+
+    runtime = begunRuntime();
+    check(nvAmpereCopyRuntimeAdvance(&runtime,
+              NV_COPY_RUNTIME_EVENT_COPY_PUSH_PREPARED) == NV_COPY_RUNTIME_OK,
+          "first event accepted");
+    const auto active = runtime;
+    check(nvAmpereCopyRuntimeMarkOwnershipUncertain(&runtime) ==
+              NV_COPY_RUNTIME_OK, "active publication quarantined");
+    check(runtime.transactionActive && runtime.providerOwnershipUncertain &&
+              runtime.evidence.copyPushPrepared ==
+                  active.evidence.copyPushPrepared,
+          "active history stays pinned");
+    const auto quarantined = runtime;
+    check(nvAmpereCopyRuntimeExpectedEvent(runtime) == 0u,
+          "uncertain provider has no legal next event");
+    check(nvAmpereCopyRuntimeAdvance(&runtime,
+              NV_COPY_RUNTIME_EVENT_COPY_RING_STORED) ==
+              NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN,
+          "cannot advance lost publication");
+    NVAmpereCopyPublicationBridge bridge = {};
+    check(nvAmpereCopyRuntimeMintAnchor(&runtime, kEpoch, kToken, &bridge) ==
+              NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN,
+          "no new anchor after loss");
+    check(nvAmpereCopyRuntimeBeginCompletionObservation(&runtime) ==
+              NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN,
+          "cannot begin completion after loss");
+    check(sameRuntime(runtime, quarantined),
+          "refusals leave historical events untouched");
+
+    runtime = begunRuntime();
+    check(advanceAll(&runtime), "normal publication sequence accepted");
+    check(nvAmpereCopyRuntimeMintAnchor(&runtime, kEpoch, kToken, &bridge) ==
+              NV_COPY_RUNTIME_OK, "anchor minted");
+    check(nvAmpereCopyRuntimeMarkOwnershipUncertain(&runtime) ==
+              NV_COPY_RUNTIME_OK, "anchored provider loss");
+    const auto anchoredLost = runtime;
+    check(nvAmpereCopyRuntimeBeginCompletionObservation(&runtime) ==
+              NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN,
+          "pre-existing anchor cannot prove completion");
+    check(sameRuntime(runtime, anchoredLost) && runtime.anchorMinted &&
+              !runtime.completionObservationStarted,
+          "anchored resources remain quarantined");
+}
+
 int main()
 {
     testInitAndOwnershipGate();
@@ -349,6 +423,7 @@ int main()
     testOrdinalOverflowRefusesAtomically();
     testPeerMappingCannotDisappearMidTransaction();
     testInitIsOneShot();
+    testProviderUncertaintyBlocksPublication();
 
     std::printf("%u checks, %u failures\n", gChecks, gFailures);
     return gFailures == 0u ? 0 : 1;
