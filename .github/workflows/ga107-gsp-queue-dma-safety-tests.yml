@@ -46,6 +46,10 @@ jobs:
           ]
           subprocess.run(compile_cmd, check=True, timeout=120)
           subprocess.run(["./test_nv_gsp_queue_dma"], check=True, timeout=30)
+          compile_cmd[7] = "tests/test_nv_gsp_queue_memory.cpp"
+          compile_cmd[9] = "test_nv_gsp_queue_memory"
+          subprocess.run(compile_cmd, check=True, timeout=120)
+          subprocess.run(["./test_nv_gsp_queue_memory"], check=True, timeout=30)
           subprocess.run(
               ["python3", "tests/test_nv_gsp_queue_backing_evidence_shape.py"],
               check=True, timeout=20)
