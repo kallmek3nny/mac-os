@@ -75,6 +75,8 @@ static inline NVGspDmaU32 nvGspFlattenQueueDmaSegments(
     if (!layout) return NV_GSP_QUEUE_DMA_NULL_LAYOUT;
     if (!segments) return NV_GSP_QUEUE_DMA_NULL_SEGMENTS;
     if (!outPageAddress || !outPlan) return NV_GSP_QUEUE_DMA_NULL_OUTPUT;
+    if (!nvGspQueueMemoryLayoutValid(layout))
+        return NV_GSP_QUEUE_DMA_SHORT_TRANSFER;
     if (!segmentCount || segmentCount > layout->pageTableEntryCount)
         return NV_GSP_QUEUE_DMA_BAD_SEGMENT_COUNT;
     if (outPageCapacity < layout->pageTableEntryCount)

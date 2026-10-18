@@ -92,6 +92,47 @@ static inline NVGspMemU32 nvGspValidateQueuePageAddresses(
     return NV_GSP_QUEUE_MEMORY_OK;
 }
 
+// Independently validate the entire shared queue geometry before dereferencing
+// an untrusted page list or writing a page table. In particular, the page
+// table must have enough space for every 64-bit IOVA: a valid-looking count
+// alone is not sufficient to bound the caller's destination buffer.
+static inline bool nvGspQueueMemoryLayoutValid(const NVGspQueuePlan *layout)
+{
+    if (!layout || !layout->pageTableEntryCount || !layout->sharedBytes ||
+        layout->pageTableBytes < NV_GSP_QUEUE_PAGE_BYTES ||
+        (layout->pageTableBytes & (NV_GSP_QUEUE_PAGE_BYTES - 1u)) != 0u ||
+        (layout->sharedBytes & (NV_GSP_QUEUE_PAGE_BYTES - 1u)) != 0u ||
+        (layout->commandQueueBytes & (NV_GSP_QUEUE_PAGE_BYTES - 1u)) != 0u ||
+        (layout->statusQueueBytes & (NV_GSP_QUEUE_PAGE_BYTES - 1u)) != 0u ||
+        !layout->commandQueueBytes || !layout->statusQueueBytes ||
+        layout->pageTableEntryCount >
+            layout->pageTableBytes / NV_GSP_QUEUE_PTE_BYTES)
+        return false;
+
+    const NVGspMemU64 commandEnd =
+        (NVGspMemU64)layout->commandQueueOffset +
+        (NVGspMemU64)layout->commandQueueBytes;
+    const NVGspMemU64 statusEnd =
+        (NVGspMemU64)layout->statusQueueOffset +
+        (NVGspMemU64)layout->statusQueueBytes;
+    const NVGspMemU64 queuePages =
+        ((NVGspMemU64)layout->commandQueueBytes +
+         (NVGspMemU64)layout->statusQueueBytes) >>
+        NV_GSP_QUEUE_PAGE_SHIFT;
+    const NVGspMemU64 tablePages =
+        (NVGspMemU64)layout->pageTableBytes >> NV_GSP_QUEUE_PAGE_SHIFT;
+
+    return layout->commandQueueOffset == layout->pageTableBytes &&
+           (NVGspMemU64)layout->statusQueueOffset == commandEnd &&
+           (NVGspMemU64)layout->sharedBytes == statusEnd &&
+           layout->queuePageCount == queuePages &&
+           (NVGspMemU64)layout->pageTableEntryCount ==
+               queuePages + tablePages &&
+           (NVGspMemU64)layout->pageTableEntryCount ==
+               ((NVGspMemU64)layout->sharedBytes >>
+                NV_GSP_QUEUE_PAGE_SHIFT);
+}
+
 // NVIDIA GspMsgQueuesInit() stores the AT_GPU address of EVERY shared 4 KiB
 // page into the first page(s) of the same allocation. That count includes the
 // pages occupied by the address table itself. sharedMemPhysAddr then points at
@@ -110,13 +151,7 @@ static inline NVGspMemU32 nvGspBuildQueueMemoryPlan(
     if (!gpuVisiblePageAddress) return NV_GSP_QUEUE_MEMORY_NULL_PAGES;
     if (!out) return NV_GSP_QUEUE_MEMORY_NULL_OUTPUT;
 
-    if (!layout->pageTableEntryCount ||
-        layout->pageTableBytes < NV_GSP_QUEUE_PAGE_BYTES ||
-        (layout->pageTableBytes & (NV_GSP_QUEUE_PAGE_BYTES - 1u)) != 0u ||
-        (layout->sharedBytes & (NV_GSP_QUEUE_PAGE_BYTES - 1u)) != 0u ||
-        layout->commandQueueOffset != layout->pageTableBytes ||
-        layout->statusQueueOffset != layout->commandQueueOffset + layout->commandQueueBytes ||
-        layout->statusQueueOffset + layout->statusQueueBytes != layout->sharedBytes)
+    if (!nvGspQueueMemoryLayoutValid(layout))
         return NV_GSP_QUEUE_MEMORY_BAD_LAYOUT;
 
     const NVGspMemU32 sharedPages = layout->sharedBytes >> NV_GSP_QUEUE_PAGE_SHIFT;
@@ -177,6 +212,8 @@ static inline NVGspMemU32 nvGspWriteQueuePageTable(
     if (!layout) return NV_GSP_QUEUE_MEMORY_NULL_PLAN;
     if (!gpuVisiblePageAddress) return NV_GSP_QUEUE_MEMORY_NULL_PAGES;
     if (!outEntries) return NV_GSP_QUEUE_MEMORY_NULL_OUTPUT;
+    if (!nvGspQueueMemoryLayoutValid(layout))
+        return NV_GSP_QUEUE_MEMORY_BAD_LAYOUT;
     if (pageAddressCount != layout->pageTableEntryCount ||
         outEntryCapacity < layout->pageTableEntryCount)
         return NV_GSP_QUEUE_MEMORY_BAD_PAGE_COUNT;

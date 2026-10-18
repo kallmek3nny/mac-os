@@ -161,7 +161,16 @@ static void testRefusalsAreAtomic(void) {
     checkU32("misaligned length",nvGspFlattenQueueDmaSegments(&layout,&badLen,1u,pages,129u,&p),NV_GSP_QUEUE_DMA_BAD_SEGMENT);
     check("bad length pages atomic",std::memcmp(pages,beforePages,sizeof(pages))==0);
 
+    NVGspQueuePlan invalidLayout=layout;
+    invalidLayout.pageTableBytes=0u;
     NVGspQueueDmaSegment good={0x100000000ull,0x81000ull};
+    checkU32("invalid table geometry refused before DMA flattening",
+        nvGspFlattenQueueDmaSegments(&invalidLayout,&good,1u,pages,129u,&p),
+        NV_GSP_QUEUE_DMA_SHORT_TRANSFER);
+    check("invalid geometry leaves pages atomic",
+          std::memcmp(pages,beforePages,sizeof(pages))==0);
+    check("invalid geometry leaves DMA plan atomic",
+          std::memcmp(&p,&beforePlan,sizeof(p))==0);
     checkU32("short output",nvGspFlattenQueueDmaSegments(&layout,&good,1u,pages,128u,&p),NV_GSP_QUEUE_DMA_OUTPUT_SHORT);
     check("short output atomic",std::memcmp(pages,beforePages,sizeof(pages))==0);
     checkU32("zero segments",nvGspFlattenQueueDmaSegments(&layout,&good,0u,pages,129u,&p),NV_GSP_QUEUE_DMA_BAD_SEGMENT_COUNT);
