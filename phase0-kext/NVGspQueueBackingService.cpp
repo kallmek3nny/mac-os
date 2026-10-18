@@ -309,5 +309,6 @@ bool NVGspQueueBackingService::start(IOService *provider)
 void NVGspQueueBackingService::stop(IOService *provider)
 {
     releaseResources();
+    publishState("stopped-backing-released");
     super::stop(provider);
 }
