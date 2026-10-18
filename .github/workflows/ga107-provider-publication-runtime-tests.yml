@@ -5,6 +5,7 @@ on:
     branches:
       - agent/ga107-provider-publication-state
       - agent/ga107-provider-channel-runtime
+      - agent/ga107-runtime-reinitialization-safety
     paths:
       - 'phase0-kext/NVAmpereChannelRuntime.hpp'
       - 'phase0-kext/NVAmpereCopyPublicationRuntime.hpp'

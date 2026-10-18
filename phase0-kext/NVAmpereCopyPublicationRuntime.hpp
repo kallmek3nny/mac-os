@@ -27,7 +27,9 @@ using NVCopyRuntimeU64 = unsigned long long;
 #define NV_COPY_RUNTIME_ERR_BRIDGE                7u
 #define NV_COPY_RUNTIME_ERR_NOT_ANCHORED          8u
 #define NV_COPY_RUNTIME_ERR_COMPLETION_STARTED    9u
-#define NV_COPY_RUNTIME_VERDICT_LIMIT             10u
+#define NV_COPY_RUNTIME_ERR_UNINITIALIZED         10u
+#define NV_COPY_RUNTIME_ERR_REINITIALIZATION      11u
+#define NV_COPY_RUNTIME_VERDICT_LIMIT             12u
 
 #define NV_COPY_RUNTIME_EVENT_COPY_PUSH_PREPARED       1u
 #define NV_COPY_RUNTIME_EVENT_COPY_RING_STORED         2u
@@ -40,6 +42,8 @@ using NVCopyRuntimeU64 = unsigned long long;
 #define NV_COPY_RUNTIME_EVENT_LIMIT                    9u
 
 struct NVAmpereCopyPublicationRuntime {
+    // Once initialized, ownership cannot be discarded by reinitializing.
+    bool initialized = false;
     NVAmpereCopyPublicationEvidence evidence;
     NVCopyRuntimeU64 nextPublicationOrdinal;
     bool peerMappingValidated;
@@ -67,6 +71,8 @@ static inline const char *nvAmpereCopyRuntimeVerdictName(NVCopyRuntimeU32 verdic
     case NV_COPY_RUNTIME_ERR_BRIDGE:             return "bridge";
     case NV_COPY_RUNTIME_ERR_NOT_ANCHORED:       return "not-anchored";
     case NV_COPY_RUNTIME_ERR_COMPLETION_STARTED: return "completion-started";
+    case NV_COPY_RUNTIME_ERR_UNINITIALIZED:       return "uninitialized";
+    case NV_COPY_RUNTIME_ERR_REINITIALIZATION:    return "reinitialization";
     default:                                     return "unknown";
     }
 }
@@ -76,8 +82,11 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeInit(
 {
     if (!runtime)
         return NV_COPY_RUNTIME_ERR_NULL;
+    if (runtime->initialized)
+        return NV_COPY_RUNTIME_ERR_REINITIALIZATION;
 
     NVAmpereCopyPublicationRuntime staged = {};
+    staged.initialized = true;
     staged.nextPublicationOrdinal = 1ull;
     staged.runtimeWriteAuthorized = false;
     *runtime = staged;
@@ -94,6 +103,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeSetPeerMapping(
 {
     if (!runtime)
         return NV_COPY_RUNTIME_ERR_NULL;
+    if (!runtime->initialized)
+        return NV_COPY_RUNTIME_ERR_UNINITIALIZED;
     if (runtime->transactionActive &&
         validated != runtime->peerMappingValidated)
         return NV_COPY_RUNTIME_ERR_ACTIVE;
@@ -122,6 +133,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeBegin(
 {
     if (!runtime)
         return NV_COPY_RUNTIME_ERR_NULL;
+    if (!runtime->initialized)
+        return NV_COPY_RUNTIME_ERR_UNINITIALIZED;
     if (runtime->transactionActive)
         return NV_COPY_RUNTIME_ERR_ACTIVE;
     if (!runtime->peerMappingValidated)
@@ -158,6 +171,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeBegin(
 static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeExpectedEvent(
     const NVAmpereCopyPublicationRuntime &runtime)
 {
+    if (!runtime.initialized)
+        return 0u;
     const NVAmpereCopyPublicationEvidence &e = runtime.evidence;
     if (!e.copyPushPrepared)
         return NV_COPY_RUNTIME_EVENT_COPY_PUSH_PREPARED;
@@ -187,6 +202,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeAdvance(
 {
     if (!runtime)
         return NV_COPY_RUNTIME_ERR_NULL;
+    if (!runtime->initialized)
+        return NV_COPY_RUNTIME_ERR_UNINITIALIZED;
     if (!runtime->transactionActive || runtime->anchorMinted ||
         runtime->completionObservationStarted)
         return NV_COPY_RUNTIME_ERR_SEQUENCE;
@@ -249,6 +266,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeMintAnchor(
 {
     if (!runtime || !out)
         return NV_COPY_RUNTIME_ERR_NULL;
+    if (!runtime->initialized)
+        return NV_COPY_RUNTIME_ERR_UNINITIALIZED;
     if (!runtime->transactionActive || runtime->anchorMinted)
         return NV_COPY_RUNTIME_ERR_SEQUENCE;
     if (runtime->completionObservationStarted)
@@ -278,6 +297,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeBeginCompletionObservation(
 {
     if (!runtime)
         return NV_COPY_RUNTIME_ERR_NULL;
+    if (!runtime->initialized)
+        return NV_COPY_RUNTIME_ERR_UNINITIALIZED;
     if (!runtime->transactionActive || !runtime->anchorMinted)
         return NV_COPY_RUNTIME_ERR_NOT_ANCHORED;
     if (runtime->completionObservationStarted)

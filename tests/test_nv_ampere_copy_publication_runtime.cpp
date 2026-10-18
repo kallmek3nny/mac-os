@@ -35,7 +35,8 @@ static bool sameRuntime(const NVAmpereCopyPublicationRuntime &a,
 {
     const auto &x = a.evidence;
     const auto &y = b.evidence;
-    return x.channel.channelClassNum == y.channel.channelClassNum &&
+    return a.initialized == b.initialized &&
+           x.channel.channelClassNum == y.channel.channelClassNum &&
            x.channel.numGpFifoEntries == y.channel.numGpFifoEntries &&
            x.channel.gpGetMapped == y.channel.gpGetMapped &&
            x.channel.gpPutMapped == y.channel.gpPutMapped &&
@@ -274,6 +275,70 @@ static void testPeerMappingCannotDisappearMidTransaction()
     check(sameRuntime(runtime, before), "mapping-loss refusal is atomic");
 }
 
+
+static void testInitIsOneShot()
+{
+    std::puts("8. uninitialized publication and lifetime reset are refused");
+    NVAmpereCopyPublicationRuntime state = {};
+    const auto empty = state;
+    check(nvAmpereCopyRuntimeSetPeerMapping(&state, true) ==
+              NV_COPY_RUNTIME_ERR_UNINITIALIZED,
+          "no mapping proof before init");
+    check(nvAmpereCopyRuntimeBegin(&state, readyChannelRuntime(), 100ull, 101ull,
+              8ull) == NV_COPY_RUNTIME_ERR_UNINITIALIZED,
+          "no transaction before init");
+    check(nvAmpereCopyRuntimeAdvance(
+              &state, NV_COPY_RUNTIME_EVENT_COPY_PUSH_PREPARED) ==
+              NV_COPY_RUNTIME_ERR_UNINITIALIZED,
+          "no milestones before init");
+    check(nvAmpereCopyRuntimeExpectedEvent(state) == 0u &&
+              sameRuntime(state, empty),
+          "uninitialized state has no event and remains unchanged");
+    NVAmpereCopyPublicationBridge bridge = {};
+    check(nvAmpereCopyRuntimeMintAnchor(&state, kEpoch, kToken, &bridge) ==
+              NV_COPY_RUNTIME_ERR_UNINITIALIZED,
+          "no anchor before init");
+    check(nvAmpereCopyRuntimeBeginCompletionObservation(&state) ==
+              NV_COPY_RUNTIME_ERR_UNINITIALIZED,
+          "no completion before init");
+
+    check(nvAmpereCopyRuntimeInit(&state) == NV_COPY_RUNTIME_OK,
+          "initialize once");
+    const auto initialized = state;
+    check(nvAmpereCopyRuntimeInit(&state) ==
+              NV_COPY_RUNTIME_ERR_REINITIALIZATION &&
+              sameRuntime(state, initialized),
+          "reinit refused before mapping");
+    check(nvAmpereCopyRuntimeSetPeerMapping(&state, true) == NV_COPY_RUNTIME_OK,
+          "mapping accepted");
+    const auto mapped = state;
+    check(nvAmpereCopyRuntimeInit(&state) ==
+              NV_COPY_RUNTIME_ERR_REINITIALIZATION &&
+              sameRuntime(state, mapped),
+          "mapping ownership cannot be erased");
+
+    check(nvAmpereCopyRuntimeBegin(&state, readyChannelRuntime(), 100ull,
+              101ull, 8ull) == NV_COPY_RUNTIME_OK,
+          "transaction begins");
+    const auto active = state;
+    check(nvAmpereCopyRuntimeInit(&state) ==
+              NV_COPY_RUNTIME_ERR_REINITIALIZATION &&
+              sameRuntime(state, active),
+          "active transaction cannot be reset");
+    check(advanceAll(&state), "publication milestones accepted");
+    check(nvAmpereCopyRuntimeMintAnchor(
+              &state, kEpoch, kToken, &bridge) == NV_COPY_RUNTIME_OK,
+          "anchor minted");
+    check(nvAmpereCopyRuntimeBeginCompletionObservation(&state) ==
+              NV_COPY_RUNTIME_OK,
+          "completion observation started");
+    const auto observing = state;
+    check(nvAmpereCopyRuntimeInit(&state) ==
+              NV_COPY_RUNTIME_ERR_REINITIALIZATION &&
+              sameRuntime(state, observing),
+          "post-anchor ownership cannot be reset");
+}
+
 int main()
 {
     testInitAndOwnershipGate();
@@ -283,6 +348,7 @@ int main()
     testInvalidTrackingTargetRefusesAtomically();
     testOrdinalOverflowRefusesAtomically();
     testPeerMappingCannotDisappearMidTransaction();
+    testInitIsOneShot();
 
     std::printf("%u checks, %u failures\n", gChecks, gFailures);
     return gFailures == 0u ? 0 : 1;

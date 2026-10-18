@@ -20,9 +20,13 @@ using NVChannelRuntimeU32 = unsigned int;
 #define NV_CHANNEL_RUNTIME_ERR_SUBMISSION        4u
 #define NV_CHANNEL_RUNTIME_ERR_READINESS         5u
 #define NV_CHANNEL_RUNTIME_ERR_NOT_SEALED        6u
-#define NV_CHANNEL_RUNTIME_VERDICT_LIMIT         7u
+#define NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED     7u
+#define NV_CHANNEL_RUNTIME_ERR_REINITIALIZATION   8u
+#define NV_CHANNEL_RUNTIME_VERDICT_LIMIT         9u
 
 struct NVAmpereChannelRuntime {
+    // Default construction is safe for kernel-owned IOService members.
+    bool initialized = false;
     NVAmpereChannelEvidence evidence;
     NVAmpereChannelReadiness readiness;
     bool allocationObserved;
@@ -47,6 +51,8 @@ static inline const char *nvAmpereChannelRuntimeVerdictName(
     case NV_CHANNEL_RUNTIME_ERR_SUBMISSION: return "submission";
     case NV_CHANNEL_RUNTIME_ERR_READINESS:  return "readiness";
     case NV_CHANNEL_RUNTIME_ERR_NOT_SEALED: return "not-sealed";
+    case NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED: return "uninitialized";
+    case NV_CHANNEL_RUNTIME_ERR_REINITIALIZATION: return "reinitialization";
     default:                                return "unknown";
     }
 }
@@ -56,8 +62,11 @@ static inline NVChannelRuntimeU32 nvAmpereChannelRuntimeInit(
 {
     if (!runtime)
         return NV_CHANNEL_RUNTIME_ERR_NULL;
+    if (runtime->initialized)
+        return NV_CHANNEL_RUNTIME_ERR_REINITIALIZATION;
 
     NVAmpereChannelRuntime staged = {};
+    staged.initialized = true;
     staged.runtimeWriteAuthorized = false;
     *runtime = staged;
     return NV_CHANNEL_RUNTIME_OK;
@@ -76,6 +85,8 @@ static inline NVChannelRuntimeU32 nvAmpereChannelRuntimeObserveAllocation(
 {
     if (!runtime)
         return NV_CHANNEL_RUNTIME_ERR_NULL;
+    if (!runtime->initialized)
+        return NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED;
     if (runtime->allocationObserved || runtime->sealed)
         return NV_CHANNEL_RUNTIME_ERR_STATE;
     if (channelClassNum != NV_SUBMIT_C56F_CLASS_ID ||
@@ -106,6 +117,8 @@ nvAmpereChannelRuntimeObserveSubmissionEndpoint(
 {
     if (!runtime)
         return NV_CHANNEL_RUNTIME_ERR_NULL;
+    if (!runtime->initialized)
+        return NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED;
     if (!runtime->allocationObserved || runtime->submissionEndpointObserved ||
         runtime->sealed)
         return NV_CHANNEL_RUNTIME_ERR_STATE;
@@ -129,6 +142,8 @@ static inline NVChannelRuntimeU32 nvAmpereChannelRuntimeSeal(
 {
     if (!runtime)
         return NV_CHANNEL_RUNTIME_ERR_NULL;
+    if (!runtime->initialized)
+        return NV_CHANNEL_RUNTIME_ERR_UNINITIALIZED;
     if (runtime->sealed)
         return NV_CHANNEL_RUNTIME_ERR_STATE;
     if (!runtime->allocationObserved || !runtime->submissionEndpointObserved)
@@ -152,7 +167,7 @@ static inline NVChannelRuntimeU32 nvAmpereChannelRuntimeSeal(
 static inline bool nvAmpereChannelRuntimeReady(
     const NVAmpereChannelRuntime &runtime)
 {
-    return runtime.sealed && runtime.allocationObserved &&
+    return runtime.initialized && runtime.sealed && runtime.allocationObserved &&
            runtime.submissionEndpointObserved &&
            runtime.readiness.allocationReady &&
            runtime.readiness.ceBoundReady && runtime.readiness.submitReady &&
