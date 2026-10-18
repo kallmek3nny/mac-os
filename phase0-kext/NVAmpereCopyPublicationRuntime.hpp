@@ -29,7 +29,8 @@ using NVCopyRuntimeU64 = unsigned long long;
 #define NV_COPY_RUNTIME_ERR_COMPLETION_STARTED    9u
 #define NV_COPY_RUNTIME_ERR_UNINITIALIZED         10u
 #define NV_COPY_RUNTIME_ERR_REINITIALIZATION      11u
-#define NV_COPY_RUNTIME_VERDICT_LIMIT             12u
+#define NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN   12u
+#define NV_COPY_RUNTIME_VERDICT_LIMIT             13u
 
 #define NV_COPY_RUNTIME_EVENT_COPY_PUSH_PREPARED       1u
 #define NV_COPY_RUNTIME_EVENT_COPY_RING_STORED         2u
@@ -44,6 +45,8 @@ using NVCopyRuntimeU64 = unsigned long long;
 struct NVAmpereCopyPublicationRuntime {
     // Once initialized, ownership cannot be discarded by reinitializing.
     bool initialized = false;
+    // Absorbing stop/loss quarantine; keep publication facts and ordinals.
+    bool providerOwnershipUncertain = false;
     NVAmpereCopyPublicationEvidence evidence;
     NVCopyRuntimeU64 nextPublicationOrdinal;
     bool peerMappingValidated;
@@ -73,6 +76,7 @@ static inline const char *nvAmpereCopyRuntimeVerdictName(NVCopyRuntimeU32 verdic
     case NV_COPY_RUNTIME_ERR_COMPLETION_STARTED: return "completion-started";
     case NV_COPY_RUNTIME_ERR_UNINITIALIZED:       return "uninitialized";
     case NV_COPY_RUNTIME_ERR_REINITIALIZATION:    return "reinitialization";
+    case NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN: return "ownership-uncertain";
     default:                                     return "unknown";
     }
 }
@@ -105,6 +109,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeSetPeerMapping(
         return NV_COPY_RUNTIME_ERR_NULL;
     if (!runtime->initialized)
         return NV_COPY_RUNTIME_ERR_UNINITIALIZED;
+    if (runtime->providerOwnershipUncertain)
+        return NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN;
     if (runtime->transactionActive &&
         validated != runtime->peerMappingValidated)
         return NV_COPY_RUNTIME_ERR_ACTIVE;
@@ -135,6 +141,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeBegin(
         return NV_COPY_RUNTIME_ERR_NULL;
     if (!runtime->initialized)
         return NV_COPY_RUNTIME_ERR_UNINITIALIZED;
+    if (runtime->providerOwnershipUncertain)
+        return NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN;
     if (runtime->transactionActive)
         return NV_COPY_RUNTIME_ERR_ACTIVE;
     if (!runtime->peerMappingValidated)
@@ -168,10 +176,30 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeBegin(
     return NV_COPY_RUNTIME_OK;
 }
 
+// Loss of the exact-device provider is not retirement evidence. This
+// absorbing quarantine keeps all historical publication and completion state,
+// but refuses every later milestone, anchor, or completion transition.
+static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeMarkOwnershipUncertain(
+    NVAmpereCopyPublicationRuntime *runtime)
+{
+    if (!runtime)
+        return NV_COPY_RUNTIME_ERR_NULL;
+    if (!runtime->initialized)
+        return NV_COPY_RUNTIME_ERR_UNINITIALIZED;
+    if (runtime->providerOwnershipUncertain)
+        return NV_COPY_RUNTIME_OK;
+
+    NVAmpereCopyPublicationRuntime staged = *runtime;
+    staged.providerOwnershipUncertain = true;
+    staged.runtimeWriteAuthorized = false;
+    *runtime = staged;
+    return NV_COPY_RUNTIME_OK;
+}
+
 static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeExpectedEvent(
     const NVAmpereCopyPublicationRuntime &runtime)
 {
-    if (!runtime.initialized)
+    if (!runtime.initialized || runtime.providerOwnershipUncertain)
         return 0u;
     const NVAmpereCopyPublicationEvidence &e = runtime.evidence;
     if (!e.copyPushPrepared)
@@ -204,6 +232,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeAdvance(
         return NV_COPY_RUNTIME_ERR_NULL;
     if (!runtime->initialized)
         return NV_COPY_RUNTIME_ERR_UNINITIALIZED;
+    if (runtime->providerOwnershipUncertain)
+        return NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN;
     if (!runtime->transactionActive || runtime->anchorMinted ||
         runtime->completionObservationStarted)
         return NV_COPY_RUNTIME_ERR_SEQUENCE;
@@ -268,6 +298,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeMintAnchor(
         return NV_COPY_RUNTIME_ERR_NULL;
     if (!runtime->initialized)
         return NV_COPY_RUNTIME_ERR_UNINITIALIZED;
+    if (runtime->providerOwnershipUncertain)
+        return NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN;
     if (!runtime->transactionActive || runtime->anchorMinted)
         return NV_COPY_RUNTIME_ERR_SEQUENCE;
     if (runtime->completionObservationStarted)
@@ -299,6 +331,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeBeginCompletionObservation(
         return NV_COPY_RUNTIME_ERR_NULL;
     if (!runtime->initialized)
         return NV_COPY_RUNTIME_ERR_UNINITIALIZED;
+    if (runtime->providerOwnershipUncertain)
+        return NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN;
     if (!runtime->transactionActive || !runtime->anchorMinted)
         return NV_COPY_RUNTIME_ERR_NOT_ANCHORED;
     if (runtime->completionObservationStarted)
