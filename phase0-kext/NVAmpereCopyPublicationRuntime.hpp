@@ -30,7 +30,8 @@ using NVCopyRuntimeU64 = unsigned long long;
 #define NV_COPY_RUNTIME_ERR_UNINITIALIZED         10u
 #define NV_COPY_RUNTIME_ERR_REINITIALIZATION      11u
 #define NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN   12u
-#define NV_COPY_RUNTIME_VERDICT_LIMIT             13u
+#define NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE   13u
+#define NV_COPY_RUNTIME_VERDICT_LIMIT             14u
 
 #define NV_COPY_RUNTIME_EVENT_COPY_PUSH_PREPARED       1u
 #define NV_COPY_RUNTIME_EVENT_COPY_RING_STORED         2u
@@ -49,6 +50,8 @@ struct NVAmpereCopyPublicationRuntime {
     bool providerOwnershipUncertain = false;
     NVAmpereCopyPublicationEvidence evidence;
     NVCopyRuntimeU64 nextPublicationOrdinal;
+    // Count of accepted milestones; monotonic within the single transaction.
+    NVCopyRuntimeU32 acceptedEventCount;
     bool peerMappingValidated;
     bool transactionActive;
     bool anchorMinted;
@@ -77,6 +80,7 @@ static inline const char *nvAmpereCopyRuntimeVerdictName(NVCopyRuntimeU32 verdic
     case NV_COPY_RUNTIME_ERR_UNINITIALIZED:       return "uninitialized";
     case NV_COPY_RUNTIME_ERR_REINITIALIZATION:    return "reinitialization";
     case NV_COPY_RUNTIME_ERR_OWNERSHIP_UNCERTAIN: return "ownership-uncertain";
+    case NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE:  return "inconsistent-state";
     default:                                     return "unknown";
     }
 }
@@ -114,6 +118,10 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeSetPeerMapping(
     if (runtime->transactionActive &&
         validated != runtime->peerMappingValidated)
         return NV_COPY_RUNTIME_ERR_ACTIVE;
+    if (runtime->transactionActive &&
+        (!runtime->peerMappingValidated ||
+         runtime->evidence.peerMappingValidated != runtime->peerMappingValidated))
+        return NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE;
 
     NVAmpereCopyPublicationRuntime staged = *runtime;
     staged.peerMappingValidated = validated;
@@ -163,6 +171,7 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeBegin(
 
     NVAmpereCopyPublicationRuntime staged = *runtime;
     staged.evidence = {};
+    staged.acceptedEventCount = 0u;
     staged.evidence.channel = channel;
     staged.evidence.peerMappingValidated = true;
     staged.evidence.completedBeforeSubmission = completedBeforeSubmission;
@@ -196,10 +205,56 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeMarkOwnershipUncertain(
     return NV_COPY_RUNTIME_OK;
 }
 
+// The externally inspectable evidence must always agree with the private
+// progression counter. This detects accidental snapshot drift before any new
+// publication witness or completion transition. It is NOT a substitute for
+// true provider-owned milestone observations: no writes are authorized here.
+static inline bool nvAmpereCopyRuntimeEvidenceConsistent(
+    const NVAmpereCopyPublicationRuntime &runtime)
+{
+    if (!runtime.initialized || !runtime.transactionActive ||
+        runtime.providerOwnershipUncertain || runtime.runtimeWriteAuthorized ||
+        !runtime.peerMappingValidated || !runtime.evidence.peerMappingValidated ||
+        runtime.acceptedEventCount > 8u)
+        return false;
+
+    const NVCopyRuntimeU32 stage = runtime.acceptedEventCount;
+    const NVAmpereCopyPublicationEvidence &e = runtime.evidence;
+    if (e.copyPushPrepared != (stage >= 1u) ||
+        e.copyRingEntryStored != (stage >= 2u) ||
+        e.copyGpPutPublished != (stage >= 3u) ||
+        e.copySubmissionKicked != (stage >= 4u) ||
+        e.trackingFencePushPrepared != (stage >= 5u) ||
+        e.trackingFenceRingEntryStored != (stage >= 6u) ||
+        e.trackingFenceGpPutPublished != (stage >= 7u) ||
+        e.trackingFenceSubmissionKicked != (stage >= 8u))
+        return false;
+
+    // The runtime permits one transaction and never resets/reuses its ring.
+    // Its only accepted kick witnesses are therefore ordinals one and two.
+    if (e.copyPublicationOrdinal != (stage >= 4u ? 1ull : 0ull) ||
+        e.trackingFencePublicationOrdinal != (stage >= 8u ? 2ull : 0ull))
+        return false;
+    if (stage >= 4u &&
+        runtime.nextPublicationOrdinal != (stage >= 8u ? 3ull : 2ull))
+        return false;
+    if ((runtime.anchorMinted && stage != 8u) ||
+        (runtime.completionObservationStarted && !runtime.anchorMinted))
+        return false;
+
+    // Snapshot drift must not reintroduce previously invalid channel facts.
+    NVAmpereChannelReadiness readiness = {};
+    return nvAmpereEvaluateChannel(e.channel, &readiness) ==
+               NV_CHANNEL_READY_OK &&
+           readiness.allocationReady && readiness.ceBoundReady &&
+           readiness.submitReady;
+}
+
 static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeExpectedEvent(
     const NVAmpereCopyPublicationRuntime &runtime)
 {
-    if (!runtime.initialized || runtime.providerOwnershipUncertain)
+    if (!nvAmpereCopyRuntimeEvidenceConsistent(runtime) ||
+        runtime.anchorMinted || runtime.completionObservationStarted)
         return 0u;
     const NVAmpereCopyPublicationEvidence &e = runtime.evidence;
     if (!e.copyPushPrepared)
@@ -237,6 +292,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeAdvance(
     if (!runtime->transactionActive || runtime->anchorMinted ||
         runtime->completionObservationStarted)
         return NV_COPY_RUNTIME_ERR_SEQUENCE;
+    if (!nvAmpereCopyRuntimeEvidenceConsistent(*runtime))
+        return NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE;
     if (event != nvAmpereCopyRuntimeExpectedEvent(*runtime))
         return NV_COPY_RUNTIME_ERR_SEQUENCE;
 
@@ -280,6 +337,7 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeAdvance(
         return NV_COPY_RUNTIME_ERR_SEQUENCE;
     }
 
+    ++staged.acceptedEventCount;
     staged.runtimeWriteAuthorized = false;
     *runtime = staged;
     return NV_COPY_RUNTIME_OK;
@@ -304,6 +362,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeMintAnchor(
         return NV_COPY_RUNTIME_ERR_SEQUENCE;
     if (runtime->completionObservationStarted)
         return NV_COPY_RUNTIME_ERR_COMPLETION_STARTED;
+    if (!nvAmpereCopyRuntimeEvidenceConsistent(*runtime))
+        return NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE;
     if (nvAmpereCopyRuntimeExpectedEvent(*runtime) != 0u)
         return NV_COPY_RUNTIME_ERR_SEQUENCE;
 
@@ -337,6 +397,8 @@ static inline NVCopyRuntimeU32 nvAmpereCopyRuntimeBeginCompletionObservation(
         return NV_COPY_RUNTIME_ERR_NOT_ANCHORED;
     if (runtime->completionObservationStarted)
         return NV_COPY_RUNTIME_ERR_COMPLETION_STARTED;
+    if (!nvAmpereCopyRuntimeEvidenceConsistent(*runtime))
+        return NV_COPY_RUNTIME_ERR_INCONSISTENT_STATE;
 
     NVAmpereCopyPublicationRuntime staged = *runtime;
     staged.completionObservationStarted = true;
