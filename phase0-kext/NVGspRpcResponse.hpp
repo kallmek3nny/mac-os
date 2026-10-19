@@ -20,7 +20,9 @@ using NVGspRespU32 = unsigned int;
 #define NV_GSP_RPC_RESPONSE_BAD_LENGTH         10u
 #define NV_GSP_RPC_RESPONSE_BAD_VERSION        11u
 #define NV_GSP_RPC_RESPONSE_BAD_SIGNATURE      12u
-#define NV_GSP_RPC_RESPONSE_LIMIT              13u
+#define NV_GSP_RPC_RESPONSE_RESULT_PENDING      13u
+#define NV_GSP_RPC_RESPONSE_BAD_TRANSPORT       14u
+#define NV_GSP_RPC_RESPONSE_LIMIT              15u
 
 struct NVGspRpcResponsePlan {
     NVGspRespU32 recordBytes;
@@ -70,6 +72,8 @@ static inline const char *nvGspRpcResponseVerdictName(NVGspRespU32 verdict)
         case NV_GSP_RPC_RESPONSE_BAD_LENGTH:      return "bad-length";
         case NV_GSP_RPC_RESPONSE_BAD_VERSION:     return "bad-version";
         case NV_GSP_RPC_RESPONSE_BAD_SIGNATURE:   return "bad-signature";
+        case NV_GSP_RPC_RESPONSE_RESULT_PENDING:   return "result-pending";
+        case NV_GSP_RPC_RESPONSE_BAD_TRANSPORT:    return "bad-transport";
         default:                                  return "unknown";
     }
 }
@@ -117,6 +121,12 @@ static inline NVGspRespU32 nvGspValidateRpcResponseNoCc(
     if (prefix[7] != NV_GSP_RPC_SIGNATURE_VALID)
         return NV_GSP_RPC_RESPONSE_BAD_SIGNATURE;
 
+    // The outgoing request uses 0xffffffff as an in-flight sentinel. Until
+    // GSP overwrites it with a completed result, neither success nor an RM
+    // error has been observed. Refuse atomically and leave the RX tail alone.
+    if (prefix[10] == NV_GSP_RPC_RESULT_PENDING)
+        return NV_GSP_RPC_RESPONSE_RESULT_PENDING;
+
     NVGspRpcResponsePlan staged = {};
     staged.recordBytes = recordBytes;
     staged.rpcBytes = rpcBytes;
@@ -139,6 +149,26 @@ static inline NVGspRespU32 nvGspValidateRpcResponseNoCc(
     return NV_GSP_RPC_RESPONSE_MATCHED_SUCCESS;
 }
 
+// Verify that caller-supplied rehearsal metadata has not drifted from the
+// command frame it describes. This is CONSISTENCY ONLY: caller-controlled plans
+// are never evidence of a sent RPC or provider-owned channel allocation.
+static inline bool nvGspRpcTransportIdentityConsistent(
+    const NVGspRpcTransportPlan &transport)
+{
+    return !transport.responseSemanticallyValidated &&
+           transport.requestFrame.prefixBytes == NV_GSP_RPC_PREFIX_BYTES &&
+           transport.requestFrame.parameterBytes == transport.requestParameterBytes &&
+           transport.requestFrame.queueMessageBytes == transport.requestRecordBytes &&
+           transport.requestFrame.prefix[0] == NV_GSP_RPC_MCTP_MAGIC &&
+           transport.requestFrame.prefix[9] == transport.function &&
+           transport.requestFrame.prefix[12] == transport.sequence &&
+           transport.requestTx.payloadBytes == transport.requestRecordBytes &&
+           transport.requestPublish.commandHeadValue == transport.requestTx.newWritePtr &&
+           transport.responseConsume.consumeCount == transport.responseElementCount &&
+           transport.responseConsume.messageTailValue ==
+               transport.responseConsume.newReadPtr;
+}
+
 // Add semantic response judgement to an already-successful pure transport
 // rehearsal. Transport placement and response identity remain separate layers:
 // a matched error is semantically VALID but unsuccessful, while an async event
@@ -151,6 +181,8 @@ static inline NVGspRespU32 nvGspValidateRpcTransactionResponse(
 {
     if (!transport || !prefix) return NV_GSP_RPC_RESPONSE_NULL_INPUT;
     if (!out) return NV_GSP_RPC_RESPONSE_NULL_OUTPUT;
+    if (!nvGspRpcTransportIdentityConsistent(*transport))
+        return NV_GSP_RPC_RESPONSE_BAD_TRANSPORT;
     if (recordBytes != transport->responseRecordBytes)
         return NV_GSP_RPC_RESPONSE_BAD_RECORD_SIZE;
 

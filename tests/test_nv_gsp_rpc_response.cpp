@@ -154,6 +154,59 @@ static void testTransactionValidation(void) {
     check("mismatch atomic",std::memcmp(&untouched,&before,sizeof(untouched))==0);
 }
 
+static void testPendingAndTransportRefusals(void) {
+    std::printf("\n7. pending completion and inconsistent transport never publish evidence\n");
+    NVGspRpcFramePlan f=frame(0x456u,22u);
+    f.prefix[10]=NV_GSP_RPC_RESULT_PENDING;
+    NVGspRpcResponsePlan oneShot;
+    std::memset(&oneShot,0xa5,sizeof(oneShot));
+    const NVGspRpcResponsePlan old=oneShot;
+    checkU32("unfinished request sentinel cannot be an RM error",
+        nvGspValidateRpcResponseNoCc(0x456u,22u,f.prefix,f.queueMessageBytes,&oneShot),
+        NV_GSP_RPC_RESPONSE_RESULT_PENDING);
+    check("pending does not write one-shot evidence",
+          std::memcmp(&oneShot,&old,sizeof(old))==0);
+
+    NVGspRpcTransportPlan valid=transportPlan();
+    NVGspRpcFramePlan reply=frame(valid.function,valid.sequence);
+    NVGspRpcValidatedTransaction out;
+    std::memset(&out,0xa5,sizeof(out));
+    const NVGspRpcValidatedTransaction prior=out;
+    checkU32("pending transaction cannot complete",
+        nvGspValidateRpcTransactionResponse(&valid,f.prefix,56u,&out),
+        NV_GSP_RPC_RESPONSE_RESULT_PENDING);
+    check("pending transport result unchanged",
+          std::memcmp(&out,&prior,sizeof(prior))==0);
+
+    reply.prefix[10]=0u;
+    auto expectBad=[&](const char *label,const NVGspRpcTransportPlan &plan) {
+        checkU32(label,nvGspValidateRpcTransactionResponse(&plan,reply.prefix,56u,&out),
+                 NV_GSP_RPC_RESPONSE_BAD_TRANSPORT);
+        check("bad transport refuses atomically",
+              std::memcmp(&out,&prior,sizeof(prior))==0);
+    };
+    NVGspRpcTransportPlan bad=valid;
+    ++bad.requestFrame.prefix[12]; expectBad("drifted request sequence",bad);
+    bad=valid;
+    ++bad.requestFrame.prefix[9]; expectBad("drifted request function",bad);
+    bad=valid;
+    ++bad.requestRecordBytes; expectBad("drifted request record size",bad);
+    bad=valid;
+    ++bad.requestPublish.commandHeadValue; expectBad("drifted publish head",bad);
+    bad=valid;
+    ++bad.responseConsume.consumeCount; expectBad("drifted consume amount",bad);
+    bad=valid;
+    bad.responseSemanticallyValidated=true; expectBad("caller asserted semantic success",bad);
+    bad=valid;
+    ++bad.responseConsume.messageTailValue; expectBad("drifted consume pointer",bad);
+
+    checkU32("valid transport and completed response remain acceptable",
+        nvGspValidateRpcTransactionResponse(&valid,reply.prefix,56u,&out),
+        NV_GSP_RPC_RESPONSE_MATCHED_SUCCESS);
+    check("completed validation binds original request identity",
+          out.responseSucceeded && out.responseSemanticallyValidated);
+}
+
 static void testNullsAndVerdicts(void) {
     std::printf("\n6. nulls and verdict family\n");
     NVGspRpcFramePlan f=frame(1u,1u);
@@ -171,6 +224,7 @@ int main(void) {
     testMatchedRemoteError();
     testStructuralRefusals();
     testTransactionValidation();
+    testPendingAndTransportRefusals();
     testNullsAndVerdicts();
     std::printf("\n%d checks, %d failures\n",gChecks,gFailures);
     return gFailures?1:0;
