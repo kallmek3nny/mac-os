@@ -13,7 +13,16 @@ using NVGspObsU32 = unsigned int;
 #define NV_GSP_QUEUE_OBSERVE_BAD_INDEX           3u
 #define NV_GSP_QUEUE_OBSERVE_DEAD_READ           4u
 #define NV_GSP_QUEUE_OBSERVE_AMBIGUOUS_COUNTERS  5u
-#define NV_GSP_QUEUE_OBSERVE_LIMIT               6u
+#define NV_GSP_QUEUE_OBSERVE_CHANGED_DURING_READ 6u
+#define NV_GSP_QUEUE_OBSERVE_NULL_INPUT          7u
+#define NV_GSP_QUEUE_OBSERVE_LIMIT               8u
+
+struct NVGspQueueCounterSample {
+    NVGspObsU32 commandHead;
+    NVGspObsU32 commandTail;
+    NVGspObsU32 messageHead;
+    NVGspObsU32 messageTail;
+};
 
 struct NVGspQueueSnapshot {
     NVGspObsU32 queueIndex;
@@ -28,6 +37,9 @@ struct NVGspQueueSnapshot {
     bool allOnes;
     bool anyTrafficEvidence;
     bool countersPlausibleWithoutHistory;
+    // Set only after two identical successive sets of live register reads.
+    // This is NOT an atomic hardware snapshot or evidence GSP is initialized.
+    bool sampledTwiceUnchanged;
 };
 
 static inline bool nvGspQueueObserveSucceeded(NVGspObsU32 verdict)
@@ -44,6 +56,8 @@ static inline const char *nvGspQueueObserveVerdictName(NVGspObsU32 verdict)
         case NV_GSP_QUEUE_OBSERVE_BAD_INDEX:          return "bad-index";
         case NV_GSP_QUEUE_OBSERVE_DEAD_READ:          return "dead-read";
         case NV_GSP_QUEUE_OBSERVE_AMBIGUOUS_COUNTERS: return "ambiguous-counters";
+        case NV_GSP_QUEUE_OBSERVE_CHANGED_DURING_READ: return "changed-during-read";
+        case NV_GSP_QUEUE_OBSERVE_NULL_INPUT:         return "null-input";
         default:                                      return "unknown";
     }
 }
@@ -103,6 +117,40 @@ static inline NVGspObsU32 nvGspClassifyQueueSnapshot(NVGspObsU32 queueIndex,
     return staged.countersPlausibleWithoutHistory
         ? NV_GSP_QUEUE_OBSERVE_OK
         : NV_GSP_QUEUE_OBSERVE_AMBIGUOUS_COUNTERS;
+}
+
+// A live queue can change any monotonic counter between individual BAR0
+// reads. A single plausible set of four values does not establish that those
+// values ever coexisted. Accept only a bounded pair of identical consecutive
+// register samples; no retry loop, sleep, queue mutation, or write authority.
+// Equality is a limited stability observation, not a synchronization contract.
+static inline NVGspObsU32 nvGspClassifyStableQueueSnapshot(
+    NVGspObsU32 queueIndex,
+    const NVGspQueueCounterSample *first,
+    const NVGspQueueCounterSample *second,
+    NVGspQueueSnapshot *out)
+{
+    if (!out) return NV_GSP_QUEUE_OBSERVE_NULL_OUTPUT;
+    if (!first || !second) return NV_GSP_QUEUE_OBSERVE_NULL_INPUT;
+    if (queueIndex >= NV_GSP_QUEUE_REGISTER_COUNT)
+        return NV_GSP_QUEUE_OBSERVE_BAD_INDEX;
+
+    if (first->commandHead != second->commandHead ||
+        first->commandTail != second->commandTail ||
+        first->messageHead != second->messageHead ||
+        first->messageTail != second->messageTail)
+        return NV_GSP_QUEUE_OBSERVE_CHANGED_DURING_READ;
+
+    NVGspQueueSnapshot staged = {};
+    const NVGspObsU32 verdict = nvGspClassifyQueueSnapshot(
+        queueIndex, second->commandHead, second->commandTail,
+        second->messageHead, second->messageTail, &staged);
+    if (verdict == NV_GSP_QUEUE_OBSERVE_OK ||
+        verdict == NV_GSP_QUEUE_OBSERVE_AMBIGUOUS_COUNTERS) {
+        staged.sampledTwiceUnchanged = true;
+        *out = staged;
+    }
+    return verdict;
 }
 
 #endif // NV_GSP_QUEUE_OBSERVE_HPP
