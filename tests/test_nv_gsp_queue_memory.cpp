@@ -113,6 +113,34 @@ static void testRefusalsAreAtomic(void) {
     checkU32("misaligned page",nvGspBuildQueueMemoryPlan(&layout,false,misaligned,129u,&p),NV_GSP_QUEUE_MEMORY_BAD_PAGE_ADDRESS);
     check("misaligned atomic",std::memcmp(&p,&before,sizeof(p))==0);
 
+    NVGspMemU64 aliased[129];
+    std::memcpy(aliased,pages,sizeof(pages));
+    aliased[65]=aliased[1]; // Status header may never alias command header.
+    checkU32("aliased page-plan refusal",
+             nvGspBuildQueueMemoryPlan(&layout,false,aliased,129u,&p),
+             NV_GSP_QUEUE_MEMORY_ALIASED_PAGE);
+    check("aliased plan atomic",std::memcmp(&p,&before,sizeof(p))==0);
+
+    NVGspQueuePlan invalidLayout=layout;
+    invalidLayout.pageTableBytes=0u;
+    checkU32("no reserved table page refuses init",
+             nvGspBuildQueueMemoryPlan(&invalidLayout,false,pages,129u,&p),
+             NV_GSP_QUEUE_MEMORY_BAD_LAYOUT);
+    check("invalid layout does not mutate init plan",
+          std::memcmp(&p,&before,sizeof(p))==0);
+    invalidLayout=layout;
+    invalidLayout.pageTableEntryCount=513u;
+    checkU32("entry count exceeds reserved table page",
+             nvGspBuildQueueMemoryPlan(&invalidLayout,false,pages,129u,&p),
+             NV_GSP_QUEUE_MEMORY_BAD_LAYOUT);
+    check("oversized entry count leaves init plan unchanged",
+          std::memcmp(&p,&before,sizeof(p))==0);
+    invalidLayout=layout;
+    invalidLayout.statusQueueOffset=0xfffff000u;
+    checkU32("status offset arithmetic cannot wrap",
+             nvGspBuildQueueMemoryPlan(&invalidLayout,false,pages,129u,&p),
+             NV_GSP_QUEUE_MEMORY_BAD_LAYOUT);
+
     NVGspMemU64 table[129];
     std::memset(table,0x3c,sizeof(table));
     NVGspMemU64 tableBefore[129];
@@ -126,6 +154,24 @@ static void testRefusalsAreAtomic(void) {
     checkU32("bad page table input",nvGspWriteQueuePageTable(&layout,misaligned,129u,table,129u,&written),NV_GSP_QUEUE_MEMORY_BAD_PAGE_ADDRESS);
     checkU32("bad page written reset",written,0u);
     check("bad page table untouched",std::memcmp(table,tableBefore,sizeof(table))==0);
+
+    written=99u;
+    invalidLayout=layout;
+    invalidLayout.pageTableBytes=0u;
+    checkU32("invalid table capacity cannot publish entries",
+             nvGspWriteQueuePageTable(&invalidLayout,pages,129u,table,129u,&written),
+             NV_GSP_QUEUE_MEMORY_BAD_LAYOUT);
+    checkU32("invalid table written count cleared",written,0u);
+    check("invalid table capacity leaves bytes unchanged",
+          std::memcmp(table,tableBefore,sizeof(table))==0);
+
+    written=99u;
+    checkU32("aliased table refusal",
+             nvGspWriteQueuePageTable(&layout,aliased,129u,table,129u,&written),
+             NV_GSP_QUEUE_MEMORY_ALIASED_PAGE);
+    checkU32("aliased table count reset",written,0u);
+    check("aliased table untouched",
+          std::memcmp(table,tableBefore,sizeof(table))==0);
 
     checkU32("null layout",nvGspBuildQueueMemoryPlan(nullptr,false,pages,129u,&p),NV_GSP_QUEUE_MEMORY_NULL_PLAN);
     checkU32("null pages",nvGspBuildQueueMemoryPlan(&layout,false,nullptr,129u,&p),NV_GSP_QUEUE_MEMORY_NULL_PAGES);

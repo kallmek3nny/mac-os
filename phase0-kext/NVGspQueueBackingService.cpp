@@ -24,6 +24,12 @@ bool NVGspQueueBackingService::init(OSDictionary *dict)
 
 void NVGspQueueBackingService::releaseResources(void)
 {
+    // These properties describe LIVE ownership, not a historical successful
+    // allocation. A failed stage or stop must not leave stale readiness proof.
+    setProperty("NVGspQueueBackingPrepared",false);
+    setProperty("NVGspQueueBackingDmaBound",false);
+    setProperty("NVGspQueueBackingDeviceMapperResolved",false);
+    setProperty("NVGspQueueBackingAllocated",false);
     if (fDMABound && fDMA) {
         fDMA->clearMemoryDescriptor();
         fDMABound=false;
@@ -65,6 +71,10 @@ bool NVGspQueueBackingService::start(IOService *provider)
     if (!super::start(provider)) return false;
 
     setProperty("NVGspQueueBackingRequested",true);
+    setProperty("NVGspQueueBackingPrepared",false);
+    setProperty("NVGspQueueBackingDmaBound",false);
+    setProperty("NVGspQueueBackingDeviceMapperResolved",false);
+    setProperty("NVGspQueueBackingAllocated",false);
     setProperty("NVGspQueueBackingDeviceWritesPossible",false);
     setProperty("NVGspQueueBackingGspNotified",false);
     setProperty("NVGspQueueBackingPgspPointersWritten",false);
@@ -147,6 +157,7 @@ bool NVGspQueueBackingService::start(IOService *provider)
         return true;
     }
     fDMABound=true;
+    setProperty("NVGspQueueBackingDmaBound",true);
 
     const vm_size_t segBytes=(vm_size_t)layout.pageTableEntryCount*sizeof(IODMACommand::Segment64);
     IODMACommand::Segment64 *ioSeg=reinterpret_cast<IODMACommand::Segment64 *>(IOMalloc(segBytes));
@@ -206,8 +217,8 @@ bool NVGspQueueBackingService::start(IOService *provider)
         return true;
     }
 
-    setProperty("NVGspQueueBackingGpuPageFirst",dmaPlan.firstPageAddress,64);
-    setProperty("NVGspQueueBackingGpuPageLast",dmaPlan.lastPageAddress,64);
+    // IOVAs are private to the provider-owned DMA plan. No raw GPU address
+    // or queue-argument address is exported through the IORegistry.
     setProperty("NVGspQueueBackingMappedBytes",dmaPlan.mappedBytes,64);
     setProperty("NVGspQueueBackingSingleDmaSegment",dmaPlan.inputWasSingleContiguousSegment);
 
@@ -274,7 +285,8 @@ bool NVGspQueueBackingService::start(IOService *provider)
         return true;
     }
 
-    setProperty("NVGspQueueBackingCandidateSharedMemGpuAddress",memoryPlan.initArgs.sharedMemPhysAddr,64);
+    // The candidate address remains private until a separately proven GSP
+    // initialization/notification boundary exists.
     setProperty("NVGspQueueBackingInitFlags",memoryPlan.initArgs.flags,64);
     setProperty("NVGspQueueBackingInitCommandOffset",memoryPlan.initArgs.cmdQueueOffset,64);
     setProperty("NVGspQueueBackingInitStatusOffset",memoryPlan.initArgs.statQueueOffset,64);
@@ -289,14 +301,14 @@ bool NVGspQueueBackingService::start(IOService *provider)
     publishState("owned-memory-prepared-gsp-not-notified");
     registerService();
 
-    NVQMEMLOG("prepared %u shared page(s), candidate sharedMem=%llx; GSP not notified",
-              layout.pageTableEntryCount,
-              (unsigned long long)memoryPlan.initArgs.sharedMemPhysAddr);
+    NVQMEMLOG("prepared %u shared page(s); GSP not notified",
+              layout.pageTableEntryCount);
     return true;
 }
 
 void NVGspQueueBackingService::stop(IOService *provider)
 {
     releaseResources();
+    publishState("stopped-backing-released");
     super::stop(provider);
 }

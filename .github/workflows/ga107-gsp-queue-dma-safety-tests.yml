@@ -1,0 +1,56 @@
+name: GA107 GSP queue DMA ownership and evidence safety
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  queue-dma-safety:
+    name: queue DMA safety (${{ matrix.os }}, ${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: g++
+          - os: ubuntu-latest
+            compiler: clang++
+          - os: macos-latest
+            compiler: clang++
+    steps:
+      - uses: actions/checkout@v4
+      - name: Strict C++ regression and source-evidence contract
+        shell: bash
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import subprocess
+
+          compile_cmd = [
+              os.environ["CXX"], "-std=c++17", "-O2", "-Wall",
+              "-Wextra", "-Wpedantic", "-Werror",
+              "-I", "phase0-kext",
+              "tests/test_nv_gsp_queue_dma.cpp",
+              "-o", "test_nv_gsp_queue_dma",
+          ]
+          subprocess.run(compile_cmd, check=True, timeout=120)
+          subprocess.run(["./test_nv_gsp_queue_dma"], check=True, timeout=30)
+          compile_cmd[-3] = "tests/test_nv_gsp_queue_memory.cpp"
+          compile_cmd[-1] = "test_nv_gsp_queue_memory"
+          subprocess.run(compile_cmd, check=True, timeout=120)
+          subprocess.run(["./test_nv_gsp_queue_memory"], check=True, timeout=30)
+          subprocess.run(
+              ["python3", "tests/test_nv_gsp_queue_backing_evidence_shape.py"],
+              check=True, timeout=20)
+          PY
