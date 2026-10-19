@@ -1,0 +1,52 @@
+name: GA107 GSP RPC response retirement safety
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  rpc-receive:
+    name: GSP RPC receive (${{ matrix.os }}, ${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 9
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: g++
+          - os: ubuntu-latest
+            compiler: clang++
+          - os: macos-latest
+            compiler: clang++
+    steps:
+      - uses: actions/checkout@v4
+      - name: Strict response identity and receive-retirement regressions
+        shell: bash
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import subprocess
+          for source,output in (
+              ("tests/test_nv_gsp_rpc_response.cpp", "test_nv_gsp_rpc_response"),
+              ("tests/test_nv_gsp_rpc_receive_tracker.cpp", "test_nv_gsp_rpc_receive_tracker"),
+          ):
+              subprocess.run([
+                  os.environ["CXX"], "-std=c++17", "-O2", "-Wall",
+                  "-Wextra", "-Wpedantic", "-Werror", "-I", "phase0-kext",
+                  source, "-o", output,
+              ], check=True, timeout=120)
+              subprocess.run(["./"+output], check=True, timeout=30)
+          subprocess.run(
+              ["python3", "tests/test_nv_gsp_rpc_receive_tracker_static.py"],
+              check=True, timeout=20)
+          PY
