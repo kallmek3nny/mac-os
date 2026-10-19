@@ -62,4 +62,57 @@ for needle in (
     if needle not in plist:
         raise SystemExit(f"GA107 observer personality contract missing: {needle}")
 
+
+# Live-registry observation provenance must be invalidated on every service
+# lifetime transition. A dead or unstable BAR0 read must not leave stale values.
+assert "void invalidateObservation(void);" in header
+start = source.split("bool NVGspQueueObserver::start(IOService *provider)",1)[1].split(
+    "void NVGspQueueObserver::stop(IOService *provider)",1)[0]
+stop = source.split("void NVGspQueueObserver::stop(IOService *provider)",1)[1]
+free = source.split("void NVGspQueueObserver::free(void)",1)[1].split(
+    "IOService *NVGspQueueObserver::probe",1)[0]
+reset = source.split("void NVGspQueueObserver::invalidateObservation(void)",1)[1].split(
+    "void NVGspQueueObserver::free(void)",1)[0]
+assert "invalidateObservation();" in free
+assert start.index("invalidateObservation();") < start.index(
+    'setProperty("NVGspQueueObserverRequested",true)')
+assert start.index("invalidateObservation();") < start.index("OSReadLittleInt32(")
+assert stop.index("invalidateObservation();") < stop.index("clearResources();")
+assert stop.index('publishState("stopped-no-live-snapshot")') < stop.index("clearResources();")
+assert stop.index("clearResources();") < stop.index("super::stop(provider)")
+for key in (
+    "NVGspQueueObserverRequested",
+    "NVGspQueueObserverBarMapped",
+    "NVGspQueueObserverMemoryEnabled",
+    "NVGspQueueObserverSampledTwiceUnchanged",
+    "NVGspQueueTrafficEvidence",
+    "NVGspQueueCountersPlausibleWithoutHistory",
+):
+    assert f'setProperty("{key}",false)' in reset, key
+for key in (
+    "NVGspQueueObserverQueueIndex",
+    "NVGspQueueObserverPciCommand",
+    "NVGspQueueObserverBarLength",
+    "NVGspQueueObserverRequiredBarOffset",
+    "NVGspQueueCommandHead",
+    "NVGspQueueCommandTail",
+    "NVGspQueueMessageHead",
+    "NVGspQueueMessageTail",
+    "NVGspQueueCommandHeadRegister",
+    "NVGspQueueCommandTailRegister",
+    "NVGspQueueMessageHeadRegister",
+    "NVGspQueueMessageTailRegister",
+    "NVGspQueueMessageCount",
+    "NVGspQueueCommandUsed",
+    "NVGspQueueStatusAvailable",
+    "NVGspQueueSnapshotAllZero",
+):
+    assert f'removeProperty("{key}")' in reset, key
+assert "NV_GSP_QUEUE_OBSERVE_NOT_ATTEMPTED" in reset
+refusal = start.index("if (!nvGspQueueSnapshotCanPublish(verdict,&snapshot))")
+first_publish = start.index('setProperty("NVGspQueueCommandHead"')
+assert start.index("nvGspClassifyStableQueueSnapshot(") < refusal < first_publish
+assert "return true;" in start[refusal:first_publish]
+assert "queue-register-dead-read" in start[refusal:first_publish]
+
 print("GA107 bounded queue double-read observer source contract: ok")

@@ -153,4 +153,15 @@ static inline NVGspObsU32 nvGspClassifyStableQueueSnapshot(
     return verdict;
 }
 
+// Publicly exposed counter evidence requires both a valid classification
+// AND a stable paired observation. This does not prove an atomic MMIO read,
+// GSP initialization, command completion, or RM channel ownership.
+static inline bool nvGspQueueSnapshotCanPublish(NVGspObsU32 verdict,
+                                                const NVGspQueueSnapshot *snapshot)
+{
+    return snapshot && snapshot->sampledTwiceUnchanged &&
+           (verdict == NV_GSP_QUEUE_OBSERVE_OK ||
+            verdict == NV_GSP_QUEUE_OBSERVE_AMBIGUOUS_COUNTERS);
+}
+
 #endif // NV_GSP_QUEUE_OBSERVE_HPP

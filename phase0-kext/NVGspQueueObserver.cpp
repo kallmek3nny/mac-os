@@ -26,8 +26,44 @@ void NVGspQueueObserver::clearResources(void)
     OSSafeReleaseNULL(fPCI);
 }
 
+// Public queue counters are LIVE observations, not historical readiness.
+// A failed/restarted observation and stop/free must revoke all counter evidence
+// before the BAR mapping or device ownership can be released or replaced.
+// These are IORegistry changes only: no PCI/BAR0/GSP writes are performed.
+void NVGspQueueObserver::invalidateObservation(void)
+{
+    setProperty("NVGspQueueObserverRequested",false);
+    setProperty("NVGspQueueObserverBarMapped",false);
+    setProperty("NVGspQueueObserverMemoryEnabled",false);
+    setProperty("NVGspQueueObserverSampledTwiceUnchanged",false);
+    setProperty("NVGspQueueTrafficEvidence",false);
+    setProperty("NVGspQueueCountersPlausibleWithoutHistory",false);
+    setProperty("NVGspQueueObserverVerdict",(UInt64)NV_GSP_QUEUE_OBSERVE_NOT_ATTEMPTED,32);
+    setProperty("NVGspQueueObserverVerdictName","not-attempted");
+
+    // Never retain an earlier usable snapshot, register offsets, or stale PCI
+    // command metadata in the registry after a stop or a refused new read.
+    removeProperty("NVGspQueueObserverQueueIndex");
+    removeProperty("NVGspQueueObserverPciCommand");
+    removeProperty("NVGspQueueObserverBarLength");
+    removeProperty("NVGspQueueObserverRequiredBarOffset");
+    removeProperty("NVGspQueueCommandHead");
+    removeProperty("NVGspQueueCommandTail");
+    removeProperty("NVGspQueueMessageHead");
+    removeProperty("NVGspQueueMessageTail");
+    removeProperty("NVGspQueueCommandHeadRegister");
+    removeProperty("NVGspQueueCommandTailRegister");
+    removeProperty("NVGspQueueMessageHeadRegister");
+    removeProperty("NVGspQueueMessageTailRegister");
+    removeProperty("NVGspQueueMessageCount");
+    removeProperty("NVGspQueueCommandUsed");
+    removeProperty("NVGspQueueStatusAvailable");
+    removeProperty("NVGspQueueSnapshotAllZero");
+}
+
 void NVGspQueueObserver::free(void)
 {
+    invalidateObservation();
     clearResources();
     super::free();
 }
@@ -74,6 +110,9 @@ bool NVGspQueueObserver::start(IOService *provider)
         return false;
     if (!super::start(provider)) return false;
 
+    // Never carry previously published counters into this activation, even
+    // when PCI memory is off, BAR0 is absent, or the next pair is unstable.
+    invalidateObservation();
     setProperty("NVGspQueueObserverRequested",true);
     setProperty("NVGspQueueObserverWritesPossible",false);
     setProperty("NVGspQueueObserverQueueIndex",(UInt64)NV_GSP_RM_QUEUE_INDEX,32);
@@ -168,6 +207,16 @@ bool NVGspQueueObserver::start(IOService *provider)
         return true;
     }
 
+    // Two identical dead BAR reads are NOT usable evidence either. Never
+    // publish 0xffffffff as counters after a dead-read/refused classification.
+    // The shared helper also forbids one-shot (not double-sampled) evidence.
+    if (!nvGspQueueSnapshotCanPublish(verdict,&snapshot)) {
+        publishState(verdict==NV_GSP_QUEUE_OBSERVE_DEAD_READ
+                         ? "queue-register-dead-read" : "snapshot-refused");
+        registerService();
+        return true;
+    }
+
     // Publish counter values only after the paired reads passed consistency.
     setProperty("NVGspQueueCommandHead",(UInt64)second.commandHead,32);
     setProperty("NVGspQueueCommandTail",(UInt64)second.commandTail,32);
@@ -203,6 +252,10 @@ bool NVGspQueueObserver::start(IOService *provider)
 
 void NVGspQueueObserver::stop(IOService *provider)
 {
+    // Revoke all public snapshot evidence before unmapping BAR0 and releasing
+    // provider ownership. stop() must not look like live queue traffic.
+    invalidateObservation();
+    publishState("stopped-no-live-snapshot");
     clearResources();
     super::stop(provider);
 }

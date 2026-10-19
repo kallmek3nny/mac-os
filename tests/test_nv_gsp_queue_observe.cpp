@@ -157,6 +157,52 @@ static void testDoubleSampleRefusalAndProvenance(void) {
           std::memcmp(&refused,&prior,sizeof(refused))==0);
 }
 
+static void testLiveEvidencePublicationGate(void) {
+    std::printf("\n8. only stable non-dead pairs can become live registry evidence\n");
+    const NVGspQueueCounterSample live={70u,65u,100u,98u};
+    NVGspQueueSnapshot single={};
+    const NVGspObsU32 oneShot=nvGspClassifyQueueSnapshot(
+        0u,live.commandHead,live.commandTail,live.messageHead,live.messageTail,
+        &single);
+    checkU32("one shot is plausible",oneShot,NV_GSP_QUEUE_OBSERVE_OK);
+    check("one shot not publishable",
+          !nvGspQueueSnapshotCanPublish(oneShot,&single));
+
+    NVGspQueueSnapshot stable={};
+    const NVGspObsU32 paired=nvGspClassifyStableQueueSnapshot(
+        0u,&live,&live,&stable);
+    check("paired plausible snapshot publishable",
+          nvGspQueueSnapshotCanPublish(paired,&stable));
+    check("null evidence never publishable",
+          !nvGspQueueSnapshotCanPublish(paired,nullptr));
+    check("not-attempted cannot publish",
+          !nvGspQueueSnapshotCanPublish(NV_GSP_QUEUE_OBSERVE_NOT_ATTEMPTED,&stable));
+    check("changed during read cannot publish",
+          !nvGspQueueSnapshotCanPublish(NV_GSP_QUEUE_OBSERVE_CHANGED_DURING_READ,&stable));
+    check("dead BAR read cannot publish even with old snapshot",
+          !nvGspQueueSnapshotCanPublish(NV_GSP_QUEUE_OBSERVE_DEAD_READ,&stable));
+    check("invalid index cannot publish",
+          !nvGspQueueSnapshotCanPublish(NV_GSP_QUEUE_OBSERVE_BAD_INDEX,&stable));
+
+    const NVGspQueueCounterSample ambiguous={64u,0u,100u,0u};
+    NVGspQueueSnapshot needsHistory={};
+    const NVGspObsU32 ambiguousVerdict=nvGspClassifyStableQueueSnapshot(
+        0u,&ambiguous,&ambiguous,&needsHistory);
+    checkU32("paired history-less ambiguous verdict",ambiguousVerdict,
+             NV_GSP_QUEUE_OBSERVE_AMBIGUOUS_COUNTERS);
+    check("ambiguous pair publishable for diagnostic counters",
+          nvGspQueueSnapshotCanPublish(ambiguousVerdict,&needsHistory));
+    check("ambiguous cannot claim ordinary plausibility",
+          !needsHistory.countersPlausibleWithoutHistory);
+
+    const NVGspQueueCounterSample dead={0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu};
+    NVGspQueueSnapshot untouched={};
+    const NVGspObsU32 deadVerdict=nvGspClassifyStableQueueSnapshot(
+        0u,&dead,&dead,&untouched);
+    checkU32("dead read remains refused",deadVerdict,NV_GSP_QUEUE_OBSERVE_DEAD_READ);
+    check("dead pair cannot publish",!nvGspQueueSnapshotCanPublish(deadVerdict,&untouched));
+}
+
 static void testVerdicts(void) {
     std::printf("\n6. verdict family\n");
     for (NVGspObsU32 v=0u;v<NV_GSP_QUEUE_OBSERVE_LIMIT;++v) {
@@ -173,6 +219,7 @@ int main(void) {
     testAmbiguousResetShape();
     testDeadReadAndRefusals();
     testDoubleSampleRefusalAndProvenance();
+    testLiveEvidencePublicationGate();
     testVerdicts();
     std::printf("\n%d checks, %d failures\n",gChecks,gFailures);
     return gFailures?1:0;
