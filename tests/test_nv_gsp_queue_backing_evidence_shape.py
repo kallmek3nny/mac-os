@@ -69,4 +69,68 @@ for token in ("OSWriteLittleInt", "OSWriteBigInt", "configWrite", "setBusMasterE
     if token in src or token in hdr:
         raise SystemExit(f"queue backing must not write device registers: {token}")
 
+
+# Public geometry/results and init arguments belong to one live DMA backing.
+# All fields must be revoked before the DMA descriptor is cleared or released,
+# including when a new activation fails halfway through preparation.
+transient_properties = (
+    "NVGspQueueBackingLayoutVerdict",
+    "NVGspQueueBackingSharedBytes",
+    "NVGspQueueBackingPageCount",
+    "NVGspQueueBackingPageTableBytes",
+    "NVGspQueueBackingCommandOffset",
+    "NVGspQueueBackingStatusOffset",
+    "NVGspQueueBackingCapacity",
+    "NVGspQueueBackingDmaSegmentIOReturn",
+    "NVGspQueueBackingDmaSegmentCount",
+    "NVGspQueueBackingDmaConsumedBytes",
+    "NVGspQueueBackingDmaVerdict",
+    "NVGspQueueBackingDmaVerdictName",
+    "NVGspQueueBackingMappedBytes",
+    "NVGspQueueBackingSingleDmaSegment",
+    "NVGspQueueBackingMemoryVerdict",
+    "NVGspQueueBackingMemoryVerdictName",
+    "NVGspQueueBackingPageTableVerdict",
+    "NVGspQueueBackingPageTableEntriesWritten",
+    "NVGspQueueBackingTxHeaderVerdict",
+    "NVGspQueueBackingDmaSynchronizeIOReturn",
+    "NVGspQueueBackingInitFlags",
+    "NVGspQueueBackingInitCommandOffset",
+    "NVGspQueueBackingInitStatusOffset",
+    "NVGspQueueBackingInitElementHeaderBytes",
+    "NVGspQueueBackingInitElementMinBytes",
+    "NVGspQueueBackingInitElementMaxBytes",
+    "NVGspQueueBackingInitHeaderAlign",
+    "NVGspQueueBackingInitElementAlignShift",
+    "NVGspQueueBackingInitPageTableEntryCount",
+    "NVGspQueueBackingAddressKind",
+)
+for key in transient_properties:
+    if f'setProperty("{key}"' not in start:
+        raise SystemExit(f"runtime property not published: {key}")
+    revoke = f'removeProperty("{key}");'
+    if revoke not in release:
+        raise SystemExit(f"stale provider-owned backing metadata: {key}")
+    if release.index(revoke) > release.index("fDMA->clearMemoryDescriptor()"):
+        raise SystemExit(f"backing evidence revoked after DMA unbind: {key}")
+
+for key in (
+    "NVGspQueueBackingRequested",
+    "NVGspQueueBackingDeviceWritesPossible",
+    "NVGspQueueBackingGspNotified",
+    "NVGspQueueBackingPgspPointersWritten",
+    "NVGspQueueBackingCachedArgsInstalled",
+    "NVGspQueueBackingStatusQueueInitializedByHost",
+):
+    if f'setProperty("{key}",false)' not in release:
+        raise SystemExit(f"stop retains provider readiness flag: {key}")
+
+activation = 'releaseResources();\\n    publishState("preparing-provider-owned-memory");'
+if activation.replace("\\n", "\n") not in start:
+    raise SystemExit("new activation does not revoke previous provider evidence")
+if start.index("releaseResources();") > start.index('setProperty("NVGspQueueBackingRequested",true)'):
+    raise SystemExit("provider evidence reset must precede activation publication")
+if release.index("removeProperty") > release.index("fDMA->clearMemoryDescriptor()"):
+    raise SystemExit("DMA may be unbound before all evidence was revoked")
+
 print("GA107 GSP queue backing public evidence contract: ok")

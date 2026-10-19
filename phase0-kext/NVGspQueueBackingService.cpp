@@ -25,12 +25,53 @@ bool NVGspQueueBackingService::init(OSDictionary *dict)
 
 void NVGspQueueBackingService::releaseResources(void)
 {
-    // These properties describe LIVE ownership, not a historical successful
-    // allocation. A failed stage or stop must not leave stale readiness proof.
+    // Revoke public evidence BEFORE unbinding the DMA descriptor or dropping
+    // provider ownership. These registry facts are about the live mapping and
+    // queue buffer; they are not safe historical readiness receipts.
+    setProperty("NVGspQueueBackingRequested",false);
     setProperty("NVGspQueueBackingPrepared",false);
     setProperty("NVGspQueueBackingDmaBound",false);
     setProperty("NVGspQueueBackingDeviceMapperResolved",false);
     setProperty("NVGspQueueBackingAllocated",false);
+    setProperty("NVGspQueueBackingDeviceWritesPossible",false);
+    setProperty("NVGspQueueBackingGspNotified",false);
+    setProperty("NVGspQueueBackingPgspPointersWritten",false);
+    setProperty("NVGspQueueBackingCachedArgsInstalled",false);
+    setProperty("NVGspQueueBackingStatusQueueInitializedByHost",false);
+
+    // A stale capacity, prior IOVA mapping length, successful sync verdict, or
+    // composed init argument must not be read as evidence for a later provider
+    // activation. Keep only NVGspQueueBackingState for failure diagnostics.
+    removeProperty("NVGspQueueBackingLayoutVerdict");
+    removeProperty("NVGspQueueBackingSharedBytes");
+    removeProperty("NVGspQueueBackingPageCount");
+    removeProperty("NVGspQueueBackingPageTableBytes");
+    removeProperty("NVGspQueueBackingCommandOffset");
+    removeProperty("NVGspQueueBackingStatusOffset");
+    removeProperty("NVGspQueueBackingCapacity");
+    removeProperty("NVGspQueueBackingDmaSegmentIOReturn");
+    removeProperty("NVGspQueueBackingDmaSegmentCount");
+    removeProperty("NVGspQueueBackingDmaConsumedBytes");
+    removeProperty("NVGspQueueBackingDmaVerdict");
+    removeProperty("NVGspQueueBackingDmaVerdictName");
+    removeProperty("NVGspQueueBackingMappedBytes");
+    removeProperty("NVGspQueueBackingSingleDmaSegment");
+    removeProperty("NVGspQueueBackingMemoryVerdict");
+    removeProperty("NVGspQueueBackingMemoryVerdictName");
+    removeProperty("NVGspQueueBackingPageTableVerdict");
+    removeProperty("NVGspQueueBackingPageTableEntriesWritten");
+    removeProperty("NVGspQueueBackingTxHeaderVerdict");
+    removeProperty("NVGspQueueBackingDmaSynchronizeIOReturn");
+    removeProperty("NVGspQueueBackingInitFlags");
+    removeProperty("NVGspQueueBackingInitCommandOffset");
+    removeProperty("NVGspQueueBackingInitStatusOffset");
+    removeProperty("NVGspQueueBackingInitElementHeaderBytes");
+    removeProperty("NVGspQueueBackingInitElementMinBytes");
+    removeProperty("NVGspQueueBackingInitElementMaxBytes");
+    removeProperty("NVGspQueueBackingInitHeaderAlign");
+    removeProperty("NVGspQueueBackingInitElementAlignShift");
+    removeProperty("NVGspQueueBackingInitPageTableEntryCount");
+    removeProperty("NVGspQueueBackingAddressKind");
     if (fDMABound && fDMA) {
         fDMA->clearMemoryDescriptor();
         fDMABound=false;
@@ -85,6 +126,10 @@ bool NVGspQueueBackingService::start(IOService *provider)
         return false;
     if (!super::start(provider)) return false;
 
+    // Start is permitted only with no retained resources. Revoke all prior
+    // activation metadata even when this attempt will fail before DMA setup.
+    releaseResources();
+    publishState("preparing-provider-owned-memory");
     setProperty("NVGspQueueBackingRequested",true);
     setProperty("NVGspQueueBackingPrepared",false);
     setProperty("NVGspQueueBackingDmaBound",false);
