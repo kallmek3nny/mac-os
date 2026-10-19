@@ -124,28 +124,48 @@ bool NVGspQueueObserver::start(IOService *provider)
         return true;
     }
 
-    // The four operations below are the only device accesses after mapping and
-    // they are all reads. No queue pointer, mailbox, doorbell or shared-memory
-    // state is modified by this service.
-    const UInt32 commandHead=OSReadLittleInt32(fBar0Base,regs.commandHead);
-    const UInt32 commandTail=OSReadLittleInt32(fBar0Base,regs.commandTail);
-    const UInt32 messageHead=OSReadLittleInt32(fBar0Base,regs.messageHead);
-    const UInt32 messageTail=OSReadLittleInt32(fBar0Base,regs.messageTail);
+    // A single four-register read may span an active GSP queue update.
+    // Take exactly two bounded samples, with NO retry loop and NO MMIO writes.
+    // Equal sets reduce mixed-epoch readings; they do not prove hardware
+    // atomicity, channel allocation, or successful GSP queue processing.
+    NVGspQueueCounterSample first = {};
+    first.commandHead=OSReadLittleInt32(fBar0Base,regs.commandHead);
+    first.commandTail=OSReadLittleInt32(fBar0Base,regs.commandTail);
+    first.messageHead=OSReadLittleInt32(fBar0Base,regs.messageHead);
+    first.messageTail=OSReadLittleInt32(fBar0Base,regs.messageTail);
 
-    setProperty("NVGspQueueCommandHead",(UInt64)commandHead,32);
-    setProperty("NVGspQueueCommandTail",(UInt64)commandTail,32);
-    setProperty("NVGspQueueMessageHead",(UInt64)messageHead,32);
-    setProperty("NVGspQueueMessageTail",(UInt64)messageTail,32);
+    NVGspQueueCounterSample second = {};
+    second.commandHead=OSReadLittleInt32(fBar0Base,regs.commandHead);
+    second.commandTail=OSReadLittleInt32(fBar0Base,regs.commandTail);
+    second.messageHead=OSReadLittleInt32(fBar0Base,regs.messageHead);
+    second.messageTail=OSReadLittleInt32(fBar0Base,regs.messageTail);
+
+    NVGspQueueSnapshot snapshot={};
+    const UInt32 verdict=nvGspClassifyStableQueueSnapshot(
+        NV_GSP_RM_QUEUE_INDEX,&first,&second,&snapshot);
+    setProperty("NVGspQueueObserverVerdict",(UInt64)verdict,32);
+    setProperty("NVGspQueueObserverVerdictName",nvGspQueueObserveVerdictName(verdict));
+    setProperty("NVGspQueueObserverSampledTwiceUnchanged",
+                snapshot.sampledTwiceUnchanged);
+
+    if (verdict==NV_GSP_QUEUE_OBSERVE_CHANGED_DURING_READ) {
+        // Publishing one half of an inconsistent sample would manufacture a
+        // plausible, cross-epoch set of queue counters. Retain no such data.
+        publishState("snapshot-changed-during-read");
+        registerService();
+        NVQLOG("queue register counters changed during bounded observation");
+        return true;
+    }
+
+    // Publish counter values only after the paired reads passed consistency.
+    setProperty("NVGspQueueCommandHead",(UInt64)second.commandHead,32);
+    setProperty("NVGspQueueCommandTail",(UInt64)second.commandTail,32);
+    setProperty("NVGspQueueMessageHead",(UInt64)second.messageHead,32);
+    setProperty("NVGspQueueMessageTail",(UInt64)second.messageTail,32);
     setProperty("NVGspQueueCommandHeadRegister",(UInt64)regs.commandHead,32);
     setProperty("NVGspQueueCommandTailRegister",(UInt64)regs.commandTail,32);
     setProperty("NVGspQueueMessageHeadRegister",(UInt64)regs.messageHead,32);
     setProperty("NVGspQueueMessageTailRegister",(UInt64)regs.messageTail,32);
-
-    NVGspQueueSnapshot snapshot={};
-    const UInt32 verdict=nvGspClassifyQueueSnapshot(
-        NV_GSP_RM_QUEUE_INDEX,commandHead,commandTail,messageHead,messageTail,&snapshot);
-    setProperty("NVGspQueueObserverVerdict",(UInt64)verdict,32);
-    setProperty("NVGspQueueObserverVerdictName",nvGspQueueObserveVerdictName(verdict));
 
     if (verdict==NV_GSP_QUEUE_OBSERVE_OK ||
         verdict==NV_GSP_QUEUE_OBSERVE_AMBIGUOUS_COUNTERS) {
@@ -163,10 +183,10 @@ bool NVGspQueueObserver::start(IOService *provider)
                  verdict==NV_GSP_QUEUE_OBSERVE_DEAD_READ ? "queue-register-dead-read" :
                  "snapshot-refused");
     registerService();
-    NVQLOG("snapshot verdict %s HEAD/TAIL cmd=%08x/%08x msg=%08x/%08x",
+    NVQLOG("double-read snapshot verdict %s HEAD/TAIL cmd=%08x/%08x msg=%08x/%08x",
            nvGspQueueObserveVerdictName(verdict),
-           (unsigned)commandHead,(unsigned)commandTail,
-           (unsigned)messageHead,(unsigned)messageTail);
+           (unsigned)second.commandHead,(unsigned)second.commandTail,
+           (unsigned)second.messageHead,(unsigned)second.messageTail);
     return true;
 }
 
