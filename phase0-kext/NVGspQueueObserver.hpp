@@ -25,6 +25,7 @@ private:
     volatile UInt8 *fBar0Base;
 
     void clearResources(void);
+    void invalidateObservation(void);
     void publishState(const char *state);
 };
 
