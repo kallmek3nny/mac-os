@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Opt-in live PGSP queue observation. This translation unit contains NO device writes.
 #include "NVGspQueueObserver.hpp"
+#include "NVGa107PciIdentity.hpp"
 
 #include <IOKit/IOLib.h>
 #include <pexpert/pexpert.h>
@@ -54,8 +55,22 @@ void NVGspQueueObserver::publishState(const char *state)
 
 bool NVGspQueueObserver::start(IOService *provider)
 {
+    // Never reactivate a service with a live or partially-retained resource.
+    if (fPCI || fBar0Map || fBar0Base) return false;
+
     int enabled=0;
     if (!PE_parse_boot_argn("nvgsp-queue-observe",&enabled,sizeof(enabled)) || enabled!=1)
+        return false;
+
+    // Probe is not lasting authority: re-check the actual start provider
+    // BEFORE IOService activation, BAR0 mapping, or DMA allocation.
+    // No PCI writes, bus-master enabling, or device memory access here.
+    IOPCIDevice *candidate=OSDynamicCast(IOPCIDevice,provider);
+    if (!candidate) return false;
+    const UInt16 vendor=candidate->configRead16(kIOPCIConfigVendorID);
+    const UInt16 device=candidate->configRead16(kIOPCIConfigDeviceID);
+    const UInt32 classReg=candidate->configRead32(kIOPCIConfigRevisionID);
+    if (!nvGa107PciIdentityEligible(vendor,device,classReg))
         return false;
     if (!super::start(provider)) return false;
 
@@ -63,12 +78,8 @@ bool NVGspQueueObserver::start(IOService *provider)
     setProperty("NVGspQueueObserverWritesPossible",false);
     setProperty("NVGspQueueObserverQueueIndex",(UInt64)NV_GSP_RM_QUEUE_INDEX,32);
 
-    fPCI=OSDynamicCast(IOPCIDevice,provider);
-    if (!fPCI) {
-        publishState("no-pci-provider");
-        registerService();
-        return true;
-    }
+    // This exact-device candidate passed eligibility before super::start().
+    fPCI=candidate;
     fPCI->retain();
 
     // Read PCI command state but never change it. The observer must not turn a

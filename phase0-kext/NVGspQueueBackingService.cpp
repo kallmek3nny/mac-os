@@ -2,6 +2,7 @@
 // Opt-in allocation + GA107 DMA mapping for GSP-RM queues.
 // This service writes only memory it allocated. It performs NO GPU/MMIO writes.
 #include "NVGspQueueBackingService.hpp"
+#include "NVGa107PciIdentity.hpp"
 
 #include <IOKit/IOLib.h>
 #include <IOKit/IOMapper.h>
@@ -65,8 +66,22 @@ void NVGspQueueBackingService::publishState(const char *state)
 
 bool NVGspQueueBackingService::start(IOService *provider)
 {
+    // Never reactivate a service with a live or partially-retained resource.
+    if (fPCI || fBacking || fDMA || fDMABound) return false;
+
     int enabled=0;
     if (!PE_parse_boot_argn("nvgsp-queue-memory",&enabled,sizeof(enabled)) || enabled!=1)
+        return false;
+
+    // Probe is not lasting authority: re-check the actual start provider
+    // BEFORE IOService activation, BAR0 mapping, or DMA allocation.
+    // No PCI writes, bus-master enabling, or device memory access here.
+    IOPCIDevice *candidate=OSDynamicCast(IOPCIDevice,provider);
+    if (!candidate) return false;
+    const UInt16 vendor=candidate->configRead16(kIOPCIConfigVendorID);
+    const UInt16 device=candidate->configRead16(kIOPCIConfigDeviceID);
+    const UInt32 classReg=candidate->configRead32(kIOPCIConfigRevisionID);
+    if (!nvGa107PciIdentityEligible(vendor,device,classReg))
         return false;
     if (!super::start(provider)) return false;
 
@@ -81,12 +96,8 @@ bool NVGspQueueBackingService::start(IOService *provider)
     setProperty("NVGspQueueBackingCachedArgsInstalled",false);
     setProperty("NVGspQueueBackingStatusQueueInitializedByHost",false);
 
-    fPCI=OSDynamicCast(IOPCIDevice,provider);
-    if (!fPCI) {
-        publishState("no-pci-provider");
-        registerService();
-        return true;
-    }
+    // This exact-device candidate passed eligibility before super::start().
+    fPCI=candidate;
     fPCI->retain();
 
     NVGspQueuePlan layout={};

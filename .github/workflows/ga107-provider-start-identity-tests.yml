@@ -1,0 +1,54 @@
+name: GA107 provider start identity and lifetime safety
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ga107-provider-start:
+    name: GA107 provider start (${{ matrix.os }}, ${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: g++
+          - os: ubuntu-latest
+            compiler: clang++
+          - os: macos-latest
+            compiler: clang++
+    steps:
+      - uses: actions/checkout@v4
+      - name: Strict PCI identity and source-shape regressions
+        shell: bash
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import subprocess
+          compile_command = [
+              os.environ["CXX"], "-std=c++17", "-O2",
+              "-Wall", "-Wextra", "-Wpedantic", "-Werror",
+              "-I", "phase0-kext",
+              "tests/test_nv_ga107_pci_identity.cpp",
+              "-o", "test_nv_ga107_pci_identity",
+          ]
+          subprocess.run(compile_command, check=True, timeout=120)
+          subprocess.run(["./test_nv_ga107_pci_identity"], check=True, timeout=30)
+          for source_test in (
+              "tests/test_nv_ga107_provider_start_shape.py",
+              "tests/test_nv_gsp_queue_backing_evidence_shape.py",
+              "tests/test_nv_gsp_queue_observer_static.py",
+          ):
+              subprocess.run(["python3", source_test], check=True, timeout=20)
+          PY
