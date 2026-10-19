@@ -74,6 +74,89 @@ static void testDeadReadAndRefusals(void) {
              NV_GSP_QUEUE_OBSERVE_NULL_OUTPUT);
 }
 
+static void testDoubleSampleRefusalAndProvenance(void) {
+    std::printf("\n7. double-read queue snapshot refuses cross-epoch counter drift\n");
+    NVGspQueueCounterSample first={70u,65u,100u,98u};
+    NVGspQueueCounterSample second=first;
+    NVGspQueueSnapshot observed={};
+    checkU32("unchanged pair accepted",
+        nvGspClassifyStableQueueSnapshot(0u,&first,&second,&observed),
+        NV_GSP_QUEUE_OBSERVE_OK);
+    check("double-read evidence explicit",observed.sampledTwiceUnchanged);
+    checkU32("paired command occupancy",observed.commandUsed,5u);
+    checkU32("paired response count",observed.statusAvailable,2u);
+
+    NVGspQueueSnapshot single={};
+    checkU32("ordinary one-shot classifier unchanged",
+        nvGspClassifyQueueSnapshot(0u,70u,65u,100u,98u,&single),
+        NV_GSP_QUEUE_OBSERVE_OK);
+    check("one-shot cannot claim double-read stability",
+          !single.sampledTwiceUnchanged);
+
+    // Counter changes can occur on any of the four independent BAR0 reads.
+    // Preserve a byte-for-byte sentinel on ALL refused observations.
+    for (unsigned index=0u;index<4u;++index) {
+        second=first;
+        if (index==0u) ++second.commandHead;
+        if (index==1u) ++second.commandTail;
+        if (index==2u) ++second.messageHead;
+        if (index==3u) ++second.messageTail;
+        NVGspQueueSnapshot refusal;
+        std::memset(&refusal,0xa5,sizeof(refusal));
+        const NVGspQueueSnapshot prior=refusal;
+        checkU32("changed field refused",
+            nvGspClassifyStableQueueSnapshot(0u,&first,&second,&refusal),
+            NV_GSP_QUEUE_OBSERVE_CHANGED_DURING_READ);
+        check("changed field refusal atomic",
+              std::memcmp(&refusal,&prior,sizeof(refusal))==0);
+    }
+
+    first={1u,0xfffffffeu,2u,0xffffffffu};
+    second=first;
+    checkU32("unchanged monotonic counter rollover accepted",
+        nvGspClassifyStableQueueSnapshot(0u,&first,&second,&observed),
+        NV_GSP_QUEUE_OBSERVE_OK);
+    checkU32("rolled command occupancy",observed.commandUsed,3u);
+    check("rollover retains sample provenance",observed.sampledTwiceUnchanged);
+
+    first={64u,0u,100u,0u};
+    second=first;
+    checkU32("same ambiguous counters remain ambiguous",
+        nvGspClassifyStableQueueSnapshot(0u,&first,&second,&observed),
+        NV_GSP_QUEUE_OBSERVE_AMBIGUOUS_COUNTERS);
+    check("stable read cannot invent cached queue history",
+          observed.sampledTwiceUnchanged &&
+          !observed.countersPlausibleWithoutHistory);
+
+    first={0xffffffffu,0xffffffffu,0xffffffffu,0xffffffffu};
+    second=first;
+    NVGspQueueSnapshot refused;
+    std::memset(&refused,0xa5,sizeof(refused));
+    const NVGspQueueSnapshot prior=refused;
+    checkU32("two dead reads still refuse",
+        nvGspClassifyStableQueueSnapshot(0u,&first,&second,&refused),
+        NV_GSP_QUEUE_OBSERVE_DEAD_READ);
+    check("dead read refuses atomically",
+          std::memcmp(&refused,&prior,sizeof(refused))==0);
+
+    first={0u,0u,0u,0u};
+    second=first;
+    checkU32("missing first sample",
+        nvGspClassifyStableQueueSnapshot(0u,nullptr,&second,&refused),
+        NV_GSP_QUEUE_OBSERVE_NULL_INPUT);
+    checkU32("missing second sample",
+        nvGspClassifyStableQueueSnapshot(0u,&first,nullptr,&refused),
+        NV_GSP_QUEUE_OBSERVE_NULL_INPUT);
+    checkU32("missing output",
+        nvGspClassifyStableQueueSnapshot(0u,&first,&second,nullptr),
+        NV_GSP_QUEUE_OBSERVE_NULL_OUTPUT);
+    checkU32("bad queue index",
+        nvGspClassifyStableQueueSnapshot(8u,&first,&second,&refused),
+        NV_GSP_QUEUE_OBSERVE_BAD_INDEX);
+    check("all malformed pairs leave output untouched",
+          std::memcmp(&refused,&prior,sizeof(refused))==0);
+}
+
 static void testVerdicts(void) {
     std::printf("\n6. verdict family\n");
     for (NVGspObsU32 v=0u;v<NV_GSP_QUEUE_OBSERVE_LIMIT;++v) {
@@ -89,6 +172,7 @@ int main(void) {
     testCounterRollover();
     testAmbiguousResetShape();
     testDeadReadAndRefusals();
+    testDoubleSampleRefusalAndProvenance();
     testVerdicts();
     std::printf("\n%d checks, %d failures\n",gChecks,gFailures);
     return gFailures?1:0;
