@@ -26,7 +26,11 @@ using NVGspRxTrackU32 = unsigned int;
 #define NV_GSP_RX_TRACK_STOPPED          15u
 #define NV_GSP_RX_TRACK_SEQUENCE        16u
 #define NV_GSP_RX_TRACK_GEOMETRY_MISMATCH 17u
-#define NV_GSP_RX_TRACK_LIMIT           18u
+#define NV_GSP_RX_TRACK_NOT_PUBLISHED   18u
+#define NV_GSP_RX_TRACK_PUBLISH_UNCONFIRMED 19u
+#define NV_GSP_RX_TRACK_PUBLISH_IDENTITY 20u
+#define NV_GSP_RX_TRACK_PUBLISH_DUPLICATE 21u
+#define NV_GSP_RX_TRACK_LIMIT           22u
 
 // Bound asynchronous messages seen for one request. No polling, sleeps,
 // retry automation, MMIO, RX-tail writes or dynamic allocation in this code.
@@ -38,6 +42,7 @@ struct NVGspRpcReceiveTracker {
     bool quarantined;
     bool active;
     bool awaitingConsume;
+    bool requestPublished;
     bool recordMatched;
     bool recordSucceeded;
     bool hasLastSequence;
@@ -89,9 +94,41 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerBegin(
     staged.expectedResponseElements = transport->responseElementCount;
     staged.asyncRecordCount = 0u;
     staged.awaitingConsume = false;
+    staged.requestPublished = false;
     staged.recordMatched = false;
     staged.recordSucceeded = false;
     *tracker = staged;
+    return NV_GSP_RX_TRACK_OK;
+}
+
+// This is a separate, one-shot boundary after Begin(): a planned request is
+// never considered receivable solely because a caller has filled a transport
+// plan. A real provider must report that the matching command queue write
+// pointer was actually published. The boolean below is ONLY a caller-provided
+// witness; this helper neither writes TX, authenticates an RM channel, nor
+// generates proof that a GPU ever observed the request. An ambiguous identity
+// is terminal quarantine rather than a chance to relabel the active request.
+static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerRecordPublication(
+    NVGspRpcReceiveTracker *tracker,
+    NVGspRxTrackU32 observedFunction,
+    NVGspRxTrackU32 observedSequence,
+    bool providerConfirmedPublished)
+{
+    if (!tracker) return NV_GSP_RX_TRACK_NULL;
+    if (!tracker->initialized) return NV_GSP_RX_TRACK_UNINITIALIZED;
+    if (tracker->stopped) return NV_GSP_RX_TRACK_STOPPED;
+    if (tracker->quarantined) return NV_GSP_RX_TRACK_QUARANTINED;
+    if (!tracker->active) return NV_GSP_RX_TRACK_NO_REQUEST;
+    if (tracker->awaitingConsume) return NV_GSP_RX_TRACK_AWAIT_CONSUME;
+    if (tracker->requestPublished) return NV_GSP_RX_TRACK_PUBLISH_DUPLICATE;
+    if (observedFunction != tracker->function ||
+        observedSequence != tracker->sequence) {
+        tracker->quarantined = true;
+        return NV_GSP_RX_TRACK_PUBLISH_IDENTITY;
+    }
+    if (!providerConfirmedPublished)
+        return NV_GSP_RX_TRACK_PUBLISH_UNCONFIRMED;
+    tracker->requestPublished = true;
     return NV_GSP_RX_TRACK_OK;
 }
 
@@ -111,6 +148,7 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerObserve(
     if (tracker->quarantined) return NV_GSP_RX_TRACK_QUARANTINED;
     if (!tracker->active) return NV_GSP_RX_TRACK_NO_REQUEST;
     if (tracker->awaitingConsume) return NV_GSP_RX_TRACK_AWAIT_CONSUME;
+    if (!tracker->requestPublished) return NV_GSP_RX_TRACK_NOT_PUBLISHED;
 
     // Do not classify a response against a different RX record geometry than
     // the single-flight transport. A different number of queue bytes might
@@ -181,6 +219,7 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerConfirmConsumed(
         return NV_GSP_RX_TRACK_ASYNC_EVENT;
     }
     staged.active = false;
+    staged.requestPublished = false;
     staged.hasLastSequence = true;
     staged.lastSequence = staged.sequence;
     const NVGspRxTrackU32 result = staged.recordSucceeded

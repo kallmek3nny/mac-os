@@ -55,6 +55,8 @@ static void testPendingAndConsumeOrder(void) {
     eq("init pending state",nvGspRpcReceiveTrackerInit(&state),NV_GSP_RX_TRACK_OK);
     const NVGspRpcTransportPlan req=transport(0x101u,11u);
     eq("begin pending",nvGspRpcReceiveTrackerBegin(&state,&req),NV_GSP_RX_TRACK_OK);
+    eq("pending request publication",nvGspRpcReceiveTrackerRecordPublication(&state,0x101u,11u,true),
+       NV_GSP_RX_TRACK_OK);
     NVGspRpcFramePlan reply=response(0x101u,11u,NV_GSP_RPC_RESULT_PENDING);
     eq("pending sentinel not an error",
        nvGspRpcReceiveTrackerObserve(&state,reply.prefix,56u),
@@ -93,6 +95,8 @@ static void testEventsAndRemoteErrors(void) {
     eq("init event",nvGspRpcReceiveTrackerInit(&state),NV_GSP_RX_TRACK_OK);
     const NVGspRpcTransportPlan request=transport(0x400u,30u);
     eq("begin event",nvGspRpcReceiveTrackerBegin(&state,&request),NV_GSP_RX_TRACK_OK);
+    eq("event request publication",nvGspRpcReceiveTrackerRecordPublication(&state,0x400u,30u,true),
+       NV_GSP_RX_TRACK_OK);
     NVGspRpcFramePlan event=response(0x500u,31u,0u);
     eq("distinct event classified, not completion",
        nvGspRpcReceiveTrackerObserve(&state,event.prefix,56u),
@@ -120,6 +124,8 @@ static void testPartialMismatchQuarantine(void) {
         eq("init collision",nvGspRpcReceiveTrackerInit(&state),NV_GSP_RX_TRACK_OK);
         const NVGspRpcTransportPlan p=transport(0x701u,4u);
         eq("begin collision",nvGspRpcReceiveTrackerBegin(&state,&p),NV_GSP_RX_TRACK_OK);
+        eq("collision request publication",nvGspRpcReceiveTrackerRecordPublication(&state,0x701u,4u,true),
+           NV_GSP_RX_TRACK_OK);
         const NVGspRpcFramePlan reply=i==0u
             ? response(0x701u,5u) : response(0x702u,4u);
         eq("one matching identity axis is ambiguous",
@@ -138,6 +144,8 @@ static void testCorruptReceiveQuarantine(void) {
     eq("init malformed",nvGspRpcReceiveTrackerInit(&state),NV_GSP_RX_TRACK_OK);
     const NVGspRpcTransportPlan p=transport(0x888u,8u);
     eq("begin malformed",nvGspRpcReceiveTrackerBegin(&state,&p),NV_GSP_RX_TRACK_OK);
+    eq("malformed request publication",nvGspRpcReceiveTrackerRecordPublication(&state,0x888u,8u,true),
+       NV_GSP_RX_TRACK_OK);
     NVGspRpcFramePlan bad=response(0x888u,8u);
     bad.prefix[7]^=1u;
     eq("bad signature quarantines unknown RX ownership",
@@ -160,6 +168,8 @@ static void testBoundedEventsAndStop(void) {
     eq("init bound",nvGspRpcReceiveTrackerInit(&state),NV_GSP_RX_TRACK_OK);
     const NVGspRpcTransportPlan p=transport(0x345u,2u);
     eq("begin bound",nvGspRpcReceiveTrackerBegin(&state,&p),NV_GSP_RX_TRACK_OK);
+    eq("bounded request publication",nvGspRpcReceiveTrackerRecordPublication(&state,0x345u,2u,true),
+       NV_GSP_RX_TRACK_OK);
     const NVGspRpcFramePlan event=response(0x999u,3u);
     for (unsigned i=0;i<NV_GSP_RX_TRACK_MAX_ASYNC_RECORDS;++i) {
         eq("bounded async classification",
@@ -187,6 +197,8 @@ static void testUncertainAndSequenceRollover(void) {
     eq("init rollover",nvGspRpcReceiveTrackerInit(&state),NV_GSP_RX_TRACK_OK);
     const NVGspRpcTransportPlan high=transport(0x121u,0xffffffffu);
     eq("begin last sequence",nvGspRpcReceiveTrackerBegin(&state,&high),NV_GSP_RX_TRACK_OK);
+    eq("last sequence publication",nvGspRpcReceiveTrackerRecordPublication(&state,0x121u,0xffffffffu,true),
+       NV_GSP_RX_TRACK_OK);
     const NVGspRpcFramePlan ack=response(0x121u,0xffffffffu);
     eq("last sequence reply",nvGspRpcReceiveTrackerObserve(&state,ack.prefix,56u),
        NV_GSP_RX_TRACK_MATCHED_SUCCESS);
@@ -233,6 +245,8 @@ static void testPinnedReceiveGeometry(void) {
     p=transport(0xaccu,91u);
     eq("begin valid response geometry",
        nvGspRpcReceiveTrackerBegin(&state,&p),NV_GSP_RX_TRACK_OK);
+    eq("geometry request publication",nvGspRpcReceiveTrackerRecordPublication(&state,0xaccu,91u,true),
+       NV_GSP_RX_TRACK_OK);
     check("bounded geometry held by tracker",
           state.expectedRecordBytes==p.responseRecordBytes &&
           state.expectedResponseElements==p.responseElementCount);
@@ -269,6 +283,60 @@ static void testBadTransportAtomicity(void) {
        nvGspRpcReceiveTrackerStop(&state),NV_GSP_RX_TRACK_QUARANTINED);
 }
 
+static void testPublicationReceiptGate(void) {
+    NVGspRpcReceiveTracker state={};
+    eq("init publication",nvGspRpcReceiveTrackerInit(&state),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcTransportPlan plan=transport(0xa00u,0x44u);
+    eq("begin planned-only",nvGspRpcReceiveTrackerBegin(&state,&plan),
+       NV_GSP_RX_TRACK_OK);
+    const NVGspRpcFramePlan ack=response(0xa00u,0x44u);
+    const NVGspRpcReceiveTracker planned=state;
+    eq("planned request cannot consume apparent success",
+       nvGspRpcReceiveTrackerObserve(&state,ack.prefix,56u),
+       NV_GSP_RX_TRACK_NOT_PUBLISHED);
+    check("planned observe refusal is atomic",
+          std::memcmp(&state,&planned,sizeof(state))==0);
+    eq("denied publication is atomic",
+       nvGspRpcReceiveTrackerRecordPublication(&state,0xa00u,0x44u,false),
+       NV_GSP_RX_TRACK_PUBLISH_UNCONFIRMED);
+    check("denied publication retains planned identity",
+          std::memcmp(&state,&planned,sizeof(state))==0);
+    eq("one matching provider-reported publication",
+       nvGspRpcReceiveTrackerRecordPublication(&state,0xa00u,0x44u,true),
+       NV_GSP_RX_TRACK_OK);
+    check("publisher witness does not complete request",
+          state.active && state.requestPublished && !state.awaitingConsume);
+    eq("repeat publication never accepted as a second send",
+       nvGspRpcReceiveTrackerRecordPublication(&state,0xa00u,0x44u,true),
+       NV_GSP_RX_TRACK_PUBLISH_DUPLICATE);
+    eq("receive after publication is provisional",
+       nvGspRpcReceiveTrackerObserve(&state,ack.prefix,56u),
+       NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+    eq("no late publication during awaiting tail",
+       nvGspRpcReceiveTrackerRecordPublication(&state,0xa00u,0x44u,true),
+       NV_GSP_RX_TRACK_AWAIT_CONSUME);
+    eq("post-tail retirement",nvGspRpcReceiveTrackerConfirmConsumed(&state),
+       NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+    check("receipt and active lease both cleared on completed request",
+          !state.active && !state.requestPublished);
+    eq("publication after retirement cannot resurrect request",
+       nvGspRpcReceiveTrackerRecordPublication(&state,0xa00u,0x44u,true),
+       NV_GSP_RX_TRACK_NO_REQUEST);
+
+    NVGspRpcReceiveTracker mismatch={};
+    eq("init mismatch",nvGspRpcReceiveTrackerInit(&mismatch),NV_GSP_RX_TRACK_OK);
+    eq("begin mismatch",nvGspRpcReceiveTrackerBegin(&mismatch,&plan),
+       NV_GSP_RX_TRACK_OK);
+    eq("wrong provider-reported TX identity quarantined",
+       nvGspRpcReceiveTrackerRecordPublication(&mismatch,0xa00u,0x45u,true),
+       NV_GSP_RX_TRACK_PUBLISH_IDENTITY);
+    check("misidentified publication preserves active uncertainty",
+          mismatch.quarantined && mismatch.active && !mismatch.requestPublished);
+    eq("corrected publication not accepted after mismatch",
+       nvGspRpcReceiveTrackerRecordPublication(&mismatch,0xa00u,0x44u,true),
+       NV_GSP_RX_TRACK_QUARANTINED);
+}
+
 int main(void) {
     std::printf("GSP-RM single-flight response receive/retirement guards\n");
     testInitAndIdentity();
@@ -280,6 +348,7 @@ int main(void) {
     testUncertainAndSequenceRollover();
     testPinnedReceiveGeometry();
     testBadTransportAtomicity();
+    testPublicationReceiptGate();
     std::printf("%u checks, %u failures\n",checks,failures);
     return failures?1:0;
 }
