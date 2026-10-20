@@ -73,4 +73,24 @@ assert "recordBytes != tracker->expectedRecordBytes" in observe
 assert observe.index("recordBytes != tracker->expectedRecordBytes") < observe.index(
     "nvGspValidateRpcResponseNoCc(")
 assert "NV_GSP_RX_TRACK_GEOMETRY_MISMATCH" in observe
+# A Begin() receipt is a purely planned request, not an actual TX publication.
+# The matching provider-supplied publication fact is a required independent
+# transition before any RX record may be semantically classified.
+publish = tracker.split("nvGspRpcReceiveTrackerRecordPublication(", 1)[1].split(
+    "nvGspRpcReceiveTrackerObserve(", 1
+)[0]
+assert "staged.requestPublished = false;" in tracker
+assert "if (!tracker->requestPublished) return NV_GSP_RX_TRACK_NOT_PUBLISHED;" in observe
+assert observe.index("if (!tracker->requestPublished)") < observe.index(
+    "nvGspValidateRpcResponseNoCc(")
+for needle in (
+    "if (!providerConfirmedPublished)",
+    "if (observedFunction != tracker->function ||",
+    "observedSequence != tracker->sequence)",
+    "tracker->quarantined = true;",
+    "tracker->requestPublished = true;",
+    "NV_GSP_RX_TRACK_PUBLISH_DUPLICATE",
+):
+    assert needle in publish, f"missing provider publication guard {needle}"
+assert "staged.requestPublished = false;" in confirm
 print("GA107 GSP RPC receive/retirement safety contract: ok")
