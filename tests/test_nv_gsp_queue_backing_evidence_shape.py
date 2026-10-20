@@ -133,4 +133,31 @@ if start.index("releaseResources();") > start.index('setProperty("NVGspQueueBack
 if release.index("removeProperty") > release.index("fDMA->clearMemoryDescriptor()"):
     raise SystemExit("DMA may be unbound before all evidence was revoked")
 
+
+# Successful CPU composition and DMA synchronization do not prove the PCI
+# provider still owns that mapping. Refuse publication if identity changes,
+# and revoke mapped memory/IORegistry evidence before registering failure.
+postread = start.index("const UInt16 currentVendor=fPCI->configRead16(kIOPCIConfigVendorID)")
+if not start.index("fDMA->synchronize(kIODirectionOut)") < postread < start.index(
+    'setProperty("NVGspQueueBackingPrepared",true)'
+):
+    raise SystemExit("PCI identity must be revalidated after sync, before readiness")
+for needle in (
+    "const UInt16 currentDevice=fPCI->configRead16(kIOPCIConfigDeviceID)",
+    "const UInt32 currentClassReg=fPCI->configRead32(kIOPCIConfigRevisionID)",
+    "if (!nvGa107PciIdentityStableAcrossStage(",
+    "vendor,device,classReg,currentVendor,currentDevice,currentClassReg",
+    'publishState("pci-provider-changed-before-prepared")',
+):
+    if needle not in start[postread:]:
+        raise SystemExit(f"missing provider post-sync identity gate: {needle}")
+refuse = start.split("if (!nvGa107PciIdentityStableAcrossStage(", 1)[1].split(
+    "// The candidate address remains private", 1
+)[0]
+for needle in ("releaseResources();", "registerService();", "return true;"):
+    if needle not in refuse:
+        raise SystemExit(f"provider identity failure leaves DMA ownership live: {needle}")
+if not refuse.index("releaseResources();") < refuse.index("registerService();"):
+    raise SystemExit("provider removal must retire resources before publication")
+
 print("GA107 GSP queue backing public evidence contract: ok")

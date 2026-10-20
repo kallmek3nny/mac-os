@@ -24,6 +24,31 @@ int main() {
     check("prog-if not base class",!nvGa107PciIdentityEligible(0x10deu,0x25a2u,0x000003a1u));
     check("dead PCI read",!nvGa107PciIdentityEligible(0xffffffffu,0xffffffffu,0xffffffffu));
     check("zero PCI read",!nvGa107PciIdentityEligible(0u,0u,0u));
+    check("same exact eligible identity preserved",
+        nvGa107PciIdentityStableAcrossStage(
+            0x10deu,0x25a2u,0x030200a1u,0x10deu,0x25a2u,0x030200a1u));
+    check("eligible differing revision refused",
+        !nvGa107PciIdentityStableAcrossStage(
+            0x10deu,0x25a2u,0x030200a1u,0x10deu,0x25a2u,0x030200a2u));
+    check("eligible differing subclass refused",
+        !nvGa107PciIdentityStableAcrossStage(
+            0x10deu,0x25a2u,0x030200a1u,0x10deu,0x25a2u,0x030000a1u));
+    check("removed vendor refused",
+        !nvGa107PciIdentityStableAcrossStage(
+            0x10deu,0x25a2u,0x030200a1u,0xffffu,0x25a2u,0x030200a1u));
+    check("substituted device refused",
+        !nvGa107PciIdentityStableAcrossStage(
+            0x10deu,0x25a2u,0x030200a1u,0x10deu,0x25a3u,0x030200a1u));
+    check("different class refused",
+        !nvGa107PciIdentityStableAcrossStage(
+            0x10deu,0x25a2u,0x030200a1u,0x10deu,0x25a2u,0x020000a1u));
+    check("bad original identity refused even if both identical",
+        !nvGa107PciIdentityStableAcrossStage(
+            0x8086u,0x25a2u,0x030200a1u,0x8086u,0x25a2u,0x030200a1u));
+    check("all-ones reads never establish stability",
+        !nvGa107PciIdentityStableAcrossStage(
+            0xffffffffu,0xffffffffu,0xffffffffu,
+            0xffffffffu,0xffffffffu,0xffffffffu));
     std::printf("%u checks, %u failures\n",checks,failures);
     return failures?1:0;
 }

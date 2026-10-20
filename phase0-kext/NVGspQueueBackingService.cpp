@@ -341,6 +341,21 @@ bool NVGspQueueBackingService::start(IOService *provider)
         return true;
     }
 
+    // The exact PCI owner may disappear or be substituted while an IODMACommand
+    // is bound and CPU-authored queue memory is synchronized. Validate its
+    // identity again before publishing provider-owned "prepared" evidence.
+    // PCI reads only; no MMIO, firmware notification or queue submission.
+    const UInt16 currentVendor=fPCI->configRead16(kIOPCIConfigVendorID);
+    const UInt16 currentDevice=fPCI->configRead16(kIOPCIConfigDeviceID);
+    const UInt32 currentClassReg=fPCI->configRead32(kIOPCIConfigRevisionID);
+    if (!nvGa107PciIdentityStableAcrossStage(
+            vendor,device,classReg,currentVendor,currentDevice,currentClassReg)) {
+        publishState("pci-provider-changed-before-prepared");
+        releaseResources();
+        registerService();
+        return true;
+    }
+
     // The candidate address remains private until a separately proven GSP
     // initialization/notification boundary exists.
     setProperty("NVGspQueueBackingInitFlags",memoryPlan.initArgs.flags,64);
