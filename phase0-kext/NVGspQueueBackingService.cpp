@@ -39,6 +39,23 @@ void NVGspQueueBackingService::releaseResources(void)
     setProperty("NVGspQueueBackingCachedArgsInstalled",false);
     setProperty("NVGspQueueBackingStatusQueueInitializedByHost",false);
 
+    // Under resource pressure, even setProperty(false) may be unable to
+    // replace an existing true OSBoolean in the IORegistry. Explicitly remove
+    // every live readiness flag before clearing provider-owned DMA memory.
+    // Absence is NOT hardware readiness; clients must require a live true
+    // property from the current owner. Keep the previous false attempts for
+    // diagnostics but do not depend on their success for resource revocation.
+    removeProperty("NVGspQueueBackingRequested");
+    removeProperty("NVGspQueueBackingPrepared");
+    removeProperty("NVGspQueueBackingDmaBound");
+    removeProperty("NVGspQueueBackingDeviceMapperResolved");
+    removeProperty("NVGspQueueBackingAllocated");
+    removeProperty("NVGspQueueBackingDeviceWritesPossible");
+    removeProperty("NVGspQueueBackingGspNotified");
+    removeProperty("NVGspQueueBackingPgspPointersWritten");
+    removeProperty("NVGspQueueBackingCachedArgsInstalled");
+    removeProperty("NVGspQueueBackingStatusQueueInitializedByHost");
+
     // A stale capacity, prior IOVA mapping length, successful sync verdict, or
     // composed init argument must not be read as evidence for a later provider
     // activation. Keep only NVGspQueueBackingState for failure diagnostics.

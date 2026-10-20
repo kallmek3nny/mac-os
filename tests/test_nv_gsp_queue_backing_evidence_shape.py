@@ -70,6 +70,34 @@ for token in ("OSWriteLittleInt", "OSWriteBigInt", "configWrite", "setBusMasterE
         raise SystemExit(f"queue backing must not write device registers: {token}")
 
 
+# A failed replacement of a live boolean must not strand true readiness in
+# the registry through provider stop, early start failure, or restart. Check
+# explicit removals independently of setProperty(false), and ensure no backing
+# is unbound while any old positive key is still present.
+live_keys = (
+    "NVGspQueueBackingRequested",
+    "NVGspQueueBackingPrepared",
+    "NVGspQueueBackingDmaBound",
+    "NVGspQueueBackingDeviceMapperResolved",
+    "NVGspQueueBackingAllocated",
+    "NVGspQueueBackingDeviceWritesPossible",
+    "NVGspQueueBackingGspNotified",
+    "NVGspQueueBackingPgspPointersWritten",
+    "NVGspQueueBackingCachedArgsInstalled",
+    "NVGspQueueBackingStatusQueueInitializedByHost",
+)
+for key in live_keys:
+    false_write = f'setProperty("{key}",false);'
+    revoke = f'removeProperty("{key}");'
+    if false_write not in release:
+        raise SystemExit(f"live false publication missing: {key}")
+    if revoke not in release:
+        raise SystemExit(f"teardown can retain stale true readiness: {key}")
+    if not release.index(false_write) < release.index(revoke) < release.index(
+        "fDMA->clearMemoryDescriptor()"
+    ):
+        raise SystemExit(f"live readiness is not removed before DMA unbind: {key}")
+
 # Public geometry/results and init arguments belong to one live DMA backing.
 # All fields must be revoked before the DMA descriptor is cleared or released,
 # including when a new activation fails halfway through preparation.
