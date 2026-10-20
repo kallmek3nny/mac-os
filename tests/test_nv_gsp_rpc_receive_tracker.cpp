@@ -205,6 +205,53 @@ static void testUncertainAndSequenceRollover(void) {
        NV_GSP_RX_TRACK_QUARANTINED);
 }
 
+
+static void testPinnedReceiveGeometry(void) {
+    NVGspRpcReceiveTracker state={};
+    eq("init geometry",nvGspRpcReceiveTrackerInit(&state),NV_GSP_RX_TRACK_OK);
+    NVGspRpcTransportPlan p=transport(0xaccu,91u);
+    const NVGspRpcReceiveTracker original=state;
+    ++p.responseConsume.oldReadPtr;
+    eq("mismatched receive pointer refused at begin",
+       nvGspRpcReceiveTrackerBegin(&state,&p),NV_GSP_RX_TRACK_BAD_TRANSPORT);
+    check("geometry-refused begin atomic",std::memcmp(&state,&original,sizeof(state))==0);
+    p=transport(0xaccu,91u);
+    ++p.responseElement[0].sharedByteOffset;
+    eq("mismatched response slot offset refused",
+       nvGspRpcReceiveTrackerBegin(&state,&p),NV_GSP_RX_TRACK_BAD_TRANSPORT);
+    p=transport(0xaccu,91u);
+    ++p.responseConsume.remainingAvailable;
+    eq("invalid remaining element count refused",
+       nvGspRpcReceiveTrackerBegin(&state,&p),NV_GSP_RX_TRACK_BAD_TRANSPORT);
+    p=transport(0xaccu,91u);
+    p.responseElementCount=0u;
+    eq("missing response elements refused",
+       nvGspRpcReceiveTrackerBegin(&state,&p),NV_GSP_RX_TRACK_BAD_TRANSPORT);
+    check("all malformed plans leave session reusable",
+          std::memcmp(&state,&original,sizeof(state))==0);
+
+    p=transport(0xaccu,91u);
+    eq("begin valid response geometry",
+       nvGspRpcReceiveTrackerBegin(&state,&p),NV_GSP_RX_TRACK_OK);
+    check("bounded geometry held by tracker",
+          state.expectedRecordBytes==p.responseRecordBytes &&
+          state.expectedResponseElements==p.responseElementCount);
+    const NVGspRpcFramePlan reply=response(0xaccu,91u);
+    eq("different complete RX bytes quarantine",
+       nvGspRpcReceiveTrackerObserve(&state,reply.prefix,60u),
+       NV_GSP_RX_TRACK_GEOMETRY_MISMATCH);
+    check("geometry mismatch never records successful receive",
+          state.quarantined && state.active &&
+          !state.awaitingConsume && !state.recordSucceeded);
+    eq("right-size replay cannot remove quarantine",
+       nvGspRpcReceiveTrackerObserve(&state,reply.prefix,56u),
+       NV_GSP_RX_TRACK_QUARANTINED);
+    eq("wrong-size response cannot retire",
+       nvGspRpcReceiveTrackerConfirmConsumed(&state),NV_GSP_RX_TRACK_QUARANTINED);
+    eq("stopped poisoned receive remains poisoned",
+       nvGspRpcReceiveTrackerStop(&state),NV_GSP_RX_TRACK_QUARANTINED);
+}
+
 static void testBadTransportAtomicity(void) {
     NVGspRpcReceiveTracker state={};
     eq("init transport",nvGspRpcReceiveTrackerInit(&state),NV_GSP_RX_TRACK_OK);
@@ -231,6 +278,7 @@ int main(void) {
     testCorruptReceiveQuarantine();
     testBoundedEventsAndStop();
     testUncertainAndSequenceRollover();
+    testPinnedReceiveGeometry();
     testBadTransportAtomicity();
     std::printf("%u checks, %u failures\n",checks,failures);
     return failures?1:0;

@@ -155,7 +155,7 @@ static inline NVGspRespU32 nvGspValidateRpcResponseNoCc(
 static inline bool nvGspRpcTransportIdentityConsistent(
     const NVGspRpcTransportPlan &transport)
 {
-    return !transport.responseSemanticallyValidated &&
+    const bool basic = !transport.responseSemanticallyValidated &&
            transport.requestFrame.prefixBytes == NV_GSP_RPC_PREFIX_BYTES &&
            transport.requestFrame.parameterBytes == transport.requestParameterBytes &&
            transport.requestFrame.queueMessageBytes == transport.requestRecordBytes &&
@@ -166,7 +166,48 @@ static inline bool nvGspRpcTransportIdentityConsistent(
            transport.requestPublish.commandHeadValue == transport.requestTx.newWritePtr &&
            transport.responseConsume.consumeCount == transport.responseElementCount &&
            transport.responseConsume.messageTailValue ==
-               transport.responseConsume.newReadPtr;
+               transport.responseConsume.newReadPtr &&
+           // Pinned RX record geometry must not drift from the consumption
+           // span later used as provisional receive/retirement evidence.
+           transport.responseRecordBytes >= NV_GSP_RPC_PREFIX_BYTES &&
+           transport.responseRecordBytes <= NV_GSP_QUEUE_ELEMENT_MAX_BYTES &&
+           transport.responseElementCount != 0u &&
+           transport.responseElementCount <= NV_GSP_MSGQ_MAX_RECORD_ELEMENTS &&
+           transport.responseElementCount ==
+               (transport.responseRecordBytes + NV_GSP_MSGQ_ENTRY_BYTES - 1u) /
+                   NV_GSP_MSGQ_ENTRY_BYTES &&
+           transport.responseAvailable.queueIndex == NV_GSP_RM_QUEUE_INDEX &&
+           transport.responseConsume.queueIndex == NV_GSP_RM_QUEUE_INDEX &&
+           transport.responseAvailable.messageSize == NV_GSP_MSGQ_ENTRY_BYTES &&
+           transport.responseAvailable.messageCount != 0u &&
+           transport.responseAvailable.available <= transport.responseAvailable.messageCount &&
+           transport.responseElementCount <= transport.responseAvailable.available &&
+           transport.responseAvailable.loadFenceAfterHeadRead &&
+           transport.responseConsume.storeFenceBeforeTailWrite &&
+           transport.responseConsume.oldReadPtr == transport.responseAvailable.readPtr &&
+           transport.responseConsume.newReadPtr ==
+               static_cast<NVGspRespU32>(
+                   transport.responseAvailable.readPtr + transport.responseElementCount) &&
+           transport.responseConsume.remainingAvailable ==
+               transport.responseAvailable.available - transport.responseElementCount &&
+           transport.responseConsume.messageTailRegister ==
+               transport.responseAvailable.messageTailRegister;
+    if (!basic) return false;
+    for (NVGspRespU32 i = 0u; i < transport.responseElementCount; ++i) {
+        NVGspQueueRxElementPlan expected = {};
+        if (nvGspPlanQueueRxElement(&transport.responseAvailable,i,&expected) !=
+            NV_GSP_QUEUE_RX_OK)
+            return false;
+        const NVGspQueueRxElementPlan &actual = transport.responseElement[i];
+        if (actual.queueIndex != expected.queueIndex ||
+            actual.elementIndex != expected.elementIndex ||
+            actual.slot != expected.slot ||
+            actual.queueByteOffset != expected.queueByteOffset ||
+            actual.sharedByteOffset != expected.sharedByteOffset ||
+            actual.bytes != expected.bytes)
+            return false;
+    }
+    return true;
 }
 
 // Add semantic response judgement to an already-successful pure transport
