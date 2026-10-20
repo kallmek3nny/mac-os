@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Opt-in live PGSP queue observation. This translation unit contains NO device writes.
 #include "NVGspQueueObserver.hpp"
+#include "NVGa107PciIdentity.hpp"
 #include "NVGspQueueLiveEvidence.hpp"
 
 #include <IOKit/IOLib.h>
