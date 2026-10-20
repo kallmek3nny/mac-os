@@ -130,7 +130,14 @@ bool NVGspQueueBackingService::start(IOService *provider)
     // activation metadata even when this attempt will fail before DMA setup.
     releaseResources();
     publishState("preparing-provider-owned-memory");
-    setProperty("NVGspQueueBackingRequested",true);
+    // A requested-live state must be published successfully or this activation
+    // may be mistaken for a complete candidate while its registry is partial.
+    if (!setProperty("NVGspQueueBackingRequested",true)) {
+        publishState("requested-evidence-publication-failed");
+        releaseResources();
+        registerService();
+        return true;
+    }
     setProperty("NVGspQueueBackingPrepared",false);
     setProperty("NVGspQueueBackingDmaBound",false);
     setProperty("NVGspQueueBackingDeviceMapperResolved",false);
@@ -155,11 +162,20 @@ bool NVGspQueueBackingService::start(IOService *provider)
         return true;
     }
 
-    setProperty("NVGspQueueBackingSharedBytes",(UInt64)layout.sharedBytes,32);
-    setProperty("NVGspQueueBackingPageCount",(UInt64)layout.pageTableEntryCount,32);
-    setProperty("NVGspQueueBackingPageTableBytes",(UInt64)layout.pageTableBytes,32);
-    setProperty("NVGspQueueBackingCommandOffset",(UInt64)layout.commandQueueOffset,32);
-    setProperty("NVGspQueueBackingStatusOffset",(UInt64)layout.statusQueueOffset,32);
+    // Geometry must have been exported in its entirety before a real DMA
+    // allocation can later be advertised as prepared.
+    const bool layoutPublished =
+        setProperty("NVGspQueueBackingSharedBytes",(UInt64)layout.sharedBytes,32) &&
+        setProperty("NVGspQueueBackingPageCount",(UInt64)layout.pageTableEntryCount,32) &&
+        setProperty("NVGspQueueBackingPageTableBytes",(UInt64)layout.pageTableBytes,32) &&
+        setProperty("NVGspQueueBackingCommandOffset",(UInt64)layout.commandQueueOffset,32) &&
+        setProperty("NVGspQueueBackingStatusOffset",(UInt64)layout.statusQueueOffset,32);
+    if (!layoutPublished) {
+        publishState("queue-layout-publication-failed");
+        releaseResources();
+        registerService();
+        return true;
+    }
 
     // Kernel allocations are wired by default unless kIOMemoryPageable is
     // requested. Do NOT request physical contiguity: NVIDIA open RM explicitly
@@ -172,8 +188,13 @@ bool NVGspQueueBackingService::start(IOService *provider)
         registerService();
         return true;
     }
-    setProperty("NVGspQueueBackingAllocated",true);
-    setProperty("NVGspQueueBackingCapacity",(UInt64)fBacking->getCapacity(),64);
+    if (!setProperty("NVGspQueueBackingAllocated",true) ||
+        !setProperty("NVGspQueueBackingCapacity",(UInt64)fBacking->getCapacity(),64)) {
+        publishState("allocation-evidence-publication-failed");
+        releaseResources();
+        registerService();
+        return true;
+    }
 
     void *cpuBytes=fBacking->getBytesNoCopy();
     if (!cpuBytes || fBacking->getCapacity()<(vm_size_t)layout.sharedBytes) {
@@ -190,7 +211,13 @@ bool NVGspQueueBackingService::start(IOService *provider)
         registerService();
         return true;
     }
-    setProperty("NVGspQueueBackingDeviceMapperResolved",true);
+    if (!setProperty("NVGspQueueBackingDeviceMapperResolved",true)) {
+        mapper->release();
+        publishState("mapper-evidence-publication-failed");
+        releaseResources();
+        registerService();
+        return true;
+    }
 
     // No guessed GA107 queue-address ceiling is imposed at this preparation
     // stage. 64 means the OutputHost64 representation is not artificially
@@ -213,7 +240,12 @@ bool NVGspQueueBackingService::start(IOService *provider)
         return true;
     }
     fDMABound=true;
-    setProperty("NVGspQueueBackingDmaBound",true);
+    if (!setProperty("NVGspQueueBackingDmaBound",true)) {
+        publishState("dma-bind-evidence-publication-failed");
+        releaseResources();
+        registerService();
+        return true;
+    }
 
     const vm_size_t segBytes=(vm_size_t)layout.pageTableEntryCount*sizeof(IODMACommand::Segment64);
     IODMACommand::Segment64 *ioSeg=reinterpret_cast<IODMACommand::Segment64 *>(IOMalloc(segBytes));
@@ -275,8 +307,17 @@ bool NVGspQueueBackingService::start(IOService *provider)
 
     // IOVAs are private to the provider-owned DMA plan. No raw GPU address
     // or queue-argument address is exported through the IORegistry.
-    setProperty("NVGspQueueBackingMappedBytes",dmaPlan.mappedBytes,64);
-    setProperty("NVGspQueueBackingSingleDmaSegment",dmaPlan.inputWasSingleContiguousSegment);
+    if (!setProperty("NVGspQueueBackingMappedBytes",dmaPlan.mappedBytes,64) ||
+        !setProperty("NVGspQueueBackingSingleDmaSegment",
+                     dmaPlan.inputWasSingleContiguousSegment)) {
+        IOFree(ioSeg,segBytes);
+        IOFree(pureSeg,(vm_size_t)layout.pageTableEntryCount*sizeof(NVGspQueueDmaSegment));
+        IOFree(pageAddress,(vm_size_t)layout.pageTableEntryCount*sizeof(NVGspDmaU64));
+        publishState("mapped-evidence-publication-failed");
+        releaseResources();
+        registerService();
+        return true;
+    }
 
     NVGspQueueMemoryPlan memoryPlan={};
     const UInt32 memoryVerdict=nvGspBuildQueueMemoryPlan(
@@ -358,17 +399,28 @@ bool NVGspQueueBackingService::start(IOService *provider)
 
     // The candidate address remains private until a separately proven GSP
     // initialization/notification boundary exists.
-    setProperty("NVGspQueueBackingInitFlags",memoryPlan.initArgs.flags,64);
-    setProperty("NVGspQueueBackingInitCommandOffset",memoryPlan.initArgs.cmdQueueOffset,64);
-    setProperty("NVGspQueueBackingInitStatusOffset",memoryPlan.initArgs.statQueueOffset,64);
-    setProperty("NVGspQueueBackingInitElementHeaderBytes",(UInt64)memoryPlan.initArgs.queueElementHdrSize,32);
-    setProperty("NVGspQueueBackingInitElementMinBytes",(UInt64)memoryPlan.initArgs.queueElementSizeMin,32);
-    setProperty("NVGspQueueBackingInitElementMaxBytes",(UInt64)memoryPlan.initArgs.queueElementSizeMax,32);
-    setProperty("NVGspQueueBackingInitHeaderAlign",(UInt64)memoryPlan.initArgs.queueHeaderAlign,32);
-    setProperty("NVGspQueueBackingInitElementAlignShift",(UInt64)memoryPlan.initArgs.queueElementAlign,32);
-    setProperty("NVGspQueueBackingInitPageTableEntryCount",(UInt64)memoryPlan.initArgs.pageTableEntryCount,32);
-    setProperty("NVGspQueueBackingPrepared",true);
-    setProperty("NVGspQueueBackingAddressKind","ga107-device-iovm-candidate-not-installed");
+    // Publication is a fail-closed evidence boundary, not a best-effort log.
+    // Publish the address classification before the readiness bit and revoke
+    // every live property if ANY required geometry field cannot be recorded.
+    // Evaluate each write even after an earlier failure to aid diagnostics;
+    // releaseResources() still withdraws the entire partial snapshot.
+    bool published = true;
+    published = setProperty("NVGspQueueBackingInitFlags",memoryPlan.initArgs.flags,64) && published;
+    published = setProperty("NVGspQueueBackingInitCommandOffset",memoryPlan.initArgs.cmdQueueOffset,64) && published;
+    published = setProperty("NVGspQueueBackingInitStatusOffset",memoryPlan.initArgs.statQueueOffset,64) && published;
+    published = setProperty("NVGspQueueBackingInitElementHeaderBytes",(UInt64)memoryPlan.initArgs.queueElementHdrSize,32) && published;
+    published = setProperty("NVGspQueueBackingInitElementMinBytes",(UInt64)memoryPlan.initArgs.queueElementSizeMin,32) && published;
+    published = setProperty("NVGspQueueBackingInitElementMaxBytes",(UInt64)memoryPlan.initArgs.queueElementSizeMax,32) && published;
+    published = setProperty("NVGspQueueBackingInitHeaderAlign",(UInt64)memoryPlan.initArgs.queueHeaderAlign,32) && published;
+    published = setProperty("NVGspQueueBackingInitElementAlignShift",(UInt64)memoryPlan.initArgs.queueElementAlign,32) && published;
+    published = setProperty("NVGspQueueBackingInitPageTableEntryCount",(UInt64)memoryPlan.initArgs.pageTableEntryCount,32) && published;
+    published = setProperty("NVGspQueueBackingAddressKind","ga107-device-iovm-candidate-not-installed") && published;
+    if (!published || !setProperty("NVGspQueueBackingPrepared",true)) {
+        publishState("prepared-evidence-publication-failed");
+        releaseResources();
+        registerService();
+        return true;
+    }
     publishState("owned-memory-prepared-gsp-not-notified");
     registerService();
 

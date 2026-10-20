@@ -160,4 +160,52 @@ for needle in ("releaseResources();", "registerService();", "return true;"):
 if not refuse.index("releaseResources();") < refuse.index("registerService();"):
     raise SystemExit("provider removal must retire resources before publication")
 
+# A partial IORegistry write must never claim an otherwise valid DMA backing
+# is prepared. Failures also revoke the complete live-state snapshot before
+# presenting the failure to clients.
+publish = start.split("bool published = true;", 1)[1].split(
+    'publishState("owned-memory-prepared-gsp-not-notified")', 1
+)[0]
+for name in (
+    "NVGspQueueBackingInitFlags",
+    "NVGspQueueBackingInitCommandOffset",
+    "NVGspQueueBackingInitStatusOffset",
+    "NVGspQueueBackingInitElementHeaderBytes",
+    "NVGspQueueBackingInitElementMinBytes",
+    "NVGspQueueBackingInitElementMaxBytes",
+    "NVGspQueueBackingInitHeaderAlign",
+    "NVGspQueueBackingInitElementAlignShift",
+    "NVGspQueueBackingInitPageTableEntryCount",
+    "NVGspQueueBackingAddressKind",
+):
+    if f'published = setProperty("{name}"' not in publish:
+        raise SystemExit(f"required prepared field not checked: {name}")
+if publish.index('setProperty("NVGspQueueBackingAddressKind"') > publish.index(
+    'setProperty("NVGspQueueBackingPrepared",true)'
+):
+    raise SystemExit("prepared bit must be published last")
+if 'if (!published || !setProperty("NVGspQueueBackingPrepared",true)) {' not in publish:
+    raise SystemExit("prepared readiness must be checked and fail closed")
+fail = publish.split('if (!published || !setProperty("NVGspQueueBackingPrepared",true)) {', 1)[1]
+for needle in (
+    'publishState("prepared-evidence-publication-failed")',
+    "releaseResources();",
+    "registerService();",
+    "return true;",
+):
+    if needle not in fail:
+        raise SystemExit(f"partial prepared evidence not fully revoked: {needle}")
+if not fail.index("releaseResources();") < fail.index("registerService();"):
+    raise SystemExit("partial metadata must be withdrawn before failure publication")
+for state in (
+    "requested-evidence-publication-failed",
+    "queue-layout-publication-failed",
+    "allocation-evidence-publication-failed",
+    "mapper-evidence-publication-failed",
+    "dma-bind-evidence-publication-failed",
+    "mapped-evidence-publication-failed",
+):
+    if f'publishState("{state}")' not in start:
+        raise SystemExit(f"missing fail-closed runtime publication gate: {state}")
+
 print("GA107 GSP queue backing public evidence contract: ok")
