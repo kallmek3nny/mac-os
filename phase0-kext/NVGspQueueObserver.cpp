@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Opt-in live PGSP queue observation. This translation unit contains NO device writes.
 #include "NVGspQueueObserver.hpp"
-#include "NVGa107PciIdentity.hpp"
+#include "NVGspQueueLiveEvidence.hpp"
 
 #include <IOKit/IOLib.h>
 #include <pexpert/pexpert.h>
@@ -124,6 +124,10 @@ bool NVGspQueueObserver::start(IOService *provider)
     // Read PCI command state but never change it. The observer must not turn a
     // sleeping/disabled function into an active one merely to collect telemetry.
     const UInt16 command=fPCI->configRead16(kIOPCIConfigCommand);
+    const NVGspQueuePciSample pciBefore = {
+        (NVGspObsU32)vendor, (NVGspObsU32)device,
+        (NVGspObsU32)classReg, (NVGspObsU32)command
+    };
     const bool memoryEnabled=(command&0x0002u)!=0u; // PCI COMMAND.MEMORY
     setProperty("NVGspQueueObserverPciCommand",(UInt64)command,16);
     setProperty("NVGspQueueObserverMemoryEnabled",memoryEnabled);
@@ -213,6 +217,24 @@ bool NVGspQueueObserver::start(IOService *provider)
     if (!nvGspQueueSnapshotCanPublish(verdict,&snapshot)) {
         publishState(verdict==NV_GSP_QUEUE_OBSERVE_DEAD_READ
                          ? "queue-register-dead-read" : "snapshot-refused");
+        registerService();
+        return true;
+    }
+
+    // A matching pair of MMIO counter samples is not enough if PCI MEMORY
+    // was disabled, the command word moved, or the function identity changed
+    // while BAR0 was being observed. Re-read bounded PCI config before any
+    // counter publication, then revoke ALL partial evidence on refusal.
+    const NVGspQueuePciSample pciAfter = {
+        (NVGspObsU32)fPCI->configRead16(kIOPCIConfigVendorID),
+        (NVGspObsU32)fPCI->configRead16(kIOPCIConfigDeviceID),
+        (NVGspObsU32)fPCI->configRead32(kIOPCIConfigRevisionID),
+        (NVGspObsU32)fPCI->configRead16(kIOPCIConfigCommand)
+    };
+    if (!nvGspQueueLiveEvidenceCanPublish(&pciBefore,&pciAfter,
+                                          verdict,&snapshot)) {
+        invalidateObservation();
+        publishState("pci-provider-changed-during-snapshot");
         registerService();
         return true;
     }

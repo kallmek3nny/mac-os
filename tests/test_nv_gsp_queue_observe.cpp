@@ -1,7 +1,7 @@
 // Host tests for NVGspQueueObserve.hpp. No IOKit, BAR0 or hardware required.
 #include <cstdio>
 #include <cstring>
-#include "NVGspQueueObserve.hpp"
+#include "NVGspQueueLiveEvidence.hpp"
 
 static int gChecks=0, gFailures=0;
 static void check(const char *label, bool ok) {
@@ -203,6 +203,73 @@ static void testLiveEvidencePublicationGate(void) {
     check("dead pair cannot publish",!nvGspQueueSnapshotCanPublish(deadVerdict,&untouched));
 }
 
+
+static void testPciLifetimeEvidenceGate(void) {
+    std::printf("\n9. read-only PCI provenance must survive BAR0 observation\n");
+    const NVGspQueueCounterSample stable={70u,65u,100u,98u};
+    NVGspQueueSnapshot snapshot={};
+    const NVGspObsU32 verdict=nvGspClassifyStableQueueSnapshot(
+        0u,&stable,&stable,&snapshot);
+    checkU32("stable queue pair",verdict,NV_GSP_QUEUE_OBSERVE_OK);
+
+    const NVGspQueuePciSample before={0x10deu,0x25a2u,0x03000000u,0x0002u};
+    NVGspQueuePciSample after=before;
+    check("stable GA107 memory decoding may publish only counters",
+          nvGspQueueLiveEvidenceCanPublish(&before,&after,verdict,&snapshot));
+
+    check("null preflight refuses",
+          !nvGspQueueLiveEvidenceCanPublish(nullptr,&after,verdict,&snapshot));
+    check("null postflight refuses",
+          !nvGspQueueLiveEvidenceCanPublish(&before,nullptr,verdict,&snapshot));
+    check("null queue evidence refuses",
+          !nvGspQueueLiveEvidenceCanPublish(&before,&after,verdict,nullptr));
+    check("changed queue pair refuses regardless of PCI state",
+          !nvGspQueueLiveEvidenceCanPublish(&before,&after,
+              NV_GSP_QUEUE_OBSERVE_CHANGED_DURING_READ,&snapshot));
+    check("dead read refuses regardless of PCI state",
+          !nvGspQueueLiveEvidenceCanPublish(&before,&after,
+              NV_GSP_QUEUE_OBSERVE_DEAD_READ,&snapshot));
+
+    after=before; after.vendor=0xffffu;
+    check("removed vendor cannot retain counters",
+          !nvGspQueueLiveEvidenceCanPublish(&before,&after,verdict,&snapshot));
+    after=before; after.device=0x25a3u;
+    check("different NVIDIA device cannot retain counters",
+          !nvGspQueueLiveEvidenceCanPublish(&before,&after,verdict,&snapshot));
+    after=before; after.classRevision=0x02000000u;
+    check("non-display PCI function cannot retain counters",
+          !nvGspQueueLiveEvidenceCanPublish(&before,&after,verdict,&snapshot));
+    after=before; after.classRevision=0x03000001u;
+    check("class/revision epoch drift refuses",
+          !nvGspQueueLiveEvidenceCanPublish(&before,&after,verdict,&snapshot));
+    after=before; after.command=0u;
+    check("PCI memory disabled after BAR read refuses",
+          !nvGspQueueLiveEvidenceCanPublish(&before,&after,verdict,&snapshot));
+    after=before; after.command=0x0006u;
+    check("command drift with MEMORY still on refuses",
+          !nvGspQueueLiveEvidenceCanPublish(&before,&after,verdict,&snapshot));
+    NVGspQueuePciSample disabled=before; disabled.command=0u;
+    check("PCI memory disabled at start refuses",
+          !nvGspQueueLiveEvidenceCanPublish(&disabled,&disabled,verdict,&snapshot));
+    disabled=before; disabled.vendor=0x8086u;
+    check("wrong preflight device cannot publish",
+          !nvGspQueueLiveEvidenceCanPublish(&disabled,&disabled,verdict,&snapshot));
+
+    NVGspQueueSnapshot single={};
+    const NVGspObsU32 one=nvGspClassifyQueueSnapshot(
+        0u,70u,65u,100u,98u,&single);
+    check("stable PCI cannot promote single counter sample",
+          !nvGspQueueLiveEvidenceCanPublish(&before,&before,one,&single));
+    const NVGspQueueCounterSample ambiguous={64u,0u,100u,0u};
+    NVGspQueueSnapshot historyless={};
+    const NVGspObsU32 diagnostic=nvGspClassifyStableQueueSnapshot(
+        0u,&ambiguous,&ambiguous,&historyless);
+    check("stable PCI retains ambiguous diagnostic without inventing readiness",
+          nvGspQueueLiveEvidenceCanPublish(
+              &before,&before,diagnostic,&historyless) &&
+          !historyless.countersPlausibleWithoutHistory);
+}
+
 static void testVerdicts(void) {
     std::printf("\n6. verdict family\n");
     for (NVGspObsU32 v=0u;v<NV_GSP_QUEUE_OBSERVE_LIMIT;++v) {
@@ -220,6 +287,7 @@ int main(void) {
     testDeadReadAndRefusals();
     testDoubleSampleRefusalAndProvenance();
     testLiveEvidencePublicationGate();
+    testPciLifetimeEvidenceGate();
     testVerdicts();
     std::printf("\n%d checks, %d failures\n",gChecks,gFailures);
     return gFailures?1:0;
