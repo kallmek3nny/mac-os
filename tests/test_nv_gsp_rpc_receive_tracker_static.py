@@ -93,4 +93,16 @@ for needle in (
 ):
     assert needle in publish, f"missing provider publication guard {needle}"
 assert "staged.requestPublished = false;" in confirm
+# The provider must explicitly witness the exact monotonic RX TAIL value.
+# No parameterless helper may retire a matched reply using planned geometry.
+assert "NVGspRxTrackU32 observedTail," in confirm
+assert "bool providerTailPublished)" in confirm
+assert "if (!providerTailPublished) return NV_GSP_RX_TRACK_TAIL_UNCONFIRMED;" in confirm
+assert "if (observedTail != tracker->expectedConsumeTail)" in confirm
+assert confirm.index("if (observedTail != tracker->expectedConsumeTail)") < confirm.index(
+    "NVGspRpcReceiveTracker staged = *tracker;")
+assert "tracker->quarantined = true;" in confirm
+assert "staged.expectedConsumeTail = static_cast<NVGspRxTrackU32>(" in confirm
+assert "staged.expectedConsumeTail + staged.expectedResponseElements" in confirm
+assert "staged.expectedConsumeTail = transport->responseConsume.messageTailValue;" in tracker
 print("GA107 GSP RPC receive/retirement safety contract: ok")

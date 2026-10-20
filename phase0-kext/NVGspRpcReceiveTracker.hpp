@@ -30,7 +30,9 @@ using NVGspRxTrackU32 = unsigned int;
 #define NV_GSP_RX_TRACK_PUBLISH_UNCONFIRMED 19u
 #define NV_GSP_RX_TRACK_PUBLISH_IDENTITY 20u
 #define NV_GSP_RX_TRACK_PUBLISH_DUPLICATE 21u
-#define NV_GSP_RX_TRACK_LIMIT           22u
+#define NV_GSP_RX_TRACK_TAIL_UNCONFIRMED 22u
+#define NV_GSP_RX_TRACK_TAIL_MISMATCH   23u
+#define NV_GSP_RX_TRACK_LIMIT           24u
 
 // Bound asynchronous messages seen for one request. No polling, sleeps,
 // retry automation, MMIO, RX-tail writes or dynamic allocation in this code.
@@ -51,6 +53,9 @@ struct NVGspRpcReceiveTracker {
     NVGspRxTrackU32 lastSequence;
     NVGspRxTrackU32 expectedRecordBytes;
     NVGspRxTrackU32 expectedResponseElements;
+    // Monotonic NvU32 RX TAIL expected from the exact planned consume span.
+    // The caller must independently witness its provider-owned publication.
+    NVGspRxTrackU32 expectedConsumeTail;
     NVGspRxTrackU32 asyncRecordCount;
 };
 
@@ -92,6 +97,7 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerBegin(
     staged.sequence = transport->sequence;
     staged.expectedRecordBytes = transport->responseRecordBytes;
     staged.expectedResponseElements = transport->responseElementCount;
+    staged.expectedConsumeTail = transport->responseConsume.messageTailValue;
     staged.asyncRecordCount = 0u;
     staged.awaitingConsume = false;
     staged.requestPublished = false;
@@ -197,11 +203,16 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerObserve(
                                  : NV_GSP_RX_TRACK_MATCHED_ERROR;
 }
 
-// Only a real provider can confirm that the RX tail was actually published.
-// This helper orders facts but does not itself write a tail or authenticate the
-// provider; its result must never be used as an RM allocation/CE readiness bit.
+// RX tail retirement needs an explicit provider-supplied publication witness
+// bound to the exact monotonic MSGQ_TAIL value from the planned consume span.
+// This pure helper neither writes the tail nor authenticates the provider:
+// a correct caller-supplied value is NOT a physical device completion receipt.
+// Unconfirmed tail writes leave the record pending; a confidently published
+// but inconsistent tail permanently quarantines ownership.
 static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerConfirmConsumed(
-    NVGspRpcReceiveTracker *tracker)
+    NVGspRpcReceiveTracker *tracker,
+    NVGspRxTrackU32 observedTail,
+    bool providerTailPublished)
 {
     if (!tracker) return NV_GSP_RX_TRACK_NULL;
     if (!tracker->initialized) return NV_GSP_RX_TRACK_UNINITIALIZED;
@@ -209,11 +220,21 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerConfirmConsumed(
     if (tracker->quarantined) return NV_GSP_RX_TRACK_QUARANTINED;
     if (!tracker->active) return NV_GSP_RX_TRACK_NO_REQUEST;
     if (!tracker->awaitingConsume) return NV_GSP_RX_TRACK_AWAIT_CONSUME;
+    if (!providerTailPublished) return NV_GSP_RX_TRACK_TAIL_UNCONFIRMED;
+    if (observedTail != tracker->expectedConsumeTail) {
+        tracker->quarantined = true;
+        return NV_GSP_RX_TRACK_TAIL_MISMATCH;
+    }
 
     NVGspRpcReceiveTracker staged = *tracker;
     staged.awaitingConsume = false;
     if (!staged.recordMatched) {
         ++staged.asyncRecordCount;
+        // Each consumed asynchronous record advances the monotonic RX TAIL.
+        // NvU32 rollover is intentional, but a refreshed RX-head availability
+        // witness is still required from a future live provider executor.
+        staged.expectedConsumeTail = static_cast<NVGspRxTrackU32>(
+            staged.expectedConsumeTail + staged.expectedResponseElements);
         staged.recordSucceeded = false;
         *tracker = staged;
         return NV_GSP_RX_TRACK_ASYNC_EVENT;
