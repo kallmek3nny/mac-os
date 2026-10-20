@@ -57,4 +57,20 @@ assert "NV_GSP_RX_TRACK_MAX_ASYNC_RECORDS 63u" in tracker
 assert "nvGspRpcReceiveTrackerStop(" in tracker
 assert "tracker->stopped = true;" in tracker
 assert "tracker->quarantined = true;" in tracker
+# Transport RX placement/consumption geometry and single-flight record size
+# must be checked before response classification, not after RX retirement.
+for needle in (
+    "transport.responseRecordBytes >= NV_GSP_RPC_PREFIX_BYTES",
+    "transport.responseElementCount ==",
+    "transport.responseConsume.oldReadPtr == transport.responseAvailable.readPtr",
+    "transport.responseConsume.remainingAvailable ==",
+    "nvGspPlanQueueRxElement(&transport.responseAvailable,i,&expected)",
+):
+    assert needle in response, f"missing transport RX geometry validation: {needle}"
+assert "staged.expectedRecordBytes = transport->responseRecordBytes;" in tracker
+assert "staged.expectedResponseElements = transport->responseElementCount;" in tracker
+assert "recordBytes != tracker->expectedRecordBytes" in observe
+assert observe.index("recordBytes != tracker->expectedRecordBytes") < observe.index(
+    "nvGspValidateRpcResponseNoCc(")
+assert "NV_GSP_RX_TRACK_GEOMETRY_MISMATCH" in observe
 print("GA107 GSP RPC receive/retirement safety contract: ok")

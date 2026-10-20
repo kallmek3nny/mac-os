@@ -25,7 +25,8 @@ using NVGspRxTrackU32 = unsigned int;
 #define NV_GSP_RX_TRACK_MALFORMED        14u
 #define NV_GSP_RX_TRACK_STOPPED          15u
 #define NV_GSP_RX_TRACK_SEQUENCE        16u
-#define NV_GSP_RX_TRACK_LIMIT           17u
+#define NV_GSP_RX_TRACK_GEOMETRY_MISMATCH 17u
+#define NV_GSP_RX_TRACK_LIMIT           18u
 
 // Bound asynchronous messages seen for one request. No polling, sleeps,
 // retry automation, MMIO, RX-tail writes or dynamic allocation in this code.
@@ -43,6 +44,8 @@ struct NVGspRpcReceiveTracker {
     NVGspRxTrackU32 function;
     NVGspRxTrackU32 sequence;
     NVGspRxTrackU32 lastSequence;
+    NVGspRxTrackU32 expectedRecordBytes;
+    NVGspRxTrackU32 expectedResponseElements;
     NVGspRxTrackU32 asyncRecordCount;
 };
 
@@ -82,6 +85,8 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerBegin(
     staged.active = true;
     staged.function = transport->function;
     staged.sequence = transport->sequence;
+    staged.expectedRecordBytes = transport->responseRecordBytes;
+    staged.expectedResponseElements = transport->responseElementCount;
     staged.asyncRecordCount = 0u;
     staged.awaitingConsume = false;
     staged.recordMatched = false;
@@ -106,6 +111,16 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerObserve(
     if (tracker->quarantined) return NV_GSP_RX_TRACK_QUARANTINED;
     if (!tracker->active) return NV_GSP_RX_TRACK_NO_REQUEST;
     if (tracker->awaitingConsume) return NV_GSP_RX_TRACK_AWAIT_CONSUME;
+
+    // Do not classify a response against a different RX record geometry than
+    // the single-flight transport. A different number of queue bytes might
+    // consume additional/missing slots or be an unplanned asynchronous frame.
+    // Without a separate event-specific RX consume witness, quarantine it.
+    if (recordBytes != tracker->expectedRecordBytes ||
+        !tracker->expectedResponseElements) {
+        tracker->quarantined = true;
+        return NV_GSP_RX_TRACK_GEOMETRY_MISMATCH;
+    }
 
     NVGspRpcResponsePlan receipt = {};
     const NVGspRespU32 result = nvGspValidateRpcResponseNoCc(
