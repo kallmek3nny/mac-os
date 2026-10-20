@@ -115,4 +115,36 @@ assert start.index("nvGspClassifyStableQueueSnapshot(") < refusal < first_publis
 assert "return true;" in start[refusal:first_publish]
 assert "queue-register-dead-read" in start[refusal:first_publish]
 
+# A second PCI configuration sample must occur after the bounded BAR0 pair,
+# but before the first IORegistry command/status counter can be published.
+# Changed provider identity or lost PCI MEMORY must revoke all observations.
+require_live = (
+    '#include "NVGspQueueLiveEvidence.hpp"',
+    "const NVGspQueuePciSample pciBefore",
+    "const NVGspQueuePciSample pciAfter",
+    "nvGspQueueLiveEvidenceCanPublish(&pciBefore,&pciAfter,",
+    'publishState("pci-provider-changed-during-snapshot")',
+)
+for needle in require_live:
+    if needle not in source:
+        raise SystemExit(f"missing provider lifetime read boundary: {needle}")
+after_idx = source.index("const NVGspQueuePciSample pciAfter")
+gate_idx = source.index("if (!nvGspQueueLiveEvidenceCanPublish(")
+first_counter = source.index('setProperty("NVGspQueueCommandHead"')
+if not classifier < after_idx < gate_idx < first_counter:
+    raise SystemExit("PCI identity revalidation must precede counter publication")
+gate_block = source[gate_idx:first_counter]
+if not all(item in gate_block for item in (
+    "invalidateObservation();", "registerService();", "return true;"
+)):
+    raise SystemExit("PCI ownership change must revoke and refuse counters")
+for read in (
+    "fPCI->configRead16(kIOPCIConfigVendorID)",
+    "fPCI->configRead16(kIOPCIConfigDeviceID)",
+    "fPCI->configRead32(kIOPCIConfigRevisionID)",
+    "fPCI->configRead16(kIOPCIConfigCommand)",
+):
+    if read not in source[after_idx:gate_idx]:
+        raise SystemExit(f"missing post-BAR provider read: {read}")
+
 print("GA107 bounded queue double-read observer source contract: ok")
