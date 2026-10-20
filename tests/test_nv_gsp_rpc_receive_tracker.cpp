@@ -42,7 +42,7 @@ static void testInitAndIdentity(void) {
     eq("second request blocked",nvGspRpcReceiveTrackerBegin(&state,&original),
        NV_GSP_RX_TRACK_BUSY);
     eq("no consume without observed record",
-       nvGspRpcReceiveTrackerConfirmConsumed(&state),NV_GSP_RX_TRACK_AWAIT_CONSUME);
+       nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),NV_GSP_RX_TRACK_AWAIT_CONSUME);
     eq("bad transport blocked even before activation",
        nvGspRpcReceiveTrackerBegin(nullptr,&original),NV_GSP_RX_TRACK_NULL);
     NVGspRpcReceiveTracker never={};
@@ -63,7 +63,7 @@ static void testPendingAndConsumeOrder(void) {
        NV_GSP_RX_TRACK_RESULT_PENDING);
     check("pending does not advance RX evidence",
           state.active && !state.awaitingConsume && !state.recordSucceeded);
-    eq("pending cannot consume",nvGspRpcReceiveTrackerConfirmConsumed(&state),
+    eq("pending cannot consume",nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),
        NV_GSP_RX_TRACK_AWAIT_CONSUME);
     reply.prefix[10]=0u;
     eq("matched result is provisional",
@@ -77,7 +77,7 @@ static void testPendingAndConsumeOrder(void) {
     eq("another request blocked until consume",
        nvGspRpcReceiveTrackerBegin(&state,&req),NV_GSP_RX_TRACK_BUSY);
     eq("matched reply retired only after consume",
-       nvGspRpcReceiveTrackerConfirmConsumed(&state),
+       nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),
        NV_GSP_RX_TRACK_MATCHED_SUCCESS);
     check("retirement completes single flight",
           !state.active && !state.awaitingConsume && state.hasLastSequence);
@@ -104,7 +104,7 @@ static void testEventsAndRemoteErrors(void) {
     check("event owns pending consumption",
           state.active && state.awaitingConsume && !state.recordMatched);
     eq("event consumed without completing request",
-       nvGspRpcReceiveTrackerConfirmConsumed(&state),NV_GSP_RX_TRACK_ASYNC_EVENT);
+       nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),NV_GSP_RX_TRACK_ASYNC_EVENT);
     check("request remains live",state.active && !state.awaitingConsume &&
           state.asyncRecordCount==1u);
     NVGspRpcFramePlan remoteErr=response(0x400u,30u,5u);
@@ -113,7 +113,7 @@ static void testEventsAndRemoteErrors(void) {
        NV_GSP_RX_TRACK_MATCHED_ERROR);
     check("error still pending consume",state.active && state.awaitingConsume &&
           !state.recordSucceeded);
-    eq("error retires as error",nvGspRpcReceiveTrackerConfirmConsumed(&state),
+    eq("error retires as error",nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),
        NV_GSP_RX_TRACK_MATCHED_ERROR);
     check("no false success",!state.recordSucceeded && !state.active);
 }
@@ -133,7 +133,7 @@ static void testPartialMismatchQuarantine(void) {
            NV_GSP_RX_TRACK_ID_COLLISION);
         check("identity collision stays quarantined",state.quarantined && state.active);
         eq("collision cannot consume",
-           nvGspRpcReceiveTrackerConfirmConsumed(&state),NV_GSP_RX_TRACK_QUARANTINED);
+           nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),NV_GSP_RX_TRACK_QUARANTINED);
         eq("collision cannot start another RPC",
            nvGspRpcReceiveTrackerBegin(&state,&p),NV_GSP_RX_TRACK_QUARANTINED);
     }
@@ -175,7 +175,7 @@ static void testBoundedEventsAndStop(void) {
         eq("bounded async classification",
            nvGspRpcReceiveTrackerObserve(&state,event.prefix,56u),
            NV_GSP_RX_TRACK_ASYNC_EVENT);
-        eq("bounded async consume",nvGspRpcReceiveTrackerConfirmConsumed(&state),
+        eq("bounded async consume",nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),
            NV_GSP_RX_TRACK_ASYNC_EVENT);
     }
     check("bounded record count",state.asyncRecordCount==NV_GSP_RX_TRACK_MAX_ASYNC_RECORDS);
@@ -202,7 +202,7 @@ static void testUncertainAndSequenceRollover(void) {
     const NVGspRpcFramePlan ack=response(0x121u,0xffffffffu);
     eq("last sequence reply",nvGspRpcReceiveTrackerObserve(&state,ack.prefix,56u),
        NV_GSP_RX_TRACK_MATCHED_SUCCESS);
-    eq("last sequence consumes",nvGspRpcReceiveTrackerConfirmConsumed(&state),
+    eq("last sequence consumes",nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),
        NV_GSP_RX_TRACK_MATCHED_SUCCESS);
     const NVGspRpcTransportPlan zero=transport(0x121u,0u);
     eq("natural wrap to zero",nvGspRpcReceiveTrackerBegin(&state,&zero),
@@ -213,7 +213,7 @@ static void testUncertainAndSequenceRollover(void) {
        NV_GSP_RX_TRACK_QUARANTINED);
     eq("terminal poison survives",nvGspRpcReceiveTrackerRetirementUncertain(&state),
        NV_GSP_RX_TRACK_QUARANTINED);
-    eq("cannot finish uncertain receipt",nvGspRpcReceiveTrackerConfirmConsumed(&state),
+    eq("cannot finish uncertain receipt",nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),
        NV_GSP_RX_TRACK_QUARANTINED);
 }
 
@@ -261,7 +261,7 @@ static void testPinnedReceiveGeometry(void) {
        nvGspRpcReceiveTrackerObserve(&state,reply.prefix,56u),
        NV_GSP_RX_TRACK_QUARANTINED);
     eq("wrong-size response cannot retire",
-       nvGspRpcReceiveTrackerConfirmConsumed(&state),NV_GSP_RX_TRACK_QUARANTINED);
+       nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),NV_GSP_RX_TRACK_QUARANTINED);
     eq("stopped poisoned receive remains poisoned",
        nvGspRpcReceiveTrackerStop(&state),NV_GSP_RX_TRACK_QUARANTINED);
 }
@@ -315,7 +315,7 @@ static void testPublicationReceiptGate(void) {
     eq("no late publication during awaiting tail",
        nvGspRpcReceiveTrackerRecordPublication(&state,0xa00u,0x44u,true),
        NV_GSP_RX_TRACK_AWAIT_CONSUME);
-    eq("post-tail retirement",nvGspRpcReceiveTrackerConfirmConsumed(&state),
+    eq("post-tail retirement",nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),
        NV_GSP_RX_TRACK_MATCHED_SUCCESS);
     check("receipt and active lease both cleared on completed request",
           !state.active && !state.requestPublished);
@@ -337,6 +337,79 @@ static void testPublicationReceiptGate(void) {
        NV_GSP_RX_TRACK_QUARANTINED);
 }
 
+static void testConsumeTailPublicationWitness(void) {
+    NVGspRpcReceiveTracker pending={};
+    eq("init tail",nvGspRpcReceiveTrackerInit(&pending),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcTransportPlan plan=transport(0xa11u,0x55u);
+    eq("begin tail",nvGspRpcReceiveTrackerBegin(&pending,&plan),NV_GSP_RX_TRACK_OK);
+    check("tail bound to original planned consume",pending.expectedConsumeTail==
+          plan.responseConsume.messageTailValue && pending.expectedConsumeTail==1u);
+    eq("TX published for tail",nvGspRpcReceiveTrackerRecordPublication(
+        &pending,0xa11u,0x55u,true),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcFramePlan ack=response(0xa11u,0x55u);
+    eq("record provisional before tail witness",nvGspRpcReceiveTrackerObserve(
+        &pending,ack.prefix,56u),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+    const NVGspRpcReceiveTracker pendingCopy=pending;
+    eq("unconfirmed RX tail cannot retire",
+       nvGspRpcReceiveTrackerConfirmConsumed(&pending,1u,false),
+       NV_GSP_RX_TRACK_TAIL_UNCONFIRMED);
+    check("unconfirmed tail leaves exactly the same pending record",
+          std::memcmp(&pending,&pendingCopy,sizeof(pending))==0);
+    eq("misaddressed provider-confirmed tail quarantines",
+       nvGspRpcReceiveTrackerConfirmConsumed(&pending,2u,true),
+       NV_GSP_RX_TRACK_TAIL_MISMATCH);
+    check("wrong tail retains uncertain ownership",
+          pending.quarantined && pending.active && pending.awaitingConsume);
+    eq("correct tail cannot cure a mismatched publication",
+       nvGspRpcReceiveTrackerConfirmConsumed(&pending,1u,true),
+       NV_GSP_RX_TRACK_QUARANTINED);
+
+    NVGspRpcReceiveTracker events={};
+    eq("init tail events",nvGspRpcReceiveTrackerInit(&events),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcTransportPlan eventPlan=transport(0xa22u,0x56u);
+    eq("begin tail events",nvGspRpcReceiveTrackerBegin(&events,&eventPlan),
+       NV_GSP_RX_TRACK_OK);
+    eq("publish tail events",nvGspRpcReceiveTrackerRecordPublication(
+        &events,0xa22u,0x56u,true),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcFramePlan asynchronous=response(0xa23u,0x57u);
+    eq("observe independent async",nvGspRpcReceiveTrackerObserve(
+        &events,asynchronous.prefix,56u),NV_GSP_RX_TRACK_ASYNC_EVENT);
+    eq("first RX tail publication",nvGspRpcReceiveTrackerConfirmConsumed(
+        &events,1u,true),NV_GSP_RX_TRACK_ASYNC_EVENT);
+    check("async consume advances required next RX tail",
+          events.active && events.expectedConsumeTail==2u &&
+          events.asyncRecordCount==1u);
+    const NVGspRpcFramePlan matched=response(0xa22u,0x56u);
+    eq("matching response after async",nvGspRpcReceiveTrackerObserve(
+        &events,matched.prefix,56u),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+    eq("second RX tail publication",nvGspRpcReceiveTrackerConfirmConsumed(
+        &events,2u,true),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+    check("completion retires only after correct incremented tail",
+          !events.active && events.hasLastSequence && !events.quarantined);
+
+    // Nvidia's queue read/write pointers are monotonic NvU32 counters.
+    // The final slot may legitimately retire across the 32-bit wrap.
+    NVGspQueuePlan layout={};
+    eq("wrap queue layout",nvGspBuildQueuePlan(true,false,0u,&layout),
+       NV_GSP_QUEUE_PLAN_OK);
+    NVGspRpcTransportPlan rollover={};
+    eq("wrap receive plan",nvGspPlanRpcTransport(
+        &layout,0xa33u,0x57u,0u,0u,0u,0u,
+        0xffffffffu,0xffffffffu,0u,56u,&rollover),NV_GSP_RPC_TXN_OK);
+    NVGspRpcReceiveTracker wrapped={};
+    eq("init wrap",nvGspRpcReceiveTrackerInit(&wrapped),NV_GSP_RX_TRACK_OK);
+    eq("begin wrap",nvGspRpcReceiveTrackerBegin(&wrapped,&rollover),
+       NV_GSP_RX_TRACK_OK);
+    check("full 32-bit RX tail wrap accepts zero",wrapped.expectedConsumeTail==0u);
+    eq("publish wrap",nvGspRpcReceiveTrackerRecordPublication(
+        &wrapped,0xa33u,0x57u,true),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcFramePlan wrapAck=response(0xa33u,0x57u);
+    eq("observe wrapped response",nvGspRpcReceiveTrackerObserve(
+        &wrapped,wrapAck.prefix,56u),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+    eq("confirmed zero-tail retirement",nvGspRpcReceiveTrackerConfirmConsumed(
+        &wrapped,0u,true),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+}
+
 int main(void) {
     std::printf("GSP-RM single-flight response receive/retirement guards\n");
     testInitAndIdentity();
@@ -349,6 +422,7 @@ int main(void) {
     testPinnedReceiveGeometry();
     testBadTransportAtomicity();
     testPublicationReceiptGate();
+    testConsumeTailPublicationWitness();
     std::printf("%u checks, %u failures\n",checks,failures);
     return failures?1:0;
 }
