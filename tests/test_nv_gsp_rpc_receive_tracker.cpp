@@ -28,6 +28,21 @@ static NVGspRpcFramePlan response(NVGspRxTrackU32 fn,NVGspRxTrackU32 seq,
     frame.prefix[10]=result;
     return frame;
 }
+// Test-only stand-in for a live provider: report one fresh, normalized RX
+// HEAD covering exactly the next single-flight record at the tracker's
+// expected reader, then classify that record. When the witness gate refuses
+// for a lifecycle reason (unpublished, awaiting consume, quarantined, ...)
+// the tracker is unchanged and Observe re-reports the same guard. Tests of
+// the witness gate itself call nvGspRpcReceiveTrackerRecordAvailability.
+static NVGspRxTrackU32 observeFresh(NVGspRpcReceiveTracker *state,
+                                    const NVGspRespU32 *prefix,
+                                    NVGspRxTrackU32 recordBytes) {
+    if (state)
+        (void)nvGspRpcReceiveTrackerRecordAvailability(state,
+            static_cast<NVGspRxTrackU32>(state->expectedReadPtr+
+                                         state->expectedResponseElements),true);
+    return nvGspRpcReceiveTrackerObserve(state,prefix,recordBytes);
+}
 static void testInitAndIdentity(void) {
     NVGspRpcReceiveTracker state={};
     const NVGspRpcTransportPlan original=transport(0x100u,7u);
@@ -46,7 +61,7 @@ static void testInitAndIdentity(void) {
     eq("bad transport blocked even before activation",
        nvGspRpcReceiveTrackerBegin(nullptr,&original),NV_GSP_RX_TRACK_NULL);
     NVGspRpcReceiveTracker never={};
-    eq("uninitialized observe",nvGspRpcReceiveTrackerObserve(&never,nullptr,56u),
+    eq("uninitialized observe",observeFresh(&never,nullptr,56u),
        NV_GSP_RX_TRACK_NULL);
 }
 
@@ -59,7 +74,7 @@ static void testPendingAndConsumeOrder(void) {
        NV_GSP_RX_TRACK_OK);
     NVGspRpcFramePlan reply=response(0x101u,11u,NV_GSP_RPC_RESULT_PENDING);
     eq("pending sentinel not an error",
-       nvGspRpcReceiveTrackerObserve(&state,reply.prefix,56u),
+       observeFresh(&state,reply.prefix,56u),
        NV_GSP_RX_TRACK_RESULT_PENDING);
     check("pending does not advance RX evidence",
           state.active && !state.awaitingConsume && !state.recordSucceeded);
@@ -67,12 +82,12 @@ static void testPendingAndConsumeOrder(void) {
        NV_GSP_RX_TRACK_AWAIT_CONSUME);
     reply.prefix[10]=0u;
     eq("matched result is provisional",
-       nvGspRpcReceiveTrackerObserve(&state,reply.prefix,56u),
+       observeFresh(&state,reply.prefix,56u),
        NV_GSP_RX_TRACK_MATCHED_SUCCESS);
     check("matched still owns transaction until RX tail confirmation",
           state.active && state.awaitingConsume && state.recordSucceeded);
     eq("duplicate receive blocked until consume",
-       nvGspRpcReceiveTrackerObserve(&state,reply.prefix,56u),
+       observeFresh(&state,reply.prefix,56u),
        NV_GSP_RX_TRACK_AWAIT_CONSUME);
     eq("another request blocked until consume",
        nvGspRpcReceiveTrackerBegin(&state,&req),NV_GSP_RX_TRACK_BUSY);
@@ -81,7 +96,7 @@ static void testPendingAndConsumeOrder(void) {
        NV_GSP_RX_TRACK_MATCHED_SUCCESS);
     check("retirement completes single flight",
           !state.active && !state.awaitingConsume && state.hasLastSequence);
-    eq("replay blocked after completion",nvGspRpcReceiveTrackerObserve(
+    eq("replay blocked after completion",observeFresh(
         &state,reply.prefix,56u),NV_GSP_RX_TRACK_NO_REQUEST);
     eq("duplicate request sequence blocked",
        nvGspRpcReceiveTrackerBegin(&state,&req),NV_GSP_RX_TRACK_SEQUENCE);
@@ -99,7 +114,7 @@ static void testEventsAndRemoteErrors(void) {
        NV_GSP_RX_TRACK_OK);
     NVGspRpcFramePlan event=response(0x500u,31u,0u);
     eq("distinct event classified, not completion",
-       nvGspRpcReceiveTrackerObserve(&state,event.prefix,56u),
+       observeFresh(&state,event.prefix,56u),
        NV_GSP_RX_TRACK_ASYNC_EVENT);
     check("event owns pending consumption",
           state.active && state.awaitingConsume && !state.recordMatched);
@@ -109,7 +124,7 @@ static void testEventsAndRemoteErrors(void) {
           state.asyncRecordCount==1u);
     NVGspRpcFramePlan remoteErr=response(0x400u,30u,5u);
     eq("matched RM error distinguished",
-       nvGspRpcReceiveTrackerObserve(&state,remoteErr.prefix,56u),
+       observeFresh(&state,remoteErr.prefix,56u),
        NV_GSP_RX_TRACK_MATCHED_ERROR);
     check("error still pending consume",state.active && state.awaitingConsume &&
           !state.recordSucceeded);
@@ -129,7 +144,7 @@ static void testPartialMismatchQuarantine(void) {
         const NVGspRpcFramePlan reply=i==0u
             ? response(0x701u,5u) : response(0x702u,4u);
         eq("one matching identity axis is ambiguous",
-           nvGspRpcReceiveTrackerObserve(&state,reply.prefix,56u),
+           observeFresh(&state,reply.prefix,56u),
            NV_GSP_RX_TRACK_ID_COLLISION);
         check("identity collision stays quarantined",state.quarantined && state.active);
         eq("collision cannot consume",
@@ -149,12 +164,12 @@ static void testCorruptReceiveQuarantine(void) {
     NVGspRpcFramePlan bad=response(0x888u,8u);
     bad.prefix[7]^=1u;
     eq("bad signature quarantines unknown RX ownership",
-       nvGspRpcReceiveTrackerObserve(&state,bad.prefix,56u),
+       observeFresh(&state,bad.prefix,56u),
        NV_GSP_RX_TRACK_MALFORMED);
     check("malformed cannot be retired as success",state.quarantined &&
           state.active && !state.awaitingConsume);
     eq("malformed disallows further observation",
-       nvGspRpcReceiveTrackerObserve(&state,bad.prefix,56u),
+       observeFresh(&state,bad.prefix,56u),
        NV_GSP_RX_TRACK_QUARANTINED);
     eq("no reset after malformed",nvGspRpcReceiveTrackerInit(&state),NV_GSP_RX_TRACK_REINIT);
     eq("stop retains quarantined",nvGspRpcReceiveTrackerStop(&state),
@@ -173,13 +188,13 @@ static void testBoundedEventsAndStop(void) {
     const NVGspRpcFramePlan event=response(0x999u,3u);
     for (unsigned i=0;i<NV_GSP_RX_TRACK_MAX_ASYNC_RECORDS;++i) {
         eq("bounded async classification",
-           nvGspRpcReceiveTrackerObserve(&state,event.prefix,56u),
+           observeFresh(&state,event.prefix,56u),
            NV_GSP_RX_TRACK_ASYNC_EVENT);
         eq("bounded async consume",nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),
            NV_GSP_RX_TRACK_ASYNC_EVENT);
     }
     check("bounded record count",state.asyncRecordCount==NV_GSP_RX_TRACK_MAX_ASYNC_RECORDS);
-    eq("extra event quarantines",nvGspRpcReceiveTrackerObserve(
+    eq("extra event quarantines",observeFresh(
         &state,event.prefix,56u),NV_GSP_RX_TRACK_QUARANTINED);
     check("terminal async overflow",state.quarantined);
     eq("stop does not claim retirement",nvGspRpcReceiveTrackerStop(&state),
@@ -200,7 +215,7 @@ static void testUncertainAndSequenceRollover(void) {
     eq("last sequence publication",nvGspRpcReceiveTrackerRecordPublication(&state,0x121u,0xffffffffu,true),
        NV_GSP_RX_TRACK_OK);
     const NVGspRpcFramePlan ack=response(0x121u,0xffffffffu);
-    eq("last sequence reply",nvGspRpcReceiveTrackerObserve(&state,ack.prefix,56u),
+    eq("last sequence reply",observeFresh(&state,ack.prefix,56u),
        NV_GSP_RX_TRACK_MATCHED_SUCCESS);
     eq("last sequence consumes",nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),
        NV_GSP_RX_TRACK_MATCHED_SUCCESS);
@@ -252,13 +267,13 @@ static void testPinnedReceiveGeometry(void) {
           state.expectedResponseElements==p.responseElementCount);
     const NVGspRpcFramePlan reply=response(0xaccu,91u);
     eq("different complete RX bytes quarantine",
-       nvGspRpcReceiveTrackerObserve(&state,reply.prefix,60u),
+       observeFresh(&state,reply.prefix,60u),
        NV_GSP_RX_TRACK_GEOMETRY_MISMATCH);
     check("geometry mismatch never records successful receive",
           state.quarantined && state.active &&
           !state.awaitingConsume && !state.recordSucceeded);
     eq("right-size replay cannot remove quarantine",
-       nvGspRpcReceiveTrackerObserve(&state,reply.prefix,56u),
+       observeFresh(&state,reply.prefix,56u),
        NV_GSP_RX_TRACK_QUARANTINED);
     eq("wrong-size response cannot retire",
        nvGspRpcReceiveTrackerConfirmConsumed(&state,state.expectedConsumeTail,true),NV_GSP_RX_TRACK_QUARANTINED);
@@ -292,7 +307,7 @@ static void testPublicationReceiptGate(void) {
     const NVGspRpcFramePlan ack=response(0xa00u,0x44u);
     const NVGspRpcReceiveTracker planned=state;
     eq("planned request cannot consume apparent success",
-       nvGspRpcReceiveTrackerObserve(&state,ack.prefix,56u),
+       observeFresh(&state,ack.prefix,56u),
        NV_GSP_RX_TRACK_NOT_PUBLISHED);
     check("planned observe refusal is atomic",
           std::memcmp(&state,&planned,sizeof(state))==0);
@@ -310,7 +325,7 @@ static void testPublicationReceiptGate(void) {
        nvGspRpcReceiveTrackerRecordPublication(&state,0xa00u,0x44u,true),
        NV_GSP_RX_TRACK_PUBLISH_DUPLICATE);
     eq("receive after publication is provisional",
-       nvGspRpcReceiveTrackerObserve(&state,ack.prefix,56u),
+       observeFresh(&state,ack.prefix,56u),
        NV_GSP_RX_TRACK_MATCHED_SUCCESS);
     eq("no late publication during awaiting tail",
        nvGspRpcReceiveTrackerRecordPublication(&state,0xa00u,0x44u,true),
@@ -347,7 +362,7 @@ static void testConsumeTailPublicationWitness(void) {
     eq("TX published for tail",nvGspRpcReceiveTrackerRecordPublication(
         &pending,0xa11u,0x55u,true),NV_GSP_RX_TRACK_OK);
     const NVGspRpcFramePlan ack=response(0xa11u,0x55u);
-    eq("record provisional before tail witness",nvGspRpcReceiveTrackerObserve(
+    eq("record provisional before tail witness",observeFresh(
         &pending,ack.prefix,56u),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
     const NVGspRpcReceiveTracker pendingCopy=pending;
     eq("unconfirmed RX tail cannot retire",
@@ -372,7 +387,7 @@ static void testConsumeTailPublicationWitness(void) {
     eq("publish tail events",nvGspRpcReceiveTrackerRecordPublication(
         &events,0xa22u,0x56u,true),NV_GSP_RX_TRACK_OK);
     const NVGspRpcFramePlan asynchronous=response(0xa23u,0x57u);
-    eq("observe independent async",nvGspRpcReceiveTrackerObserve(
+    eq("observe independent async",observeFresh(
         &events,asynchronous.prefix,56u),NV_GSP_RX_TRACK_ASYNC_EVENT);
     eq("first RX tail publication",nvGspRpcReceiveTrackerConfirmConsumed(
         &events,1u,true),NV_GSP_RX_TRACK_ASYNC_EVENT);
@@ -380,7 +395,7 @@ static void testConsumeTailPublicationWitness(void) {
           events.active && events.expectedConsumeTail==2u &&
           events.asyncRecordCount==1u);
     const NVGspRpcFramePlan matched=response(0xa22u,0x56u);
-    eq("matching response after async",nvGspRpcReceiveTrackerObserve(
+    eq("matching response after async",observeFresh(
         &events,matched.prefix,56u),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
     eq("second RX tail publication",nvGspRpcReceiveTrackerConfirmConsumed(
         &events,2u,true),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
@@ -404,10 +419,243 @@ static void testConsumeTailPublicationWitness(void) {
     eq("publish wrap",nvGspRpcReceiveTrackerRecordPublication(
         &wrapped,0xa33u,0x57u,true),NV_GSP_RX_TRACK_OK);
     const NVGspRpcFramePlan wrapAck=response(0xa33u,0x57u);
-    eq("observe wrapped response",nvGspRpcReceiveTrackerObserve(
+    eq("observe wrapped response",observeFresh(
         &wrapped,wrapAck.prefix,56u),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
     eq("confirmed zero-tail retirement",nvGspRpcReceiveTrackerConfirmConsumed(
         &wrapped,0u,true),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+}
+
+// The RX HEAD witness is a separate per-record provider fact. The planned
+// transport writer is never reused as evidence, a refused report changes no
+// tracker state, one witness arms exactly one read, and a writer outside the
+// planned ring capacity from the expected reader is terminal quarantine.
+static void testRxHeadAvailabilityWitness(void) {
+    NVGspRpcReceiveTracker idle={};
+    eq("null head witness",nvGspRpcReceiveTrackerRecordAvailability(
+        nullptr,1u,true),NV_GSP_RX_TRACK_NULL);
+    eq("uninitialized head witness",nvGspRpcReceiveTrackerRecordAvailability(
+        &idle,1u,true),NV_GSP_RX_TRACK_UNINITIALIZED);
+    eq("init idle head",nvGspRpcReceiveTrackerInit(&idle),NV_GSP_RX_TRACK_OK);
+    eq("head witness needs an active request",
+       nvGspRpcReceiveTrackerRecordAvailability(&idle,1u,true),
+       NV_GSP_RX_TRACK_NO_REQUEST);
+
+    NVGspQueuePlan layout={};
+    eq("head queue layout",nvGspBuildQueuePlan(true,false,0u,&layout),
+       NV_GSP_QUEUE_PLAN_OK);
+    NVGspRpcTransportPlan ahead={};
+    eq("plan with writer three records ahead",nvGspPlanRpcTransport(
+        &layout,0xb11u,0x61u,0u,0u,0u,0u,0u,0u,3u,56u,&ahead),
+        NV_GSP_RPC_TXN_OK);
+    NVGspRpcReceiveTracker state={};
+    eq("init head state",nvGspRpcReceiveTrackerInit(&state),NV_GSP_RX_TRACK_OK);
+    eq("begin head state",nvGspRpcReceiveTrackerBegin(&state,&ahead),
+       NV_GSP_RX_TRACK_OK);
+    check("begin binds planned reader and capacity, not the planned writer",
+          state.expectedReadPtr==ahead.responseAvailable.readPtr &&
+          state.rxMessageCount==ahead.responseAvailable.messageCount &&
+          ahead.responseAvailable.available==3u && !state.recordAvailable);
+    eq("no head witness before TX publication",
+       nvGspRpcReceiveTrackerRecordAvailability(&state,1u,true),
+       NV_GSP_RX_TRACK_NOT_PUBLISHED);
+    check("unpublished head grants nothing",!state.recordAvailable);
+    eq("publish head state",nvGspRpcReceiveTrackerRecordPublication(
+        &state,0xb11u,0x61u,true),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcFramePlan ack=response(0xb11u,0x61u);
+    const NVGspRpcReceiveTracker unarmed=state;
+    eq("planned writer is not an RX head witness",
+       nvGspRpcReceiveTrackerObserve(&state,ack.prefix,56u),
+       NV_GSP_RX_TRACK_NOT_AVAILABLE);
+    check("refused read leaves tracker byte-identical",
+          std::memcmp(&state,&unarmed,sizeof(state))==0);
+    eq("unconfirmed head authorizes nothing",
+       nvGspRpcReceiveTrackerRecordAvailability(&state,1u,false),
+       NV_GSP_RX_TRACK_HEAD_UNCONFIRMED);
+    check("unconfirmed head changes no state",
+          std::memcmp(&state,&unarmed,sizeof(state))==0);
+    eq("writer at the reader is an empty queue",
+       nvGspRpcReceiveTrackerRecordAvailability(&state,0u,true),
+       NV_GSP_RX_TRACK_HEAD_EMPTY);
+    check("empty head changes no state",
+          std::memcmp(&state,&unarmed,sizeof(state))==0);
+    eq("empty head still blocks the read",
+       nvGspRpcReceiveTrackerObserve(&state,ack.prefix,56u),
+       NV_GSP_RX_TRACK_NOT_AVAILABLE);
+    eq("fresh head covering one record",
+       nvGspRpcReceiveTrackerRecordAvailability(&state,1u,true),
+       NV_GSP_RX_TRACK_OK);
+    check("witness arms exactly one read",
+          state.recordAvailable && !state.awaitingConsume);
+    const NVGspRpcReceiveTracker armed=state;
+    eq("second head for the same read refuses",
+       nvGspRpcReceiveTrackerRecordAvailability(&state,1u,true),
+       NV_GSP_RX_TRACK_HEAD_DUPLICATE);
+    check("duplicate head changes no state",
+          std::memcmp(&state,&armed,sizeof(state))==0);
+    eq("witnessed record classifies",
+       nvGspRpcReceiveTrackerObserve(&state,ack.prefix,56u),
+       NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+    check("classification spends the witness",
+          !state.recordAvailable && state.awaitingConsume);
+    eq("no head witness while a record awaits consume",
+       nvGspRpcReceiveTrackerRecordAvailability(&state,1u,true),
+       NV_GSP_RX_TRACK_AWAIT_CONSUME);
+    eq("retire witnessed record",nvGspRpcReceiveTrackerConfirmConsumed(
+        &state,1u,true),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+    check("retirement leaves no residual witness",
+          !state.active && !state.recordAvailable && !state.quarantined);
+    eq("retired request accepts no head",
+       nvGspRpcReceiveTrackerRecordAvailability(&state,2u,true),
+       NV_GSP_RX_TRACK_NO_REQUEST);
+
+    NVGspRpcReceiveTracker pending={};
+    eq("init head pending",nvGspRpcReceiveTrackerInit(&pending),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcTransportPlan pendingPlan=transport(0xb22u,0x62u);
+    eq("begin head pending",nvGspRpcReceiveTrackerBegin(&pending,&pendingPlan),
+       NV_GSP_RX_TRACK_OK);
+    eq("publish head pending",nvGspRpcReceiveTrackerRecordPublication(
+        &pending,0xb22u,0x62u,true),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcFramePlan unfinished=response(0xb22u,0x62u,NV_GSP_RPC_RESULT_PENDING);
+    const NVGspRpcFramePlan finished=response(0xb22u,0x62u);
+    eq("head for the pending record",
+       nvGspRpcReceiveTrackerRecordAvailability(&pending,1u,true),
+       NV_GSP_RX_TRACK_OK);
+    eq("pending sentinel under a head witness",
+       nvGspRpcReceiveTrackerObserve(&pending,unfinished.prefix,56u),
+       NV_GSP_RX_TRACK_RESULT_PENDING);
+    check("pending reply spends the witness without consuming",
+          !pending.recordAvailable && !pending.awaitingConsume &&
+          pending.active && pending.expectedReadPtr==0u);
+    eq("re-read of the pending record needs a newer head",
+       nvGspRpcReceiveTrackerObserve(&pending,finished.prefix,56u),
+       NV_GSP_RX_TRACK_NOT_AVAILABLE);
+    eq("newer head re-arms the same record",
+       nvGspRpcReceiveTrackerRecordAvailability(&pending,1u,true),
+       NV_GSP_RX_TRACK_OK);
+    eq("completed reply under the newer head",
+       nvGspRpcReceiveTrackerObserve(&pending,finished.prefix,56u),
+       NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+    eq("retire completed pending record",nvGspRpcReceiveTrackerConfirmConsumed(
+        &pending,1u,true),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+
+    NVGspRpcReceiveTracker events={};
+    eq("init head events",nvGspRpcReceiveTrackerInit(&events),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcTransportPlan eventPlan=transport(0xb33u,0x63u);
+    eq("begin head events",nvGspRpcReceiveTrackerBegin(&events,&eventPlan),
+       NV_GSP_RX_TRACK_OK);
+    eq("publish head events",nvGspRpcReceiveTrackerRecordPublication(
+        &events,0xb33u,0x63u,true),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcFramePlan event=response(0xb34u,0x64u);
+    const NVGspRpcFramePlan reply=response(0xb33u,0x63u);
+    eq("head for the async record",
+       nvGspRpcReceiveTrackerRecordAvailability(&events,1u,true),
+       NV_GSP_RX_TRACK_OK);
+    eq("async record under head",nvGspRpcReceiveTrackerObserve(
+        &events,event.prefix,56u),NV_GSP_RX_TRACK_ASYNC_EVENT);
+    eq("retire async record",nvGspRpcReceiveTrackerConfirmConsumed(
+        &events,1u,true),NV_GSP_RX_TRACK_ASYNC_EVENT);
+    check("async retirement moves the reader to the retired tail",
+          events.expectedReadPtr==1u && events.expectedConsumeTail==2u &&
+          !events.recordAvailable && events.active);
+    eq("stale head from the consumed record is empty",
+       nvGspRpcReceiveTrackerRecordAvailability(&events,1u,true),
+       NV_GSP_RX_TRACK_HEAD_EMPTY);
+    eq("next record needs its own head",
+       nvGspRpcReceiveTrackerObserve(&events,reply.prefix,56u),
+       NV_GSP_RX_TRACK_NOT_AVAILABLE);
+    eq("fresh head for the next record",
+       nvGspRpcReceiveTrackerRecordAvailability(&events,2u,true),
+       NV_GSP_RX_TRACK_OK);
+    eq("matched reply after async under a fresh head",
+       nvGspRpcReceiveTrackerObserve(&events,reply.prefix,56u),
+       NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+    eq("retire matched reply after async",nvGspRpcReceiveTrackerConfirmConsumed(
+        &events,2u,true),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+
+    NVGspRpcReceiveTracker full={};
+    eq("init full ring",nvGspRpcReceiveTrackerInit(&full),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcTransportPlan fullPlan=transport(0xb44u,0x65u);
+    eq("begin full ring",nvGspRpcReceiveTrackerBegin(&full,&fullPlan),
+       NV_GSP_RX_TRACK_OK);
+    eq("publish full ring",nvGspRpcReceiveTrackerRecordPublication(
+        &full,0xb44u,0x65u,true),NV_GSP_RX_TRACK_OK);
+    eq("writer exactly one ring ahead is legal",
+       nvGspRpcReceiveTrackerRecordAvailability(&full,
+           static_cast<NVGspRxTrackU32>(full.expectedReadPtr+full.rxMessageCount),true),
+       NV_GSP_RX_TRACK_OK);
+
+    NVGspRpcReceiveTracker beyond={};
+    eq("init beyond ring",nvGspRpcReceiveTrackerInit(&beyond),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcTransportPlan beyondPlan=transport(0xb55u,0x66u);
+    eq("begin beyond ring",nvGspRpcReceiveTrackerBegin(&beyond,&beyondPlan),
+       NV_GSP_RX_TRACK_OK);
+    eq("publish beyond ring",nvGspRpcReceiveTrackerRecordPublication(
+        &beyond,0xb55u,0x66u,true),NV_GSP_RX_TRACK_OK);
+    eq("writer beyond ring capacity quarantines",
+       nvGspRpcReceiveTrackerRecordAvailability(&beyond,
+           static_cast<NVGspRxTrackU32>(beyond.expectedReadPtr+beyond.rxMessageCount+1u),true),
+       NV_GSP_RX_TRACK_HEAD_INVALID);
+    check("impossible writer is terminal and arms nothing",
+          beyond.quarantined && !beyond.recordAvailable);
+    eq("quarantine refuses later heads",
+       nvGspRpcReceiveTrackerRecordAvailability(&beyond,1u,true),
+       NV_GSP_RX_TRACK_QUARANTINED);
+    eq("quarantine refuses the read",nvGspRpcReceiveTrackerObserve(
+        &beyond,ack.prefix,56u),NV_GSP_RX_TRACK_QUARANTINED);
+
+    NVGspRpcReceiveTracker behind={};
+    eq("init behind reader",nvGspRpcReceiveTrackerInit(&behind),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcTransportPlan behindPlan=transport(0xb66u,0x67u);
+    eq("begin behind reader",nvGspRpcReceiveTrackerBegin(&behind,&behindPlan),
+       NV_GSP_RX_TRACK_OK);
+    eq("publish behind reader",nvGspRpcReceiveTrackerRecordPublication(
+        &behind,0xb66u,0x67u,true),NV_GSP_RX_TRACK_OK);
+    eq("writer behind the reader quarantines",
+       nvGspRpcReceiveTrackerRecordAvailability(&behind,0xffffffffu,true),
+       NV_GSP_RX_TRACK_HEAD_INVALID);
+    check("regressed writer is terminal",
+          behind.quarantined && !behind.recordAvailable);
+
+    NVGspRpcTransportPlan rollover={};
+    eq("head wrap plan",nvGspPlanRpcTransport(
+        &layout,0xb77u,0x68u,0u,0u,0u,0u,
+        0xffffffffu,0xffffffffu,0u,56u,&rollover),NV_GSP_RPC_TXN_OK);
+    NVGspRpcReceiveTracker wrapped={};
+    eq("init head wrap",nvGspRpcReceiveTrackerInit(&wrapped),NV_GSP_RX_TRACK_OK);
+    eq("begin head wrap",nvGspRpcReceiveTrackerBegin(&wrapped,&rollover),
+       NV_GSP_RX_TRACK_OK);
+    eq("publish head wrap",nvGspRpcReceiveTrackerRecordPublication(
+        &wrapped,0xb77u,0x68u,true),NV_GSP_RX_TRACK_OK);
+    eq("head at the reader across wrap is empty",
+       nvGspRpcReceiveTrackerRecordAvailability(&wrapped,0xffffffffu,true),
+       NV_GSP_RX_TRACK_HEAD_EMPTY);
+    eq("head wrapped to zero covers the record",
+       nvGspRpcReceiveTrackerRecordAvailability(&wrapped,0u,true),
+       NV_GSP_RX_TRACK_OK);
+    const NVGspRpcFramePlan wrapAck=response(0xb77u,0x68u);
+    eq("observe under wrapped head",nvGspRpcReceiveTrackerObserve(
+        &wrapped,wrapAck.prefix,56u),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+    eq("retire under wrapped head",nvGspRpcReceiveTrackerConfirmConsumed(
+        &wrapped,0u,true),NV_GSP_RX_TRACK_MATCHED_SUCCESS);
+
+    NVGspRpcReceiveTracker stopping={};
+    eq("init head stop",nvGspRpcReceiveTrackerInit(&stopping),NV_GSP_RX_TRACK_OK);
+    const NVGspRpcTransportPlan stopPlan=transport(0xb88u,0x69u);
+    eq("begin head stop",nvGspRpcReceiveTrackerBegin(&stopping,&stopPlan),
+       NV_GSP_RX_TRACK_OK);
+    eq("publish head stop",nvGspRpcReceiveTrackerRecordPublication(
+        &stopping,0xb88u,0x69u,true),NV_GSP_RX_TRACK_OK);
+    eq("head armed before stop",
+       nvGspRpcReceiveTrackerRecordAvailability(&stopping,1u,true),
+       NV_GSP_RX_TRACK_OK);
+    eq("stop with an armed read quarantines",nvGspRpcReceiveTrackerStop(&stopping),
+       NV_GSP_RX_TRACK_QUARANTINED);
+    eq("stopped tracker refuses heads",
+       nvGspRpcReceiveTrackerRecordAvailability(&stopping,1u,true),
+       NV_GSP_RX_TRACK_STOPPED);
+    const NVGspRpcFramePlan stopAck=response(0xb88u,0x69u);
+    eq("stopped tracker refuses the armed read",nvGspRpcReceiveTrackerObserve(
+        &stopping,stopAck.prefix,56u),NV_GSP_RX_TRACK_STOPPED);
 }
 
 int main(void) {
@@ -423,6 +671,7 @@ int main(void) {
     testBadTransportAtomicity();
     testPublicationReceiptGate();
     testConsumeTailPublicationWitness();
+    testRxHeadAvailabilityWitness();
     std::printf("%u checks, %u failures\n",checks,failures);
     return failures?1:0;
 }
