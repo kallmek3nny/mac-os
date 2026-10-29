@@ -32,7 +32,12 @@ using NVGspRxTrackU32 = unsigned int;
 #define NV_GSP_RX_TRACK_PUBLISH_DUPLICATE 21u
 #define NV_GSP_RX_TRACK_TAIL_UNCONFIRMED 22u
 #define NV_GSP_RX_TRACK_TAIL_MISMATCH   23u
-#define NV_GSP_RX_TRACK_LIMIT           24u
+#define NV_GSP_RX_TRACK_HEAD_UNCONFIRMED 24u
+#define NV_GSP_RX_TRACK_HEAD_EMPTY      25u
+#define NV_GSP_RX_TRACK_HEAD_INVALID    26u
+#define NV_GSP_RX_TRACK_HEAD_DUPLICATE  27u
+#define NV_GSP_RX_TRACK_NOT_AVAILABLE   28u
+#define NV_GSP_RX_TRACK_LIMIT           29u
 
 // Bound asynchronous messages seen for one request. No polling, sleeps,
 // retry automation, MMIO, RX-tail writes or dynamic allocation in this code.
@@ -45,6 +50,9 @@ struct NVGspRpcReceiveTracker {
     bool active;
     bool awaitingConsume;
     bool requestPublished;
+    // One fresh provider-reported RX HEAD witness authorizes exactly one
+    // record read attempt; it is spent by classification or a pending reply.
+    bool recordAvailable;
     bool recordMatched;
     bool recordSucceeded;
     bool hasLastSequence;
@@ -53,6 +61,10 @@ struct NVGspRpcReceiveTracker {
     NVGspRxTrackU32 lastSequence;
     NVGspRxTrackU32 expectedRecordBytes;
     NVGspRxTrackU32 expectedResponseElements;
+    // Monotonic NvU32 RX read pointer where the next record must begin, and
+    // the planned RX ring capacity bounding any reported writer (MSGQ_HEAD).
+    NVGspRxTrackU32 expectedReadPtr;
+    NVGspRxTrackU32 rxMessageCount;
     // Monotonic NvU32 RX TAIL expected from the exact planned consume span.
     // The caller must independently witness its provider-owned publication.
     NVGspRxTrackU32 expectedConsumeTail;
@@ -97,10 +109,15 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerBegin(
     staged.sequence = transport->sequence;
     staged.expectedRecordBytes = transport->responseRecordBytes;
     staged.expectedResponseElements = transport->responseElementCount;
+    // RX availability is bound to the planned reader and ring capacity only;
+    // the planned writer/available count is NOT evidence that a record exists.
+    staged.expectedReadPtr = transport->responseAvailable.readPtr;
+    staged.rxMessageCount = transport->responseAvailable.messageCount;
     staged.expectedConsumeTail = transport->responseConsume.messageTailValue;
     staged.asyncRecordCount = 0u;
     staged.awaitingConsume = false;
     staged.requestPublished = false;
+    staged.recordAvailable = false;
     staged.recordMatched = false;
     staged.recordSucceeded = false;
     *tracker = staged;
@@ -138,9 +155,54 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerRecordPublication(
     return NV_GSP_RX_TRACK_OK;
 }
 
-// Classify only a complete caller-provided RX record. A matched result is
-// *provisional* until the provider independently confirms RX tail retirement.
-// A pending sentinel is not an error reply and must never advance the tail.
+// TX publication still does not prove that any RX record exists. Before each
+// record read the provider must report a fresh, normalized monotonic
+// MSGQ_HEAD writer value (after its own load fence). One witness authorizes
+// exactly one classification attempt for the record that begins at the
+// tracker's expected RX read pointer; the planned transport writer and its
+// available count are never reused as this evidence. The boolean is ONLY a
+// caller-provided witness: this helper performs no MMIO read, fence, polling,
+// sleep or retry. Fewer complete elements than the single-flight record
+// geometry authorizes no read and changes no state; the caller must obtain a
+// newer witness. A writer beyond the planned ring capacity from the expected
+// reader is an inconsistent queue and is permanent quarantine.
+static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerRecordAvailability(
+    NVGspRpcReceiveTracker *tracker,
+    NVGspRxTrackU32 observedHead,
+    bool providerHeadObserved)
+{
+    if (!tracker) return NV_GSP_RX_TRACK_NULL;
+    if (!tracker->initialized) return NV_GSP_RX_TRACK_UNINITIALIZED;
+    if (tracker->stopped) return NV_GSP_RX_TRACK_STOPPED;
+    if (tracker->quarantined) return NV_GSP_RX_TRACK_QUARANTINED;
+    if (!tracker->active) return NV_GSP_RX_TRACK_NO_REQUEST;
+    if (tracker->awaitingConsume) return NV_GSP_RX_TRACK_AWAIT_CONSUME;
+    if (!tracker->requestPublished) return NV_GSP_RX_TRACK_NOT_PUBLISHED;
+    if (tracker->recordAvailable) return NV_GSP_RX_TRACK_HEAD_DUPLICATE;
+    if (!providerHeadObserved) return NV_GSP_RX_TRACK_HEAD_UNCONFIRMED;
+    if (!tracker->rxMessageCount || !tracker->expectedResponseElements ||
+        tracker->expectedResponseElements > tracker->rxMessageCount) {
+        tracker->quarantined = true;
+        return NV_GSP_RX_TRACK_HEAD_INVALID;
+    }
+    // NvU32 counters: writer minus reader is the modulo-2^32 available span.
+    const NVGspRxTrackU32 available = static_cast<NVGspRxTrackU32>(
+        observedHead - tracker->expectedReadPtr);
+    if (available > tracker->rxMessageCount) {
+        tracker->quarantined = true;
+        return NV_GSP_RX_TRACK_HEAD_INVALID;
+    }
+    if (available < tracker->expectedResponseElements)
+        return NV_GSP_RX_TRACK_HEAD_EMPTY;
+    tracker->recordAvailable = true;
+    return NV_GSP_RX_TRACK_OK;
+}
+
+// Classify only a complete caller-provided RX record made readable by one
+// fresh provider RX-head witness. A matched result is *provisional* until the
+// provider independently confirms RX tail retirement. A pending sentinel is
+// not an error reply and must never advance the tail; it spends the witness,
+// so the unretired record is re-read only under a newer RX-head report.
 // A same-function OR same-sequence partial mismatch is conservatively
 // quarantined: it might be a stale reply, not a dispatchable async event.
 static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerObserve(
@@ -155,6 +217,7 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerObserve(
     if (!tracker->active) return NV_GSP_RX_TRACK_NO_REQUEST;
     if (tracker->awaitingConsume) return NV_GSP_RX_TRACK_AWAIT_CONSUME;
     if (!tracker->requestPublished) return NV_GSP_RX_TRACK_NOT_PUBLISHED;
+    if (!tracker->recordAvailable) return NV_GSP_RX_TRACK_NOT_AVAILABLE;
 
     // Do not classify a response against a different RX record geometry than
     // the single-flight transport. A different number of queue bytes might
@@ -169,8 +232,10 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerObserve(
     NVGspRpcResponsePlan receipt = {};
     const NVGspRespU32 result = nvGspValidateRpcResponseNoCc(
         tracker->function,tracker->sequence,prefix,recordBytes,&receipt);
-    if (result == NV_GSP_RPC_RESPONSE_RESULT_PENDING)
+    if (result == NV_GSP_RPC_RESPONSE_RESULT_PENDING) {
+        tracker->recordAvailable = false;
         return NV_GSP_RX_TRACK_RESULT_PENDING;
+    }
 
     // Invalid RX bytes leave request ownership uncertain, not resettable.
     if (result != NV_GSP_RPC_RESPONSE_MATCHED_SUCCESS &&
@@ -194,6 +259,7 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerObserve(
 
     NVGspRpcReceiveTracker staged = *tracker;
     staged.awaitingConsume = true;
+    staged.recordAvailable = false;
     staged.recordMatched = nvGspRpcResponseMatched(result);
     staged.recordSucceeded = nvGspRpcResponseSucceeded(result);
     *tracker = staged;
@@ -230,11 +296,13 @@ static inline NVGspRxTrackU32 nvGspRpcReceiveTrackerConfirmConsumed(
     staged.awaitingConsume = false;
     if (!staged.recordMatched) {
         ++staged.asyncRecordCount;
-        // Each consumed asynchronous record advances the monotonic RX TAIL.
-        // NvU32 rollover is intentional, but a refreshed RX-head availability
-        // witness is still required from a future live provider executor.
+        // Each consumed asynchronous record advances the monotonic RX reader
+        // and TAIL; NvU32 rollover is intentional. The next record begins at
+        // the retired tail and needs its own fresh provider RX-head witness.
+        staged.expectedReadPtr = staged.expectedConsumeTail;
         staged.expectedConsumeTail = static_cast<NVGspRxTrackU32>(
             staged.expectedConsumeTail + staged.expectedResponseElements);
+        staged.recordAvailable = false;
         staged.recordSucceeded = false;
         *tracker = staged;
         return NV_GSP_RX_TRACK_ASYNC_EVENT;
