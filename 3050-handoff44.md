@@ -365,6 +365,21 @@ Each was measured this session rather than carried forward, except where noted.
    progress is a diagnostic rather than a measurement claim and the caller
    publishes it on both arms deliberately, but it is the identical construction
    and it deserves a decision rather than an accident. Cheapest remaining work.
+   **DONE 2026-10-30.** Decided in code rather than left to accident:
+   `pollGfwBoot()` now returns an `NVGfwBootVerdict` instead of a bool. The
+   UNREADABLE arm (an all-ones read) deliberately does NOT write
+   `*outProgress`; the TIMEOUT arm does, because the register decoded and the
+   value is a real measurement of how far GFW got. The publisher puts
+   `NVGfwBootProgress` in the registry only under
+   `nvGfwBootProgressWasRead(gfwVerdict)`, and `NVGfwBootOk` is an equality
+   against the accepting verdict via `nvGfwBootVerdictIsOk()`. Guarded by
+   `tests/test_probe_firmware_state_publication.py`, now 40 tests (up from the
+   26 this file reports), green this session, including negative controls for
+   a deleted or negated progress guard and for a guard spelled with `IsOk`.
+   The change first appears in git at baseline `8d08c7b` (2026-09-26), after
+   this file was written. Verified by reading and by the source-level gate,
+   not by running `pollGfwBoot()`: the kext has still never been loaded.
+   Local edit only, committed on 2026-10-30.
 2. **`CLAUDE.md`'s read-order list stops at `3050-handoff37.md`.** Six NVIDIA
    sessions are now unlisted (38 through 43, and this file makes seven). This
    cost handoff43 a wrong first read -- a stale handoff opened as current -- and
@@ -374,15 +389,71 @@ Each was measured this session rather than carried forward, except where noted.
    session invites the collision `intel-handoff26.md` §8 records. Worth one
    careful pass by whoever has the file uncontended, and it is now the item with
    the clearest measured cost.
+   **DONE 2026-10-29.** `CLAUDE.md`'s read-order list now names
+   `3050-handoff44.md` as the NVIDIA file to read first and lists handoff38
+   through handoff43 as direct continuations between it and handoff37. Made
+   with the file uncontended: its last commit is the Intel `74d010f` of
+   2026-10-12, which matches its modification time, and no Intel PR is open.
+   Local edit only, committed on 2026-10-30.
 3. **`test_intel_scanout` still has no `MEASURED` provenance entry**, for the
    sixth session. Adding one would vouch for a C++ suite this session did not
    author, though note the C++ gate now reads 12 of 12 green.
+   **DONE 2026-10-30 -- already closed; nothing added.** The entry exists:
+   `"test_intel_scanout": 61` is line 1402 of `tests/test_check_count_floor.py`,
+   inside the `MEASURED` dict (lines 1289 to 1415), and its provenance comment
+   near line 677 records the first reading of 2026-08-19, 61 checks, 0
+   failures. The suite is also built: `tests/CMakeLists.txt` line 138 registers
+   it with `add_kext_test`. `git log -S` finds the name in both files only at
+   baseline `8d08c7b` (2026-09-26), so git cannot date the entry more closely.
+   Re-measured this session: `tests/build/test_intel_scanout.exe` (built
+   2026-09-27, newer than the suite and `phase0-kext/IntelScanout.hpp`, both
+   2026-08-19) exits 0 with `61 checks, 0 failures`, equal to the floor. The C++
+   gate's 12 of 12 was not re-run. No source or test file changed; this note is
+   the only edit, local and committed on 2026-10-30.
 4. **The Python count's missing test in
    `tests/test_probe_boot42_log_arms.py`** (`3050-handoff42.md` §5a) -- it
    collects 19 where handoff41 §4 reports 20. The module is green and its
    positive control passes, so what is open is only WHICH check was lost, and
    that is unrecoverable without a previous revision in a tree that is not a git
    checkout.
+   **DONE 2026-10-30.** Not one lost check but four lost properties. Measured
+   against `3050-handoff41.md` §2 and §4 rather than by guessing at the
+   twentieth name: the module carried none of handoff41 §2 items 2, 3 and 6,
+   and only the header half of item 5 -- the bare-`return;` count, the
+   dead-read-before-fall-through ordering, the log-only rule, and the rule that
+   the shell must not grow its own `nvChipVerdict()`. Three of the nine negative
+   controls handoff41 §4 tabulates went with them (`NVLOG` replaced by
+   `setProperty`, the verdict defined in the shell, the deleted dead-read
+   `return;`). All four are restored in `audit()` as properties 6 through 9,
+   re-measured against `decodeBoot42()` as it stands, each with one negative
+   control that asserts its own message AND that nothing else reddened. The
+   module now collects **23**, green this session. 23 is not handoff41's 20;
+   handoff42 §5a's taxonomy mismatch still holds and the count was not forced to
+   match. Only `tests/` changed, so `phase0-kext/` owes no `build-payload/`
+   rebuild. Local edit only, committed on 2026-10-30.
+   **Full Python gate, re-run after this edit (log 2026-10-30 16:29):**
+   `tests\run-python-tests.bat` exit 1, **1442 tests**, `FAILED (failures=14)`,
+   0 skipped. None of the 14 is this session's: all 23 boot42 tests read `ok` in
+   that run, and no failure detail names `tests/test_probe_boot42_log_arms.py`,
+   `CLAUDE.md` or this file. What is red, all in files this session did not
+   touch: 69 C++ suites under `tests/` with no CMake registration, no `MEASURED`
+   entry and no count-gate listing (the `test_nv_gsp_*`, `test_nv_ampere_*` and
+   `test_intel_gt_*` families among them), one of which,
+   `test_intel_display_transaction_lifetime.cpp`, makes 7 check-helper calls
+   against a floor of 20; `IntelDisplayTransactionLifetime.hpp` absent from the
+   header gate's section 1; `build-payload/` stale (shipped files differ from
+   the tree and sources are missing from it); `check-prepare-balance` at 16
+   failures across 74 checks in `phase0-kext/`; `publishPlaneLiveObservation`
+   never calling `igSampleVerdict()`, with the shape gate's
+   `IntelDisplayProbe::publishPlane` mutation anchor now matching twice;
+   `phase0-kext/iggt-blit.cpp` missing from the kext Makefile's source list and
+   not an IOKit shell; and `NVGspBooterHs.hpp` citing a
+   `nouveau/extract-firmware-nouveau.py` that does not resolve. Against
+   `.pygate-baseline.log` (2026-09-27: 1407 tests, `failures=14, skipped=27`)
+   the equal count hides a changed set: seven baseline failures are gone and
+   seven new ones appeared. `test_intel_scanout` is not among the 69 suites
+   lacking a `MEASURED` entry, so item 3 above may already be closed; not
+   checked further here.
 5. **One `kextload` on a machine containing the card.** Unchanged, and still the
    single highest-value action in the whole project. Blocked on hardware, on SIP,
    and on `3050-handoff27.md` §1's mutual exclusion: the laptop cannot hold Linux

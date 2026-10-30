@@ -367,6 +367,80 @@ def audit(cpp_raw, hpp_raw):
                 "publish NVChipIsTarget false with nothing naming which die it "
                 "actually is." % SIBLING_KEY)
 
+    #
+    # Properties 6 through 9 are 3050-handoff41.md section 2 items 2, 3, 5 and
+    # 6. That section describes them and section 4 lists their negative
+    # controls, but this module was last written twelve minutes after
+    # handoff41.md and carried none of them -- 3050-handoff44.md section 7 item
+    # 4 recorded the symptom as one missing test. Restored 2026-10-30 from that
+    # spec and re-measured against decodeBoot42() as it stands.
+    #
+    # One body for all four, comment-stripped and wrap-joined like arm_texts().
+    # Never None here: arm_texts() already found the same signature above.
+    #
+    body = join_wrapped_literals(body_of(strip_comments(cpp_raw), SUBJECT_FN))
+
+    #
+    # Property 6 -- the arm COUNT matches, not just the arm markers.
+    #
+    # Property 2 alone is satisfied by a body that logs every marker
+    # unconditionally in one blob. The dead-read arm and the GA107 arm each end
+    # in a bare `return;`; the mismatch arm and its nested GA106 note fall
+    # through to the closing brace and own none. Pinned rather than derived:
+    # the count is a fact about this body's shape, read out of NV3050Probe.cpp.
+    #
+    expected_returns = 2
+    returns = len(re.findall(r"\breturn\s*;", body))
+    if returns != expected_returns:
+        failures.append(
+            "decodeBoot42(): %d bare `return;` statements, expected %d -- one "
+            "ending the dead-read arm and one ending the GA107 arm. The "
+            "bare-return count moved, so an arm that should be terminal now "
+            "falls through into the next." % (returns, expected_returns))
+
+    #
+    # Property 7 -- the dead-read test precedes the general fall-through.
+    #
+    # The one ordering claim 3050-handoff40.md section 3 measured as
+    # load-bearing. An all-ones word decodes to a chip ID that is not GA107, so
+    # with the test below the mismatch message a dead read is first logged as a
+    # real chip that failed to match. An absent marker is property 2's finding,
+    # so this measures only when both are present.
+    #
+    dead = body.find("nvLooksLikeDeadRead(")
+    general = body.find("does not match the expected GA107")
+    if dead >= 0 and general >= 0 and dead > general:
+        failures.append(
+            "decodeBoot42(): the dead-read test follows the general mismatch "
+            "message, so an all-ones BOOT_42 is logged as a chip ID mismatch "
+            "before it is recognised as a dead read.")
+
+    #
+    # Property 8 -- the verdict is defined in the header, never in the shell.
+    #
+    # Property 4 proves the header still has it; this proves the shell did not
+    # grow a second copy. A call such as `= nvChipVerdict(` does not match --
+    # only a declarator with the return type directly before the name does.
+    #
+    if re.search(r"\bNVChipVerdict\s+nvChipVerdict\s*\(", strip_comments(cpp_raw)):
+        failures.append(
+            "NV3050Probe.cpp defines nvChipVerdict(). The verdict belongs in "
+            "the dependency-free NVDecode.hpp, where a host suite can compile "
+            "it; a copy in the IOKit shell is a pure function nothing runs.")
+
+    #
+    # Property 9 -- decodeBoot42() stays log-only.
+    #
+    # publishIdentity() is the one publisher of the chip verdict. A
+    # setProperty() in the log function makes two publishers of one fact, and
+    # nothing keeps them in step.
+    #
+    if "setProperty(" in body:
+        failures.append(
+            "decodeBoot42() calls setProperty(). The log function must stay "
+            "log-only -- publishIdentity() is the one publisher of the chip "
+            "verdict.")
+
     return failures
 
 
@@ -578,6 +652,82 @@ class Boot42LogArmTests(unittest.TestCase):
         )
         failures = audit(mutant, self.hpp)
         self.assertTrue(any(SIBLING_KEY in f for f in failures), failures)
+
+    # ---- properties 6 through 9 -------------------------------------------
+    #
+    # The controls 3050-handoff41.md section 4 lists for these properties,
+    # absent from this module until 2026-10-30 alongside the properties
+    # themselves. Each asserts its own property's message AND that nothing else
+    # reddened, so no control can pass on another property's failure.
+    #
+
+    def test_deleting_the_dead_read_return_is_caught(self):
+        """Property 6: a terminal arm that falls through moves the count.
+
+        `return;` alone occurs many times in the file, so the anchor carries
+        the dead-read NVLOG's closing line with it. mutate() refuses loudly if
+        anything ever lands between the two.
+        """
+        tail = "              (unsigned)value, (unsigned)NV_PMC_BOOT_42);\n"
+        mutant = mutate(self.cpp, tail + "        return;\n", tail)
+        failures = audit(mutant, self.hpp)
+        self.assertEqual(len(failures), 1, failures)
+        self.assertIn("bare-return count moved", failures[0])
+
+    def test_hoisting_the_dead_read_test_below_the_mismatch_line_is_caught(self):
+        """Property 7: an all-ones word must not be logged as a chip first.
+
+        The whole dead-read block moves below the general mismatch message, one
+        edit each way, so every arm stays present and the bare-return count
+        stays two -- only the ordering changes.
+        """
+        dead = (
+            "    if (nvLooksLikeDeadRead(value)) {\n"
+            '        NVLOG("NV_PMC_BOOT_42 = 0x%08x -- unexpected dead read at 0x%x while "\n'
+            '              "NV_PMC_BOOT_0 responded. Aperture may be shorter than 16 MiB.",\n'
+            "              (unsigned)value, (unsigned)NV_PMC_BOOT_42);\n"
+            "        return;\n"
+            "    }\n"
+        )
+        general = (
+            '    NVLOG("  chip ID 0x%03x does not match the expected GA107 0x%03x",\n'
+            "          (unsigned)chipId, (unsigned)NV_CHIP_ID_GA107);\n"
+        )
+        mutant = mutate(self.cpp, dead + "\n", "")
+        mutant = mutate(mutant, general, general + "\n" + dead)
+        failures = audit(mutant, self.hpp)
+        self.assertEqual(len(failures), 1, failures)
+        self.assertIn("before it is recognised as a dead read", failures[0])
+
+    def test_defining_the_verdict_in_the_shell_is_caught(self):
+        """Property 8: a second nvChipVerdict() in the IOKit shell reddens."""
+        mutant = mutate(
+            self.cpp,
+            SUBJECT_FN,
+            "NVChipVerdict nvChipVerdict(UInt32 boot42)\n"
+            "{\n"
+            "    return NV_CHIP_OTHER;\n"
+            "}\n"
+            "\n" + SUBJECT_FN,
+        )
+        failures = audit(mutant, self.hpp)
+        self.assertEqual(len(failures), 1, failures)
+        self.assertIn("defines nvChipVerdict()", failures[0])
+
+    def test_a_set_property_in_the_log_function_is_caught(self):
+        """Property 9: decodeBoot42() must not become a second publisher.
+
+        Added beside the GA107 NVLOG rather than replacing it, so every arm
+        marker survives and only property 9 can redden.
+        """
+        ga107 = ('        NVLOG("  chip ID 0x%03x matches GA107", '
+                 "(unsigned)NV_CHIP_ID_GA107);\n")
+        mutant = mutate(
+            self.cpp, ga107,
+            ga107 + '        setProperty("NVChipIsTarget", true);\n')
+        failures = audit(mutant, self.hpp)
+        self.assertEqual(len(failures), 1, failures)
+        self.assertIn("must stay log-only", failures[0])
 
     # ---- the stripper ------------------------------------------------------
 
