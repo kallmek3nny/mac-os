@@ -454,6 +454,21 @@ Each was measured this session rather than carried forward, except where noted.
    seven new ones appeared. `test_intel_scanout` is not among the 69 suites
    lacking a `MEASURED` entry, so item 3 above may already be closed; not
    checked further here.
+   **Cited-path failure closed 2026-10-30.** `NVGspBooterHs.hpp` line 5 names
+   `nouveau/extract-firmware-nouveau.py` as the source of truth for the
+   `nvfw_hs_header_v2` Booter layout. The only copy on disk is under
+   `reference/open-gpu-kernel-modules/`, which `.gitignore` line 2 excludes
+   (`git check-ignore -v` exit 0; `git ls-files` lists nothing under its
+   `nouveau/` directory), so a clean checkout has no file to resolve to. The
+   comment is true and the tool is upstream's, so this is an allowance, not a
+   defect -- the same call `handoff15.md` made for the bare
+   `extract-firmware-nouveau.py` cited at line 40 of `NVRiscvUcode.hpp`. The
+   directory-qualified token is now its own `ALLOWED` entry in
+   `tests/test_source_cited_paths.py`, with that reason; nothing was vendored.
+   That module alone, on `agent/handoff44-section7-closeout`: 5 tests, OK. The
+   full Python gate was not re-run after this edit, so its total (14 failures
+   before it) is unmeasured. This note and the `ALLOWED` entry land in one
+   commit; not pushed.
 5. **One `kextload` on a machine containing the card.** Unchanged, and still the
    single highest-value action in the whole project. Blocked on hardware, on SIP,
    and on `3050-handoff27.md` §1's mutual exclusion: the laptop cannot hold Linux

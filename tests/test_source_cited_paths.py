@@ -100,6 +100,13 @@ ALLOWED = {
         "upstream nouveau tool, quoted at NVRiscvUcode.hpp:40 for what it says "
         "about RM_RISCV_UCODE_DESC sizing. Vendoring it to satisfy this gate "
         "would be the gate driving the code.",
+    "nouveau/extract-firmware-nouveau.py":
+        "the same upstream tool, named with its nouveau/ directory at "
+        "NVGspBooterHs.hpp:5 as the source of truth for the nvfw_hs_header_v2 "
+        "Booter layout. The local copy under reference/open-gpu-kernel-modules/ "
+        "is excluded by .gitignore line 2 and tracked by nothing, so a clean "
+        "checkout has no file to resolve to. Vendoring it would be the gate "
+        "driving the code.",
 }
 
 # Measured 2026-08-16: 14 sources, 41 distinct tokens. Floors, not equalities --
