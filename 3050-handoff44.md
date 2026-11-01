@@ -465,10 +465,15 @@ Each was measured this session rather than carried forward, except where noted.
    `extract-firmware-nouveau.py` cited at line 40 of `NVRiscvUcode.hpp`. The
    directory-qualified token is now its own `ALLOWED` entry in
    `tests/test_source_cited_paths.py`, with that reason; nothing was vendored.
-   That module alone, on `agent/handoff44-section7-closeout`: 5 tests, OK. The
-   full Python gate was not re-run after this edit, so its total (14 failures
-   before it) is unmeasured. This note and the `ALLOWED` entry land in one
-   commit; not pushed.
+   That module alone, on `agent/handoff44-section7-closeout`: 5 tests, OK. This
+   note and the `ALLOWED` entry landed together in `8a46077`; not pushed.
+   **Full Python gate re-run at `8a46077`:** `Ran 1442 tests`,
+   `FAILED (failures=13)`, down from 14, and none of the 13 is in
+   `test_source_cited_paths`. By module: `test_cmake_registration` 2,
+   `test_check_count_floor` 2, `test_kext_makefile` 2, `test_guest_build_kext` 2,
+   `test_intel_publisher_sample_shape` 2, `test_check_count_last_line` 1,
+   `test_check_header_coverage` 1, `test_check_prepare_balance` 1. All 13 stay
+   open; this session did not touch them.
 5. **One `kextload` on a machine containing the card.** Unchanged, and still the
    single highest-value action in the whole project. Blocked on hardware, on SIP,
    and on `3050-handoff27.md` §1's mutual exclusion: the laptop cannot hold Linux
