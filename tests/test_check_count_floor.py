@@ -1567,6 +1567,25 @@ MEASURED = {
     "test_intel_plane_transition_plan": 77,
     "test_nv_gsp_booter_exec_sequence_plan": 67,
     "test_nv_gsp_booter_recovery_plan": 141,
+    # Measured 2026-11-01, after the six above: first readings of the GSP
+    # booter transaction-lifetime and transaction recovery-contract suites and
+    # the cross-GPU shared copy-lifetime and shared surface-handoff suites,
+    # registered once their final printf moved from a labelled 'all %u ...
+    # checks passed' line on unsigned counters (after a '%u/%u ... checks
+    # failed' early return) to the exact "\n%d checks, %d failures\n" format
+    # with static_cast<int> arguments and a gFailures == 0 ? 0 : 1 tail. The
+    # transaction-lifetime suite also opens its firmware fixture through
+    # NV_FIRMWARE_DIR now. g++ -Wall -Wextra -Wpedantic build, zero warnings,
+    # each exited 0. NOT yet MSVC readings; tests\build-msvc.bat turns them
+    # into the gate's own numbers.
+    #   test_nv_gsp_booter_transaction_lifetime 208 checks, 0 failures
+    #   test_nv_gsp_booter_transaction_recovery_contract 35 checks, 0 failures
+    #   test_nv_intel_shared_copy_lifetime 82 checks, 0 failures
+    #   test_nv_intel_shared_surface_handoff 114 checks, 0 failures
+    "test_nv_gsp_booter_transaction_lifetime": 208,
+    "test_nv_gsp_booter_transaction_recovery_contract": 35,
+    "test_nv_intel_shared_copy_lifetime": 82,
+    "test_nv_intel_shared_surface_handoff": 114,
 }
 
 # A suite must call check helpers many times over. Uniform across suites on

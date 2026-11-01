@@ -429,10 +429,6 @@ int main()
     testUncertaintyQuarantinesWithoutInventingOwnership();
     testIdentityAndContractForgeryRefuseAtomically();
 
-    if (gFailures) {
-        std::printf("%u/%u checks failed\n", gFailures, gChecks);
-        return 1;
-    }
-    std::printf("all %u cross-gpu shared-surface handoff checks passed\n", gChecks);
-    return 0;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }

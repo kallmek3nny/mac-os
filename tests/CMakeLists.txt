@@ -551,7 +551,7 @@ add_kext_test(test_intel_gt_forcewake test_intel_gt_forcewake.cpp)
 # Their first readings are recorded in MEASURED in
 # tests/test_check_count_floor.py.
 #
-# 17 other tests/*.cpp suites are still unregistered on purpose. They compile
+# 13 other tests/*.cpp suites are still unregistered on purpose. They compile
 # and pass under g++, but their final line is not one of the two count formats,
 # so listing them here -- and in the count gate, which must match this list --
 # would redden that gate. test_intel_gt_fill also needs
@@ -655,3 +655,17 @@ add_kext_test(test_intel_plane_retirement_evidence test_intel_plane_retirement_e
 add_kext_test(test_intel_plane_transition_plan test_intel_plane_transition_plan.cpp)
 add_kext_test(test_nv_gsp_booter_exec_sequence_plan test_nv_gsp_booter_exec_sequence_plan.cpp)
 add_kext_test(test_nv_gsp_booter_recovery_plan test_nv_gsp_booter_recovery_plan.cpp)
+
+# Registered after those six, also on 2026-11-01. These four were unregistered
+# only because main() ended on a labelled summary from unsigned counters ('all
+# %u ... checks passed' after a '%u/%u ... checks failed' early return), which
+# the count-last-line gate does not accept. Each now prints the exact
+# '\n%d checks, %d failures\n' line with static_cast<int> arguments and
+# returns gFailures == 0 ? 0 : 1. The GSP booter transaction-lifetime suite
+# also opens its firmware fixture through NV_FIRMWARE_DIR, since ctest runs it
+# from tests/build. First g++ readings (-Wall -Wextra -Wpedantic), zero
+# warnings, exit 0: 208, 35, 82 and 114 checks, 0 failures.
+add_kext_test(test_nv_gsp_booter_transaction_lifetime test_nv_gsp_booter_transaction_lifetime.cpp)
+add_kext_test(test_nv_gsp_booter_transaction_recovery_contract test_nv_gsp_booter_transaction_recovery_contract.cpp)
+add_kext_test(test_nv_intel_shared_copy_lifetime test_nv_intel_shared_copy_lifetime.cpp)
+add_kext_test(test_nv_intel_shared_surface_handoff test_nv_intel_shared_surface_handoff.cpp)

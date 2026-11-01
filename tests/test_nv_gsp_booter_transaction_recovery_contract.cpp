@@ -219,11 +219,6 @@ int main()
     testMailboxFailureSemantics();
     testUnsupportedEvents();
 
-    if (gFailures != 0u) {
-        std::printf("%u/%u recovery contract checks failed\n", gFailures, gChecks);
-        return 1;
-    }
-
-    std::printf("all %u recovery contract checks passed\n", gChecks);
-    return 0;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }
