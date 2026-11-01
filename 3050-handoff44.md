@@ -474,6 +474,27 @@ Each was measured this session rather than carried forward, except where noted.
    `test_intel_publisher_sample_shape` 2, `test_check_count_last_line` 1,
    `test_check_header_coverage` 1, `test_check_prepare_balance` 1. All 13 stay
    open; this session did not touch them.
+   **Registration gap narrowed 2026-11-01 (`c6e07bb`).** 35 of the 69
+   unregistered suites, the ones whose `main()` already ends on an exact count
+   `printf`, are now in `tests/CMakeLists.txt`, in `SUITES` in
+   `tests/test_check_count_last_line.py` and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first reading with
+   g++ 16.1.0 on 2026-11-01. ctest now builds and runs 62 suites. The
+   count-last-line gate also lists the new `checks, failures` users and accepts
+   `return gFailures ? 1 : 0;` alongside `return gFailures == 0 ? 0 : 1;` (same
+   exit status). Building them surfaced MSVC C4310 (level 4) at
+   `phase0-kext/NVGspWprImage.hpp` line 140: the complemented known-flags mask
+   was cast down to a byte, truncating a constant. The one-byte `flags` is now
+   widened instead; the verdict is unchanged for every input. Readings after the
+   last edit: `tests\build-msvc.bat` exit 0, 62 of 62 passed, 0 C4310 lines;
+   `tests\run-python-tests.bat` `Ran 1442 tests`, `FAILED (failures=13)`, the
+   same 13 test methods as at `8a46077`. Still open: the other 34 suites, whose
+   final line is not a count format (`test_intel_gt_fill` also needs
+   `phase0-kext/IntelGtBlitter.cpp` linked; a trial g++ link with it compiled
+   and ran clean). `phase0-kext/` changed, so this adds to the `build-payload/`
+   staleness `test_guest_build_kext` already reports; not rebuilt, and the
+   header edit was not built in the guest. Hygiene only: the offload distance
+   moves by zero and the kext has still never been loaded. Not pushed.
 5. **One `kextload` on a machine containing the card.** Unchanged, and still the
    single highest-value action in the whole project. Blocked on hardware, on SIP,
    and on `3050-handoff27.md` §1's mutual exclusion: the laptop cannot hold Linux
