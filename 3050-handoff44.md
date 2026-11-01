@@ -517,6 +517,26 @@ Each was measured this session rather than carried forward, except where noted.
    `tests/` changed, so the `build-payload/` staleness is unchanged. Hygiene
    only: the offload distance moves by zero and the kext has still never been
    loaded. Not pushed.
+   **Three Ampere suites registered 2026-11-01 (`c066cf7`).**
+   `test_nv_ampere_channel_runtime`, `test_nv_ampere_copy_publication_bridge`
+   and `test_nv_ampere_copy_publication_runtime` were unregistered only
+   because `main()` printed `"%u checks, %u failures\n"` from `unsigned`
+   counters and returned `gFailures == 0u ? 0 : 1`, and the count-last-line
+   gate accepts neither. Each now prints the exact
+   `"\n%d checks, %d failures\n"` line with `static_cast<int>` arguments (a
+   C4477 lookup did not settle whether `%d` with an `unsigned` argument warns
+   under MSVC) and returns `gFailures == 0 ? 0 : 1`. All three are now in
+   `tests/CMakeLists.txt`, in `SUITES` and the `checks, failures` list in
+   `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++ 16.1.0
+   reading on 2026-11-01: 164, 30 and 182 checks, 0 failures, zero warnings.
+   Readings after the last edit: `tests\build-msvc.bat` exit 0, 68 of 68
+   passed; `tests\run-python-tests.bat` `Ran 1442 tests`,
+   `FAILED (failures=13)`, the same 13 test methods as at `6045861`. Still
+   open: the other 28 suites, whose final line is not a count format. Only
+   `tests/` changed, so the `build-payload/` staleness is unchanged. Hygiene
+   only: the offload distance moves by zero and the kext has still never been
+   loaded. Not pushed.
 5. **One `kextload` on a machine containing the card.** Unchanged, and still the
    single highest-value action in the whole project. Blocked on hardware, on SIP,
    and on `3050-handoff27.md` §1's mutual exclusion: the laptop cannot hold Linux
