@@ -684,3 +684,26 @@ add_kext_test(test_intel_gt_fill test_intel_gt_fill.cpp)
 target_sources(test_intel_gt_fill PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../phase0-kext/IntelGtBlitter.cpp)
 add_kext_test(test_intel_gt_surface_handle_abi test_intel_gt_surface_handle_abi.cpp)
 add_kext_test(test_intel_sink_ggtt_txn test_intel_sink_ggtt_txn.cpp)
+
+# Registered after those three, also on 2026-11-01: the last 10 unregistered
+# tests/*.cpp suites. Seven ended main() on an early-return '%d failure(s)'
+# line or a std::cerr/std::cout tail with no check counter, which the
+# count-last-line gate does not accept; their check helpers now count calls
+# and main() prints the exact '\n%d checks, %d failures\n' line with a
+# gate-accepted return tail. The four GSP booter suites among them read their
+# firmware through NV_FIRMWARE_DIR, since ctest runs them from tests/build.
+# test_intel_gt_surface_handles and the two shared surface-handoff teardown
+# suites already printed that line; they were brought over STATIC_CALL_FLOOR
+# with named check helpers (the teardown suites also gained real assertions).
+# First g++ 16.1.0 readings (-Wall -Wextra -Wpedantic), exit 0, in the order
+# below: 64, 314, 44, 70, 61, 60, 77, 95, 40 and 29 checks, 0 failures.
+add_kext_test(test_intel_gt_surface test_intel_gt_surface.cpp)
+add_kext_test(test_intel_gt_surface_handles test_intel_gt_surface_handles.cpp)
+add_kext_test(test_intel_gt_surface_txn test_intel_gt_surface_txn.cpp)
+add_kext_test(test_intel_plane_live_observe test_intel_plane_live_observe.cpp)
+add_kext_test(test_nv_gsp_booter_fuse_patch_policy test_nv_gsp_booter_fuse_patch_policy.cpp)
+add_kext_test(test_nv_gsp_booter_hs test_nv_gsp_booter_hs.cpp)
+add_kext_test(test_nv_gsp_booter_patch test_nv_gsp_booter_patch.cpp)
+add_kext_test(test_nv_gsp_booter_run_plan test_nv_gsp_booter_run_plan.cpp)
+add_kext_test(test_nv_intel_shared_surface_handoff_provenance_teardown_success test_nv_intel_shared_surface_handoff_provenance_teardown_success.cpp)
+add_kext_test(test_nv_intel_shared_surface_handoff_teardown_failure test_nv_intel_shared_surface_handoff_teardown_failure.cpp)

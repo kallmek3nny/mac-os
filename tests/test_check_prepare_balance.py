@@ -449,6 +449,323 @@ void FakeDriver::teardown(void)
                       "missed:\n%s" % out)
 
 
+class TheOpenClosePair(TreeBuilder):
+    """``open``/``close`` on the provider, added by the t-d1480a audit.
+
+    Both real callers retain the provider in start() BEFORE trying open(), and
+    open() can refuse ("provider already owned"), so the provider pointer exists
+    on exactly the path where nothing was opened. ``if (fProvider)`` is
+    therefore the wrong guard for close() in the same way ``if (fDma)`` is for
+    clearMemoryDescriptor(). Both real teardowns also cleared their flag AFTER
+    close(), which is the double-release direction.
+
+    Receiver and flag names differ from both other fixtures, so a checker bound
+    to their identifiers cannot pass these by accident.
+    """
+
+    HPP = """\
+class FakeDriver : public IOService
+{
+    IOPCIDevice *fProvider;
+    bool fHoldsOpen;
+};
+"""
+
+    INIT = """\
+bool FakeDriver::init(OSDictionary *dict)
+{
+    fProvider = nullptr;
+    fHoldsOpen = false;
+    return true;
+}
+"""
+
+    START = """\
+bool FakeDriver::start(IOService *provider)
+{
+    fProvider = OSDynamicCast(IOPCIDevice, provider);
+    if (!fProvider) {
+        return false;
+    }
+    fProvider->retain();
+
+    if (!fProvider->open(this)) {
+        teardown();
+        return false;
+    }
+
+    fHoldsOpen = true;
+
+    return true;
+}
+"""
+
+    TEARDOWN = """\
+void FakeDriver::teardown(void)
+{
+    if (fProvider) {
+        if (fHoldsOpen) {
+            fHoldsOpen = false;
+            fProvider->close(this);
+        }
+        OSSafeReleaseNULL(fProvider);
+    }
+}
+"""
+
+    GUARDED_ON_THE_PROVIDER = """\
+void FakeDriver::teardown(void)
+{
+    if (fProvider) {
+        fProvider->close(this);
+        OSSafeReleaseNULL(fProvider);
+    }
+}
+"""
+
+    def good(self):
+        return self.INIT + "\n" + self.START + "\n" + self.TEARDOWN
+
+    def test_the_unmutated_open_close_fixture_is_accepted(self):
+        """Asserted first, for the same reason as the second pair's fixture."""
+        self.write(cpp=self.good(), hpp=self.HPP)
+        self.assertAccepted()
+
+    def test_an_unguarded_close_is_caught(self):
+        cpp = self.good().replace(
+            self.TEARDOWN,
+            "void FakeDriver::teardown(void)\n"
+            "{\n"
+            "    fProvider->close(this);\n"
+            "    OSSafeReleaseNULL(fProvider);\n"
+            "}\n")
+        self.assertNotEqual(cpp, self.good(), "the mutation did not apply")
+        self.write(cpp=cpp, hpp=self.HPP)
+        self.assertRejected("is not inside an `if (fHoldsOpen)`")
+
+    def test_guarding_on_the_provider_instead_of_the_flag_is_caught(self):
+        """The separating input for this pair: ``if (fProvider)`` reads as
+        defended, and is true on the path where open() refused."""
+        cpp = self.good().replace(self.TEARDOWN, self.GUARDED_ON_THE_PROVIDER)
+        self.assertNotEqual(cpp, self.good(), "the mutation did not apply")
+        self.write(cpp=cpp, hpp=self.HPP)
+        self.assertRejected("is not inside an `if (fHoldsOpen)`")
+
+    def test_clearing_the_flag_after_the_close_is_caught(self):
+        """The order both real teardowns had before t-d1480a."""
+        cpp = self.good().replace(
+            "            fHoldsOpen = false;\n"
+            "            fProvider->close(this);\n",
+            "            fProvider->close(this);\n"
+            "            fHoldsOpen = false;\n")
+        self.assertNotEqual(cpp, self.good(), "the mutation did not apply")
+        self.write(cpp=cpp, hpp=self.HPP)
+        self.assertRejected("does not appear between")
+
+    def test_a_bail_out_before_the_flag_is_caught(self):
+        """The leak direction: the provider held open with nothing recording
+        it, so the teardown skips close() and the provider cannot terminate."""
+        cpp = self.good().replace(
+            "    fHoldsOpen = true;\n",
+            "    if (!somethingElse()) {\n"
+            "        return false;\n"
+            "    }\n\n"
+            "    fHoldsOpen = true;\n")
+        self.assertNotEqual(cpp, self.good(), "the mutation did not apply")
+        self.write(cpp=cpp, hpp=self.HPP)
+        self.assertRejected("there is a `return` between")
+
+    def test_a_close_with_no_open_anywhere_is_caught(self):
+        cpp = self.good().replace(
+            "    if (!fProvider->open(this)) {\n",
+            "    if (!fProvider->isOpen(this)) {\n")
+        self.assertNotEqual(cpp, self.good(), "the mutation did not apply")
+        self.write(cpp=cpp, hpp=self.HPP)
+        self.assertRejected("ever calls fProvider->open()")
+
+    def test_an_open_with_no_close_anywhere_is_caught(self):
+        cpp = self.good().replace(
+            "        if (fHoldsOpen) {\n"
+            "            fHoldsOpen = false;\n"
+            "            fProvider->close(this);\n"
+            "        }\n",
+            "")
+        self.assertNotEqual(cpp, self.good(), "the mutation did not apply")
+        self.write(cpp=cpp, hpp=self.HPP)
+        self.assertRejected("no close() on fProvider")
+
+    def test_the_failure_names_what_the_guard_would_assert(self):
+        cpp = self.good().replace(self.TEARDOWN, self.GUARDED_ON_THE_PROVIDER)
+        self.write(cpp=cpp, hpp=self.HPP)
+        out = self.assertRejected("holds its provider open")
+        self.assertIn("open() succeeded", out,
+                      "the failure does not explain why `if (theProvider)` is "
+                      "not a guard:\n%s" % out)
+
+
+class TheFieldFlag(TreeBuilder):
+    """A flag kept in a separately allocated struct: ``state->dmaBound``.
+
+    IntelGtBringupSurface.cpp keeps its IODMACommand in an IOMalloc'd runtime
+    struct and records the bind there. Before the checker knew field flags it
+    skipped ``state->dmaBound = true;``, derived the next bare ``x = true;`` in
+    the function instead (``fQuarantined``), and reported three findings
+    against a flag that has nothing to do with the descriptor: a ``return``
+    before it, no ``::init()`` to initialise it in, and a release not guarded
+    by it. This fixture carries the same decoy, after the same kind of
+    bail-out, in a file with no ``init()``. So the unmutated fixture going
+    green IS the mutation for that checker fix: take the field-flag
+    derivation out and it reports exactly those three again, which
+    ``test_a_field_flag_on_another_object_is_not_this_pairs_flag`` shows.
+
+    The rule is narrow on purpose: a field flag counts only on the object that
+    holds the receiver, and that object must be zeroed before the acquire,
+    because IOMalloc() memory is not.
+    """
+
+    HPP = """\
+struct FakeRuntimeState
+{
+    IODMACommand *dma;
+    bool dmaBound;
+};
+
+class FakeDriver : public IOService
+{
+    FakeRuntimeState *fState;
+    bool fQuarantined;
+};
+"""
+
+    STAGE = """\
+bool FakeDriver::stage(void)
+{
+    FakeRuntimeState *state = (FakeRuntimeState *)IOMalloc(sizeof(*state));
+    if (!state) {
+        return false;
+    }
+    bzero(state, sizeof(*state));
+    fState = state;
+
+    state->dma = makeCommand();
+    if (!state->dma) {
+        teardown(state);
+        return false;
+    }
+
+    if (state->dma->setMemoryDescriptor(fBuf, true) != kIOReturnSuccess) {
+        teardown(state);
+        return false;
+    }
+
+    state->dmaBound = true;
+
+    if (!publish(state)) {
+        teardown(state);
+        return false;
+    }
+
+    fQuarantined = true;
+
+    return true;
+}
+"""
+
+    TEARDOWN = """\
+void FakeDriver::teardown(FakeRuntimeState *state)
+{
+    if (state->dmaBound) {
+        state->dmaBound = false;
+        state->dma->clearMemoryDescriptor();
+    }
+    OSSafeReleaseNULL(state->dma);
+    IOFree(state, sizeof(*state));
+}
+"""
+
+    GUARDED_BLOCK = ("    if (state->dmaBound) {\n"
+                     "        state->dmaBound = false;\n"
+                     "        state->dma->clearMemoryDescriptor();\n"
+                     "    }\n")
+
+    def good(self):
+        return self.STAGE + "\n" + self.TEARDOWN
+
+    def mutated(self, old, new):
+        cpp = self.good().replace(old, new)
+        self.assertNotEqual(cpp, self.good(), "the mutation did not apply")
+        return cpp
+
+    def test_the_unmutated_field_flag_fixture_is_accepted(self):
+        """Asserted first, for the same reason as the other pair fixtures."""
+        self.write(cpp=self.good(), hpp=self.HPP)
+        self.assertAccepted()
+
+    def test_a_field_flag_on_another_object_is_not_this_pairs_flag(self):
+        """``fOther->dmaBound`` records some other object's bind. Accepting it
+        would let any struct's flag excuse this command's release. Refused,
+        the derivation falls through to the decoy and reproduces the three
+        findings IntelGtBringupSurface.cpp had before field flags existed."""
+        cpp = self.mutated("    state->dmaBound = true;\n",
+                           "    fOther->dmaBound = true;\n")
+        self.write(cpp=cpp, hpp=self.HPP)
+        out = self.assertRejected("and `fQuarantined = true;`")
+        self.assertIn("no ::init() body found", out, out)
+        self.assertIn("is not inside an `if (fQuarantined)`", out, out)
+
+    def test_an_unzeroed_holder_is_caught(self):
+        """IOMalloc() is not IOMallocZero(): the flag starts as garbage, and
+        the teardown runs on the failure path of every step after it."""
+        cpp = self.mutated("    bzero(state, sizeof(*state));\n", "")
+        self.write(cpp=cpp, hpp=self.HPP)
+        self.assertRejected(
+            "nothing before the dma->setMemoryDescriptor() zeroes `state`")
+
+    def test_the_compound_guard_the_real_teardown_had_is_caught(self):
+        """IntelGtBringupSurface.cpp before t-73c1f8: ``if (flag && object)``
+        with the flag cleared after the call."""
+        cpp = self.mutated(
+            self.GUARDED_BLOCK,
+            "    if (state->dmaBound && state->dma) {\n"
+            "        state->dma->clearMemoryDescriptor();\n"
+            "        state->dmaBound = false;\n"
+            "    }\n")
+        self.write(cpp=cpp, hpp=self.HPP)
+        self.assertRejected(
+            "dma->clearMemoryDescriptor() is not inside an "
+            "`if (state->dmaBound)`")
+
+    def test_clearing_the_field_flag_after_the_call_is_caught(self):
+        cpp = self.mutated(
+            "        state->dmaBound = false;\n"
+            "        state->dma->clearMemoryDescriptor();\n",
+            "        state->dma->clearMemoryDescriptor();\n"
+            "        state->dmaBound = false;\n")
+        self.write(cpp=cpp, hpp=self.HPP)
+        self.assertRejected("`state->dmaBound = false;` does not appear between")
+
+    def test_a_bail_out_before_the_field_flag_is_caught(self):
+        cpp = self.mutated(
+            "    state->dmaBound = true;\n",
+            "    if (!somethingElse()) {\n"
+            "        return false;\n"
+            "    }\n\n"
+            "    state->dmaBound = true;\n")
+        self.write(cpp=cpp, hpp=self.HPP)
+        self.assertRejected("and `state->dmaBound = true;`")
+
+    def test_a_field_flag_that_is_not_a_bool_member_is_caught(self):
+        hpp = self.HPP.replace("    bool dmaBound;\n", "    UInt32 dmaBound;\n")
+        self.assertNotEqual(hpp, self.HPP, "the mutation did not apply")
+        self.write(cpp=self.good(), hpp=hpp)
+        self.assertRejected("`bool dmaBound;` is not declared")
+
+    def test_a_command_never_dropped_after_its_clear_is_caught(self):
+        cpp = self.mutated("    OSSafeReleaseNULL(state->dma);\n", "")
+        self.write(cpp=cpp, hpp=self.HPP)
+        self.assertRejected("no release of state->dma appears after")
+
+
 class PairsAreDistinguished(TreeBuilder):
     """``prepare`` must not match ``prepareForDMA``.
 
@@ -565,6 +882,217 @@ class HelperUnits(unittest.TestCase):
     def test_block_close_finds_the_matching_brace_not_the_first_one(self):
         lines = ["if (a) {", "    if (b) {", "    }", "}"]
         self.assertEqual(self.mod.block_close(lines, 0), 3)
+
+
+#
+# The edits made to the real driver for t-73c1f8 and t-d1480a, each paired
+# with its own revert.
+#
+REAL_KEXT = os.path.join(ROOT, "phase0-kext")
+
+
+def flag_first(indent, flag, call):
+    """``if (flag) { flag=false; call; }`` -- the shape every fix landed on."""
+    pad = " " * indent
+    return ("%sif (%s) {\n%s    %s=false;\n%s    %s;\n%s}\n"
+            % (pad, flag, pad, flag, pad, call, pad))
+
+
+def released_first(indent, cond, flag, call):
+    """``if (cond) { call; flag=false; }`` -- the order every teardown had."""
+    pad = " " * indent
+    return ("%sif (%s) {\n%s    %s;\n%s    %s=false;\n%s}\n"
+            % (pad, cond, pad, call, pad, flag, pad))
+
+
+def teardown_reverts(source, flag, obj, method, args,
+                     indent=4, was=None, was_fixed=None):
+    """The two halves of one flag-before-release fix, reverted separately.
+
+    ``was`` is the teardown exactly as it stood before the fix -- by default
+    the compound ``if (flag && obj)`` guard that hid the order from the
+    checker. The second row keeps the plain ``if (flag)`` the fix introduced
+    and puts back only the ORDER, so that half is shown to be load-bearing on
+    its own rather than riding on the guard.
+    """
+    call = "%s->%s(%s)" % (obj, method, args)
+    fixed = flag_first(indent, flag, call)
+    if was is None:
+        was = released_first(indent, "%s && %s" % (flag, obj), flag, call)
+    receiver = obj.split("->")[-1]
+    return (
+        (source, "%s teardown as it was" % flag, was_fixed or fixed, was,
+         "%s->%s() is not inside an `if (%s)`" % (receiver, method, flag)),
+        (source, "%s cleared after %s() again" % (flag, method), fixed,
+         released_first(indent, flag, flag, call),
+         "`%s = false;` does not appear between" % flag),
+    )
+
+
+#
+# (source, what is reverted, the fix as it stands, the fix reverted, what the
+# checker must say.)
+#
+# Real defects: every teardown row. Each had the flag cleared AFTER its
+# release, mostly behind a compound ``if (flag && object)`` guard the checker
+# could not read. False positives fixed in the source: the shape rows at the
+# end. The three false positives fixed in the CHECKER (the
+# IntelGtBringupSurface.cpp field flag) have no row: reverting a checker change
+# is not a source edit, so TheFieldFlag carries that mutation.
+#
+REVERTED_FIXES = (
+    teardown_reverts("NVGspWprBootUcodeStageService.cpp",
+                     "fDMABound", "fDMA", "clearMemoryDescriptor", "")
+    + teardown_reverts("NVGspWprMetaStageService.cpp",
+                       "fDMABound", "fDMA", "clearMemoryDescriptor", "")
+    + teardown_reverts("NVGspRmImageStageService.cpp",
+                       "fDMABound", "fDMA", "clearMemoryDescriptor", "")
+    + teardown_reverts("NVGspQueueBackingService.cpp",
+                       "fDMABound", "fDMA", "clearMemoryDescriptor", "")
+    + teardown_reverts("IntelGtSurfaceStageService.cpp",
+                       "fDMABound", "fDMA", "clearMemoryDescriptor", "")
+    + teardown_reverts("IntelSinkCandidateService.cpp",
+                       "fPeerDMABound", "fPeerDMA", "clearMemoryDescriptor", "")
+    + teardown_reverts("IntelSinkCandidateService.cpp",
+                       "fDMABound", "fIntelDMA", "clearMemoryDescriptor", "")
+    + teardown_reverts("IntelSinkCandidateService.cpp",
+                       "fPrepared", "fBacking", "complete", "kIODirectionInOut")
+    + teardown_reverts(
+        "IntelSinkCandidateService.cpp", "fOpened", "fPCIDevice", "close",
+        "this", indent=8,
+        was_fixed=("    if (fPCIDevice) {\n"
+                   + flag_first(8, "fOpened", "fPCIDevice->close(this)")
+                   + "    }\n"),
+        was=released_first(4, "fOpened && fPCIDevice", "fOpened",
+                           "fPCIDevice->close(this)"))
+    + teardown_reverts("NVGspBootArgsRehearsalService.cpp",
+                       "fLibosBound", "fLibosDMA", "clearMemoryDescriptor", "")
+    + teardown_reverts("NVGspBootArgsRehearsalService.cpp",
+                       "fRmArgsBound", "fRmArgsDMA", "clearMemoryDescriptor", "")
+    + teardown_reverts("IntelGtBringupSurface.cpp",
+                       "state->dmaBound", "state->dma",
+                       "clearMemoryDescriptor", "")
+    + teardown_reverts(
+        "IntelGtBringup.cpp", "fDMABound", "fDMA", "clearMemoryDescriptor", "",
+        was=("    if (fDMABound) { fDMA->clearMemoryDescriptor(); "
+             "fDMABound=false; }\n"))
+    + teardown_reverts(
+        "IntelGtBringup.cpp", "fPrepared", "fPool", "complete",
+        "kIODirectionInOut",
+        was=("    if (fPrepared) { fPool->complete(kIODirectionInOut); "
+             "fPrepared=false; }\n"))
+    + teardown_reverts(
+        "IntelGtBringup.cpp", "fOpened", "fPCI", "close", "this",
+        was="    if (fOpened) { fPCI->close(this); fOpened=false; }\n")
+    + (
+        #
+        # Shape rewrites: false positives cleared by putting the source in a
+        # form this checker can read. Reverting one must still redden;
+        # otherwise the rewrite was not what cleared the finding.
+        #
+        ("NVGspBootArgsRehearsalService.cpp",
+         "fRmArgsBound no longer set beside its bind",
+         "    fRmArgsBound=true;\n", "",
+         "there is a `return` between the fRmArgsDMA->setMemoryDescriptor() "
+         "success check"),
+        ("IntelGtBringup.cpp", "init() flags back on one line",
+         "    fOpened=false;\n    fPrepared=false;\n"
+         "    fDMABound=false;\n    fPCIChanged=false;\n",
+         "    fOpened=false; fPrepared=false; fDMABound=false; "
+         "fPCIChanged=false;\n",
+         "`fPrepared = false;` does not appear in ::init()"),
+        #
+        # A one-line `if (...) return false;` gives block_close() no block to
+        # delimit, so the flag derivation runs on into some later block. WHICH
+        # check fires then depends on where it lands, so these two assert only
+        # that a failure names the receiver. The single-source baseline is
+        # what makes that enough: nothing else in the run can fail.
+        #
+        ("IntelGtBringup.cpp", "prepare() failure check back on one line",
+         "    if (!fPool || fPool->prepare(kIODirectionInOut)"
+         "!=kIOReturnSuccess) {\n        return false;\n    }\n",
+         "    if (!fPool || fPool->prepare(kIODirectionInOut)"
+         "!=kIOReturnSuccess) return false;\n",
+         "fPool->"),
+        ("IntelGtBringup.cpp",
+         "setMemoryDescriptor() failure check back on one line",
+         "    if (!fDMA || fDMA->setMemoryDescriptor(fPool,true)"
+         "!=kIOReturnSuccess) {\n        return false;\n    }\n",
+         "    if (!fDMA || fDMA->setMemoryDescriptor(fPool,true)"
+         "!=kIOReturnSuccess) return false;\n",
+         "fDMA->"),
+    )
+)
+
+
+class RevertedFixes(unittest.TestCase):
+    """Every t-73c1f8 / t-d1480a edit to the real driver, reverted one at a time.
+
+    RealTree shows the driver is accepted as it stands. It cannot show WHICH
+    edits that acceptance depends on: a fix the checker never looked at would
+    leave it just as green. So each row puts its own edit back, in an
+    otherwise real tree, and the checker has to go red for the reason the row
+    names.
+
+    Each run holds every real header and ONE real source, and that source is
+    asserted clean on its own first. A red run can then only come from the
+    revert -- not from another file, and not from a source that was already
+    failing. The fixed text must occur exactly once: if the driver moves on,
+    the row fails as "occurs N time(s)" instead of quietly testing nothing.
+    """
+
+    def run_alone(self, source, text):
+        root = tempfile.mkdtemp(prefix="preparebalance_real_")
+        self.addCleanup(shutil.rmtree, root, True)
+        kext = os.path.join(root, "phase0-kext")
+        os.makedirs(kext)
+        for name in os.listdir(REAL_KEXT):
+            if name.endswith(".hpp"):
+                shutil.copy(os.path.join(REAL_KEXT, name), kext)
+        with open(os.path.join(kext, source), "w", encoding="utf-8",
+                  errors="surrogateescape") as handle:
+            handle.write(text)
+        proc = subprocess.run(
+            [sys.executable, CHECKER, root],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            universal_newlines=True)
+        return proc.returncode, proc.stdout
+
+    def test_every_fix_reddens_when_reverted(self):
+        baselines = {}
+        for source, what, fixed, reverted, needle in REVERTED_FIXES:
+            with self.subTest(source=source, revert=what):
+                with open(os.path.join(REAL_KEXT, source), "r",
+                          encoding="utf-8", errors="surrogateescape") as handle:
+                    text = handle.read()
+
+                if source not in baselines:
+                    baselines[source] = self.run_alone(source, text)
+                code, out = baselines[source]
+                self.assertEqual(code, 0,
+                                 "%s is not accepted on its own, so a red run "
+                                 "below would prove nothing:\n%s"
+                                 % (source, out))
+                self.assertIn("check-prepare-balance: OK", out, out)
+
+                count = text.count(fixed)
+                self.assertEqual(
+                    count, 1,
+                    "the fixed text for %r occurs %d time(s) in %s, not once "
+                    "-- the driver has moved on and this row must follow:\n%s"
+                    % (what, count, source, fixed))
+
+                code, out = self.run_alone(source,
+                                           text.replace(fixed, reverted))
+                self.assertNotEqual(code, 0,
+                                    "reverting %r in %s left the checker "
+                                    "green:\n%s" % (what, source, out))
+                self.assertIn("check-prepare-balance: FAILED", out,
+                              "no verdict line -- the checker died rather "
+                              "than rejecting:\n%s" % out)
+                self.assertIn(needle, out,
+                              "reverting %r in %s was rejected, but not for "
+                              "%r:\n%s" % (what, source, needle, out))
 
 
 class RealTree(unittest.TestCase):

@@ -4,7 +4,7 @@
 #include "IntelSinkPeer.hpp"
 
 static int gChecks=0,gFailures=0;
-static void check(const char *label,bool ok){++gChecks;if(!ok){++gFailures;std::printf("  FAIL %s\n",label);}}
+static void checkTrue(const char *label,bool ok){++gChecks;if(!ok){++gFailures;std::printf("  FAIL %s\n",label);}}
 static void checkU32(const char *label,IGPeerU32 got,IGPeerU32 want){++gChecks;if(got!=want){++gFailures;std::printf("  FAIL %s: got %u want %u\n",label,got,want);}}
 static void checkU64(const char *label,IGPeerU64 got,IGPeerU64 want){++gChecks;if(got!=want){++gFailures;std::printf("  FAIL %s: got 0x%016llX want 0x%016llX\n",label,(unsigned long long)got,(unsigned long long)want);}}
 static bool zeroMap(const IGSinkPeerMap &m){return m.iovmAddress==0ull&&m.segmentBytes==0ull&&m.mappedBytes==0ull;}
@@ -42,32 +42,32 @@ static void testRefusals(void)
 
     m={1ull,2ull,3ull};
     checkU32("zero size",igSinkPeerPlan(0x1000,4096,0,&m),IG_SINK_PEER_ZERO_SIZE);
-    check("zero size clears",zeroMap(m));
+    checkTrue("zero size clears",zeroMap(m));
 
     m={1ull,2ull,3ull};
     checkU32("unaligned IOVM",igSinkPeerPlan(0x1001,4096,4096,&m),IG_SINK_PEER_IOVM_UNALIGNED);
-    check("unaligned clears",zeroMap(m));
+    checkTrue("unaligned clears",zeroMap(m));
 
     m={1ull,2ull,3ull};
     checkU32("base above ceiling",igSinkPeerPlan(IG_SINK_PEER_DMA_LIMIT_POLICY+1ull,4096,4096,&m),IG_SINK_PEER_IOVM_RANGE);
-    check("high base clears",zeroMap(m));
+    checkTrue("high base clears",zeroMap(m));
 
     const IGPeerU64 topPage=IG_SINK_PEER_DMA_LIMIT_POLICY-4095ull;
     m={1ull,2ull,3ull};
     checkU32("range crosses ceiling",igSinkPeerPlan(topPage,8192,8192,&m),IG_SINK_PEER_IOVM_RANGE);
-    check("crossing range clears",zeroMap(m));
+    checkTrue("crossing range clears",zeroMap(m));
 
     m={1ull,2ull,3ull};
     checkU32("short segment",igSinkPeerPlan(0x1000,4095,4096,&m),IG_SINK_PEER_SEGMENT_SHORT);
-    check("short segment clears",zeroMap(m));
+    checkTrue("short segment clears",zeroMap(m));
 }
 
 static void testVerdicts(void)
 {
     std::printf("\n4. verdict family\n");
     for(IGPeerU32 v=0;v<IG_SINK_PEER_LIMIT;++v){
-        check("verdict named",std::strcmp(igSinkPeerVerdictName(v),"unknown")!=0);
-        check("success equality",igSinkPeerSucceeded(v)==(v==IG_SINK_PEER_OK));
+        checkTrue("verdict named",std::strcmp(igSinkPeerVerdictName(v),"unknown")!=0);
+        checkTrue("success equality",igSinkPeerSucceeded(v)==(v==IG_SINK_PEER_OK));
     }
 }
 

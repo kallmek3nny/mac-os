@@ -18,43 +18,26 @@
 #include <IOKit/IOLib.h>
 #include <IOKit/IOMemoryDescriptor.h>
 #include <libkern/c++/OSObject.h>
+#include <IOKit/IORegistryEntry.h>
 
-class IORegistryEntry : public OSObject {
-public:
-    virtual const char *getName() const;
+//
+// class IORegistryEntry moved to IORegistryEntry.h for t-fccff1. Apple's
+// IOService.h includes that header rather than declaring the class, and three
+// phase0-kext sources include IORegistryEntry.h by name.
+//
 
-    virtual bool setProperty(const char *key, OSObject *value);
-    virtual bool setProperty(const char *key, const char *value);
-    virtual bool setProperty(const char *key, bool value);
-    virtual bool setProperty(const char *key, unsigned long long value,
-                             unsigned int numberOfBits);
+class IOUserClient;
 
-    //
-    // The bytes+length form, which Apple's IORegistryEntry really does declare
-    // and this shim did not until 2026-08-26. Its absence was found by
-    // IntelGtProbe.cpp -- the first file in the tree to publish a BLOB rather
-    // than a scalar -- and the direction of the omission is the dangerous one
-    // this shim exists to avoid: a shim FLATTER or NARROWER than Apple's accepts
-    // less than Apple does, so the failure appears on the operator's one build
-    // attempt rather than here. Same class as handoff19 section 2's missing
-    // IODeviceMemory header, one level down from a file layout to an overload.
-    //
-    // `length` is unsigned int rather than IOByteCount deliberately: Apple's
-    // signature is unsigned int, and a wider parameter here would accept a call
-    // that does not compile on macOS.
-    //
-    virtual bool setProperty(const char *key, void *bytes,
-                             unsigned int length);
-
-    //
-    // Apple's getProperty() returns a BORROWED reference and copyProperty()
-    // returns a RETAINED one. Both are declared because confusing the two is a
-    // refcount bug that no amount of testing on Windows can catch at runtime --
-    // having both present at least makes the call site say which it meant.
-    //
-    virtual OSObject *getProperty(const char *key) const;
-    virtual OSObject *copyProperty(const char *key) const;
-};
+//
+// Added for t-fccff1. Transcribed from
+// step7-results/apple-headers/IOKit/IOService.h:
+//
+//     extern const IORegistryPlane *  gIOServicePlane;
+//
+// IntelGtBringup, IntelGtSurfaceStageService and IntelSinkCandidateService
+// pass it to IORegistryIterator::iterateOver().
+//
+extern const IORegistryPlane *gIOServicePlane;
 
 class IOService : public IORegistryEntry {
 public:
@@ -72,6 +55,23 @@ public:
     virtual void       registerService(IOOptionBits options = 0);
     virtual bool       attach(IOService *provider);
     virtual void       detach(IOService *provider);
+
+    //
+    // Added for t-fccff1. Transcribed from
+    // step7-results/apple-headers/IOKit/IOService.h:
+    //
+    //     virtual IOReturn newUserClient( task_t owningTask, void * securityID,
+    //         UInt32 type, OSDictionary * properties,
+    //         LIBKERN_RETURNS_RETAINED IOUserClient ** handler );
+    //
+    // IntelGtBringup overrides this form. LIBKERN_RETURNS_RETAINED is an
+    // ownership annotation, not part of the signature, and is left out.
+    // NARROWER: the 4-argument form and the two OSSharedPtr<IOUserClient>&
+    // forms are not declared; phase0-kext overrides only this one.
+    //
+    virtual IOReturn   newUserClient(task_t owningTask, void *securityID,
+                                     UInt32 type, OSDictionary *properties,
+                                     IOUserClient **handler);
 };
 
 #endif // NVSHIM_IOKIT_IOSERVICE_H

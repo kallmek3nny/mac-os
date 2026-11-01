@@ -10,7 +10,7 @@
 static unsigned gChecks = 0u;
 static unsigned gFailures = 0u;
 
-static void check(bool cond, const char *what)
+static void checkThat(bool cond, const char *what)
 {
     ++gChecks;
     if (!cond) {
@@ -23,7 +23,7 @@ static std::vector<unsigned char> load(const char *path)
 {
     std::ifstream f(path, std::ios::binary);
     if (!f) {
-        check(false, "fixture open");
+        checkThat(false, "fixture open");
         return {};
     }
     return std::vector<unsigned char>(std::istreambuf_iterator<char>(f), {});
@@ -47,15 +47,15 @@ static std::vector<unsigned char> privateImage(
     const NVGspBooterFuseObservation &observed)
 {
     NVGspBooterHsPlan hs = {};
-    check(nvGspPlanBooterHs(blob.data(), blob.size(), &hs) == NV_GSP_BOOTER_HS_OK,
+    checkThat(nvGspPlanBooterHs(blob.data(), blob.size(), &hs) == NV_GSP_BOOTER_HS_OK,
           "fixture hs parse");
     std::vector<unsigned char> image(hs.firmwareBytes, 0x5au);
     NVGspBooterFusePatchPlan built = {};
-    check(nvGspBuildObservedBooterPrivateImage(
+    checkThat(nvGspBuildObservedBooterPrivateImage(
               blob.data(), blob.size(), &observed,
               image.data(), image.size(), &built) == NV_GSP_BOOTER_FUSE_PATCH_OK,
           "fixture private image");
-    check(built.valid, "fixture private image valid");
+    checkThat(built.valid, "fixture private image valid");
     return image;
 }
 
@@ -64,13 +64,13 @@ static NVGspBooterExecSequencePlan sequencePlan(const std::vector<unsigned char>
     const auto observed = fuseObservation(0u);
     const auto image = privateImage(blob, observed);
     NVGspBooterExecSequencePlan out = {};
-    check(nvGspPlanGa107BooterExecSequence(
+    checkThat(nvGspPlanGa107BooterExecSequence(
               blob.data(), blob.size(), &observed,
               image.data(), image.size(), 0x12345678abcdef01ull, &out) ==
           NV_GSP_BOOTER_EXEC_OK,
           "fixture exec sequence accepted");
-    check(out.valid, "fixture exec sequence valid");
-    check(!out.runtimeWriteAuthorized, "fixture sequence remains no-write");
+    checkThat(out.valid, "fixture exec sequence valid");
+    checkThat(!out.runtimeWriteAuthorized, "fixture sequence remains no-write");
     return out;
 }
 
@@ -105,28 +105,28 @@ static void testGoldenSuccess(const NVGspBooterExecSequencePlan &sequence)
     const auto verdict = nvGspPlanGa107BooterSuccessRetirement(
         &sequence, &observed, &plan);
 
-    check(verdict == NV_GSP_BOOTER_SUCCESS_RETIREMENT_OK,
+    checkThat(verdict == NV_GSP_BOOTER_SUCCESS_RETIREMENT_OK,
           "clean success observation accepted");
-    check(plan.valid, "success plan valid");
-    check(plan.firmwareDmaCompletionProven,
+    checkThat(plan.valid, "success plan valid");
+    checkThat(plan.firmwareDmaCompletionProven,
           "all firmware dma completion proven");
-    check(!plan.firmwareStagingMayStillBeReferenced &&
+    checkThat(!plan.firmwareStagingMayStillBeReferenced &&
           plan.firmwareStagingReleaseAuthorized,
           "firmware staging may be released");
-    check(plan.wprMetaWasPublished && plan.bootWasStarted,
+    checkThat(plan.wprMetaWasPublished && plan.bootWasStarted,
           "wpr metadata publication and boot start proven");
-    check(plan.haltProven && plan.mailbox0SuccessProven &&
+    checkThat(plan.haltProven && plan.mailbox0SuccessProven &&
           plan.mailboxPairReadbackProven,
           "bounded halt and ordered mailbox success proven");
-    check(!plan.wprMetaMayStillBeReferenced && plan.wprMetaReleaseAuthorized,
+    checkThat(!plan.wprMetaMayStillBeReferenced && plan.wprMetaReleaseAuthorized,
           "successful booter retires wpr metadata backing");
-    check(plan.recoveryGuardMayBeDismissed,
+    checkThat(plan.recoveryGuardMayBeDismissed,
           "successful path may dismiss failure recovery guard");
-    check(!plan.postSuccessResetRequiredForBackingRelease,
+    checkThat(!plan.postSuccessResetRequiredForBackingRelease,
           "successful backing release does not require compensating reset");
-    check(!plan.failureRecoveryPlannerRequired,
+    checkThat(!plan.failureRecoveryPlannerRequired,
           "clean success does not route through failure planner");
-    check(!plan.retryAuthorized && !plan.runtimeRecoveryAuthorized &&
+    checkThat(!plan.retryAuthorized && !plan.runtimeRecoveryAuthorized &&
           !plan.runtimeWriteAuthorized,
           "pure success planner authorizes no writes/recovery/retry");
 }
@@ -147,8 +147,8 @@ static void expectRefusal(
                     nvGspBooterSuccessRetirementVerdictName(verdict),
                     nvGspBooterSuccessRetirementVerdictName(expected));
     }
-    check(verdict == expected, label);
-    check(sameBytes(out, before), "refusal leaves output untouched");
+    checkThat(verdict == expected, label);
+    checkThat(sameBytes(out, before), "refusal leaves output untouched");
 }
 
 static void testCompletionRefusals(const NVGspBooterExecSequencePlan &sequence)
@@ -258,22 +258,22 @@ static void testNullsAndVerdictNames(const NVGspBooterExecSequencePlan &sequence
     const auto observed = cleanSuccess(sequence);
     NVGspBooterSuccessRetirementPlan out = {};
 
-    check(nvGspPlanGa107BooterSuccessRetirement(nullptr, &observed, &out) ==
+    checkThat(nvGspPlanGa107BooterSuccessRetirement(nullptr, &observed, &out) ==
           NV_GSP_BOOTER_SUCCESS_RETIREMENT_ERR_NULL_SEQUENCE,
           "null sequence refused");
-    check(nvGspPlanGa107BooterSuccessRetirement(&sequence, nullptr, &out) ==
+    checkThat(nvGspPlanGa107BooterSuccessRetirement(&sequence, nullptr, &out) ==
           NV_GSP_BOOTER_SUCCESS_RETIREMENT_ERR_OBSERVATION,
           "null observation refused");
-    check(nvGspPlanGa107BooterSuccessRetirement(&sequence, &observed, nullptr) ==
+    checkThat(nvGspPlanGa107BooterSuccessRetirement(&sequence, &observed, nullptr) ==
           NV_GSP_BOOTER_SUCCESS_RETIREMENT_ERR_NULL_OUTPUT,
           "null output refused");
 
     for (NVGspBooterHsU32 v = 0u;
          v <= NV_GSP_BOOTER_SUCCESS_RETIREMENT_VERDICT_LIMIT; ++v) {
-        check(std::strcmp(nvGspBooterSuccessRetirementVerdictName(v), "unknown") != 0,
+        checkThat(std::strcmp(nvGspBooterSuccessRetirementVerdictName(v), "unknown") != 0,
               "in-range verdict named");
     }
-    check(std::strcmp(nvGspBooterSuccessRetirementVerdictName(
+    checkThat(std::strcmp(nvGspBooterSuccessRetirementVerdictName(
                           NV_GSP_BOOTER_SUCCESS_RETIREMENT_VERDICT_LIMIT + 1u),
                       "unknown") == 0,
           "out-of-range verdict unknown");

@@ -7,7 +7,7 @@
 static unsigned gChecks = 0u;
 static unsigned gFailures = 0u;
 
-static void check(bool cond, const char *what)
+static void checkTrue(bool cond, const char *what)
 {
     ++gChecks;
     if (!cond) {
@@ -62,20 +62,20 @@ static void expectRefusal(const NvIntelSharedCopyProgress &progress,
     poison(&out);
     const auto before = out;
     const auto verdict = nvIntelSharedCopyLifetimePlan(progress, &out);
-    check(verdict == expected, what);
-    check(sameBytes(out, before), "refusal leaves output untouched");
+    checkTrue(verdict == expected, what);
+    checkTrue(sameBytes(out, before), "refusal leaves output untouched");
 }
 
 static void checkAlwaysPure(const NvIntelSharedCopyLifetimePlan &p)
 {
-    check(!p.runtimeWriteAuthorized,
+    checkTrue(!p.runtimeWriteAuthorized,
           "lifetime planner never authorizes runtime writes");
     if (p.intelHandoffAuthorized) {
-        check(p.completionProven,
+        checkTrue(p.completionProven,
               "intel handoff requires proven nvidia completion");
-        check(p.intelGgttMappingMayBegin,
+        checkTrue(p.intelGgttMappingMayBegin,
               "proven handoff admits intel ggtt mapping phase");
-        check(!p.nvidiaMayReferenceSink,
+        checkTrue(!p.nvidiaMayReferenceSink,
               "retired copy no longer owns nvidia sink reference");
     }
 }
@@ -86,34 +86,34 @@ static void testPrePeerAndPeerReady()
 
     NvIntelSharedCopyProgress progress = {};
     NvIntelSharedCopyLifetimePlan out = {};
-    check(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
+    checkTrue(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
           "pre-peer state accepted");
-    check(out.valid && out.phase == NV_INTEL_COPY_PHASE_PRE_PEER,
+    checkTrue(out.valid && out.phase == NV_INTEL_COPY_PHASE_PRE_PEER,
           "pre-peer phase classified");
-    check(!out.sinkBackingMustRemainPinned &&
+    checkTrue(!out.sinkBackingMustRemainPinned &&
               !out.peerMappingMustRemainPinned,
           "no peer map creates no nvidia lifetime");
-    check(!out.intelHandoffAuthorized &&
+    checkTrue(!out.intelHandoffAuthorized &&
               !out.intelGgttMappingMayBegin,
           "pre-peer state does not claim copy completion");
-    check(!out.peerMappingTeardownMayBeAttempted,
+    checkTrue(!out.peerMappingTeardownMayBeAttempted,
           "no peer map means no peer teardown");
     checkAlwaysPure(out);
 
     progress = peerReady();
-    check(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
+    checkTrue(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
           "validated peer-ready state accepted");
-    check(out.phase == NV_INTEL_COPY_PHASE_PEER_READY,
+    checkTrue(out.phase == NV_INTEL_COPY_PHASE_PEER_READY,
           "peer-ready phase classified");
-    check(out.sinkBackingMustRemainPinned,
+    checkTrue(out.sinkBackingMustRemainPinned,
           "validated peer map pins sink backing");
-    check(!out.nvidiaMayReferenceSink &&
+    checkTrue(!out.nvidiaMayReferenceSink &&
               !out.peerMappingMustRemainPinned,
           "before submission gpu does not own a copy reference");
-    check(out.peerMappingTeardownMayBeAttempted &&
+    checkTrue(out.peerMappingTeardownMayBeAttempted &&
               out.peerMappingTeardownRequiredBeforeNvidiaIovaReuse,
           "unused peer map can be torn down before iova reuse");
-    check(!out.intelHandoffAuthorized,
+    checkTrue(!out.intelHandoffAuthorized,
           "peer mapping alone is not nvidia copy completion");
     checkAlwaysPure(out);
 }
@@ -124,20 +124,20 @@ static void testPublishedCopyPinsUntilTrackingFence()
 
     auto progress = copyPublished();
     NvIntelSharedCopyLifetimePlan out = {};
-    check(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
+    checkTrue(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
           "published copy without fence accepted as in-flight state");
-    check(out.phase == NV_INTEL_COPY_PHASE_COPY_UNTRACKED,
+    checkTrue(out.phase == NV_INTEL_COPY_PHASE_COPY_UNTRACKED,
           "untracked copy phase classified");
-    check(out.nvidiaMayReferenceSink &&
+    checkTrue(out.nvidiaMayReferenceSink &&
               out.sinkBackingMustRemainPinned &&
               out.peerMappingMustRemainPinned,
           "in-flight copy pins all nvidia-visible sink resources");
-    check(out.trackingFencePublicationRequired,
+    checkTrue(out.trackingFencePublicationRequired,
           "copy publication requires ordered tracking fence");
-    check(!out.peerMappingTeardownMayBeAttempted &&
+    checkTrue(!out.peerMappingTeardownMayBeAttempted &&
               !out.intelHandoffAuthorized,
           "untracked copy permits neither teardown nor intel handoff");
-    check(out.quarantineOnAbortOrUncertainCompletion,
+    checkTrue(out.quarantineOnAbortOrUncertainCompletion,
           "abort after untracked submission retains resources");
     checkAlwaysPure(out);
 }
@@ -152,19 +152,19 @@ static void testAwaitingCompletionRejectsStaleProgress()
     progress.observedCompletionPayload = 11u;
 
     NvIntelSharedCopyLifetimePlan out = {};
-    check(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
+    checkTrue(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
           "below-target completion observation accepted as pending");
-    check(out.phase == NV_INTEL_COPY_PHASE_AWAIT_COMPLETION,
+    checkTrue(out.phase == NV_INTEL_COPY_PHASE_AWAIT_COMPLETION,
           "below-target fence remains awaiting completion");
-    check(out.completionEvidencePresent && !out.completionProven,
+    checkTrue(out.completionEvidencePresent && !out.completionProven,
           "below-target payload is evidence but not retirement proof");
-    check(out.observedCompletedValue == 11ull,
+    checkTrue(out.observedCompletedValue == 11ull,
           "extended completion value retained");
-    check(out.nvidiaMayReferenceSink &&
+    checkTrue(out.nvidiaMayReferenceSink &&
               out.peerMappingMustRemainPinned &&
               out.sinkBackingMustRemainPinned,
           "below-target completion preserves nvidia lifetime");
-    check(!out.intelHandoffAuthorized &&
+    checkTrue(!out.intelHandoffAuthorized &&
               !out.peerMappingTeardownMayBeAttempted,
           "stale completion cannot hand sink to intel");
     checkAlwaysPure(out);
@@ -181,23 +181,23 @@ static void testExactCompletionAuthorizesHandoff()
     progress.observedCompletionPayload = 101u;
 
     NvIntelSharedCopyLifetimePlan out = {};
-    check(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
+    checkTrue(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
           "target completion accepted");
-    check(out.phase == NV_INTEL_COPY_PHASE_RETIRED_FOR_INTEL,
+    checkTrue(out.phase == NV_INTEL_COPY_PHASE_RETIRED_FOR_INTEL,
           "retired-for-intel phase classified");
-    check(out.completionProven && out.observedCompletedValue == 101ull,
+    checkTrue(out.completionProven && out.observedCompletedValue == 101ull,
           "target tracking value proves ordered retirement");
-    check(!out.nvidiaMayReferenceSink &&
+    checkTrue(!out.nvidiaMayReferenceSink &&
               !out.peerMappingMustRemainPinned,
           "retired copy releases nvidia reference lifetime");
-    check(out.sinkBackingMustRemainPinned,
+    checkTrue(out.sinkBackingMustRemainPinned,
           "sink remains pinned across ownership handoff");
-    check(out.intelHandoffAuthorized && out.intelGgttMappingMayBegin,
+    checkTrue(out.intelHandoffAuthorized && out.intelGgttMappingMayBegin,
           "only proven nvidia retirement admits intel mapping");
-    check(out.peerMappingTeardownMayBeAttempted &&
+    checkTrue(out.peerMappingTeardownMayBeAttempted &&
               out.peerMappingTeardownRequiredBeforeNvidiaIovaReuse,
           "retired peer mapping may be torn down before iova reuse");
-    check(!out.quarantineOnAbortOrUncertainCompletion,
+    checkTrue(!out.quarantineOnAbortOrUncertainCompletion,
           "proven completion clears uncertainty policy");
     checkAlwaysPure(out);
 }
@@ -215,12 +215,12 @@ static void testWrapAwareCompletion()
     progress.observedCompletionPayload = 0u;
 
     NvIntelSharedCopyLifetimePlan out = {};
-    check(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
+    checkTrue(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
           "wrapped tracking payload accepted");
-    check(out.completionProven &&
+    checkTrue(out.completionProven &&
               out.observedCompletedValue == 0x0000000100000000ull,
           "wrap extends to exact next 64-bit completion value");
-    check(out.phase == NV_INTEL_COPY_PHASE_RETIRED_FOR_INTEL &&
+    checkTrue(out.phase == NV_INTEL_COPY_PHASE_RETIRED_FOR_INTEL &&
               out.intelHandoffAuthorized,
           "wrapped but ordered completion authorizes handoff");
     checkAlwaysPure(out);
@@ -238,17 +238,17 @@ static void testTimeoutQuarantinesUntilFenceProof()
     progress.observedCompletionPayload = 201u;
 
     NvIntelSharedCopyLifetimePlan out = {};
-    check(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
+    checkTrue(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
           "timed-out below-target observation accepted conservatively");
-    check(out.phase == NV_INTEL_COPY_PHASE_UNCERTAIN_QUARANTINE,
+    checkTrue(out.phase == NV_INTEL_COPY_PHASE_UNCERTAIN_QUARANTINE,
           "timeout enters uncertain quarantine");
-    check(out.completionUncertain &&
+    checkTrue(out.completionUncertain &&
               out.quarantineSinkBacking && out.quarantinePeerMapping,
           "timeout quarantines sink backing and peer mapping");
-    check(out.nvidiaMayReferenceSink &&
+    checkTrue(out.nvidiaMayReferenceSink &&
               out.peerMappingMustRemainPinned,
           "timeout cannot retire possible nvidia reference");
-    check(!out.intelHandoffAuthorized &&
+    checkTrue(!out.intelHandoffAuthorized &&
               !out.peerMappingTeardownMayBeAttempted,
           "timeout cannot hand off or teardown peer mapping");
     checkAlwaysPure(out);
@@ -257,12 +257,12 @@ static void testTimeoutQuarantinesUntilFenceProof()
     // retirement primitive. A later exact observation can therefore resolve a
     // prior bounded-wait timeout without pretending the timeout was success.
     progress.observedCompletionPayload = 202u;
-    check(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
+    checkTrue(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
           "late exact tracking completion accepted");
-    check(out.phase == NV_INTEL_COPY_PHASE_RETIRED_FOR_INTEL &&
+    checkTrue(out.phase == NV_INTEL_COPY_PHASE_RETIRED_FOR_INTEL &&
               out.completionProven && !out.completionUncertain,
           "exact fence proof resolves earlier timing uncertainty");
-    check(out.intelHandoffAuthorized &&
+    checkTrue(out.intelHandoffAuthorized &&
               !out.quarantineSinkBacking && !out.quarantinePeerMapping,
           "resolved tracking proof enables safe handoff");
     checkAlwaysPure(out);
@@ -332,7 +332,7 @@ static void testContradictionsRefuseAtomically()
     expectRefusal(p, NV_INTEL_COPY_ERR_COMPLETION_EVIDENCE,
                   "64-bit completion counter overflow refused");
 
-    check(nvIntelSharedCopyLifetimePlan(peerReady(), nullptr) ==
+    checkTrue(nvIntelSharedCopyLifetimePlan(peerReady(), nullptr) ==
               NV_INTEL_COPY_ERR_NULL_OUTPUT,
           "null output refused");
 }

@@ -1,0 +1,20 @@
+progress: 84402/531798 clusters (15.9%), 4.24 GiB read, 60 s elapsed, ~318 s left
+progress: 158652/531798 clusters (29.8%), 8.09 GiB read, 120 s elapsed, ~282 s left
+progress: 232336/531798 clusters (43.7%), 11.60 GiB read, 180 s elapsed, ~232 s left
+progress: 330341/531798 clusters (62.1%), 16.96 GiB read, 240 s elapsed, ~146 s left
+progress: 480198/531798 clusters (90.3%), 25.16 GiB read, 300 s elapsed, ~32 s left
+image: F:/nv3050-qemu/sonoma-base.qcow2
+file_length: 28630122496 bytes (26.66 GiB)
+qcow2_version: 3  cluster_size: 65536  virtual_size: 107374182400 bytes (100.00 GiB)
+guest_clusters: 1638400
+  unallocated: 1106602
+  zero_flag: 0 (0 still hold a host cluster)
+  allocated: 531798 (standard 171144, compressed 360654) = 34851913728 bytes (32.46 GiB) of guest data
+decoded: 531798 of 531798 allocated clusters in 332 s (531798 attempted)
+  all_zero_clusters: 0  guest 0 bytes (0.00 GiB)  host 0 bytes (0.00 GiB)
+  nonzero_clusters: 531798  guest 34851913728 bytes (32.46 GiB)  host 28567438677 bytes (26.61 GiB)
+  zero_4096_byte_blocks_inside_nonzero_clusters: 81118 = 332259328 bytes (0.31 GiB) (a qcow2 target cannot drop these at 65536-byte clusters)
+  decode_errors: 0
+host_bytes_outside_decoded_clusters: 62683819 bytes (0.06 GiB) (metadata, padding, leaked space; compressed sizes are +-a few bytes each)
+verdict: a zero-detecting rewrite can drop at most 0 bytes (0.00 GiB) of host data (0.00% of the file). 34851913728 bytes (32.46 GiB) of guest data is non-zero (live files plus any blocks the guest freed without zeroing); only a discard or zero-fill inside the guest can reclaim the freed part.
+census exit=0

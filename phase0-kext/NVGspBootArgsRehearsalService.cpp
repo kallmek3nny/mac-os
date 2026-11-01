@@ -33,19 +33,12 @@ static bool trueProperty(IOService *service, const char *key)
     return value && value->isTrue();
 }
 
-static bool bindOnePage(IOPCIDevice *pci,
-                        IOBufferMemoryDescriptor *memory,
-                        IODMACommand **outDma,
-                        bool *outBound,
-                        UInt64 *outAddress)
+static IODMACommand *createOnePageCommand(IOPCIDevice *pci)
 {
-    if (!pci || !memory || !outDma || !outBound || !outAddress) return false;
-    *outDma=nullptr;
-    *outBound=false;
-    *outAddress=0ull;
+    if (!pci) return nullptr;
 
     IOMapper *mapper=IOMapper::copyMapperForDevice(pci);
-    if (!mapper) return false;
+    if (!mapper) return nullptr;
 
     IODMACommand *dma=IODMACommand::withSpecification(
         &IODMACommand::OutputHost64,
@@ -56,12 +49,17 @@ static bool bindOnePage(IOPCIDevice *pci,
         NV_GSP_QUEUE_PAGE_BYTES,
         mapper);
     mapper->release();
-    if (!dma) return false;
+    return dma;
+}
 
-    if (dma->setMemoryDescriptor(memory,true)!=kIOReturnSuccess) {
-        dma->release();
-        return false;
-    }
+// Reads back the single IOVM segment of a command whose descriptor the caller
+// has already set. This helper neither sets nor clears the descriptor: the
+// caller's member flag stays the only record of that ownership, so the
+// teardown in releaseResources() is the only place it is given back.
+static bool onePageAddress(IODMACommand *dma, UInt64 *outAddress)
+{
+    if (!dma || !outAddress) return false;
+    *outAddress=0ull;
 
     UInt64 offset=0ull;
     UInt32 count=1u;
@@ -72,13 +70,9 @@ static bool bindOnePage(IOPCIDevice *pci,
         segment.fLength<(UInt64)NV_GSP_CACHED_ARGS_PAGE_BYTES ||
         !segment.fIOVMAddr ||
         (segment.fIOVMAddr&(NV_GSP_QUEUE_PAGE_BYTES-1u))!=0ull) {
-        dma->clearMemoryDescriptor();
-        dma->release();
         return false;
     }
 
-    *outDma=dma;
-    *outBound=true;
     *outAddress=segment.fIOVMAddr;
     return true;
 }
@@ -99,15 +93,19 @@ bool NVGspBootArgsRehearsalService::init(OSDictionary *dict)
 
 void NVGspBootArgsRehearsalService::releaseResources(void)
 {
-    if (fLibosBound && fLibosDMA) {
-        fLibosDMA->clearMemoryDescriptor();
+    // Clear each flag BEFORE its release so a re-entrant teardown is a no-op.
+    // fLibosBound implies fLibosDMA (and fRmArgsBound implies fRmArgsDMA): each
+    // is set only after a successful setMemoryDescriptor() in start() and
+    // cleared here before its command is dropped.
+    if (fLibosBound) {
         fLibosBound=false;
+        fLibosDMA->clearMemoryDescriptor();
     }
     OSSafeReleaseNULL(fLibosDMA);
 
-    if (fRmArgsBound && fRmArgsDMA) {
-        fRmArgsDMA->clearMemoryDescriptor();
+    if (fRmArgsBound) {
         fRmArgsBound=false;
+        fRmArgsDMA->clearMemoryDescriptor();
     }
     OSSafeReleaseNULL(fRmArgsDMA);
 
@@ -240,9 +238,35 @@ bool NVGspBootArgsRehearsalService::start(IOService *provider)
         return true;
     }
 
+    // Each descriptor is set on its member command here, and the member flag is
+    // set on the very next line, so the success check and the ownership record
+    // sit next to each other. Every failure below goes through
+    // releaseResources(), which gives back exactly what the flags record.
     UInt64 rmGpu=0ull, listGpu=0ull;
-    if (!bindOnePage(fPCI,fRmArgs,&fRmArgsDMA,&fRmArgsBound,&rmGpu) ||
-        !bindOnePage(fPCI,fLibosList,&fLibosDMA,&fLibosBound,&listGpu)) {
+    fRmArgsDMA=createOnePageCommand(fPCI);
+    fLibosDMA=createOnePageCommand(fPCI);
+    if (!fRmArgsDMA || !fLibosDMA) {
+        publishState("bootargs-dma-map-failed");
+        releaseResources();
+        registerService();
+        return true;
+    }
+    if (fRmArgsDMA->setMemoryDescriptor(fRmArgs,true)!=kIOReturnSuccess) {
+        publishState("bootargs-dma-map-failed");
+        releaseResources();
+        registerService();
+        return true;
+    }
+    fRmArgsBound=true;
+    if (fLibosDMA->setMemoryDescriptor(fLibosList,true)!=kIOReturnSuccess) {
+        publishState("bootargs-dma-map-failed");
+        releaseResources();
+        registerService();
+        return true;
+    }
+    fLibosBound=true;
+    if (!onePageAddress(fRmArgsDMA,&rmGpu) ||
+        !onePageAddress(fLibosDMA,&listGpu)) {
         publishState("bootargs-dma-map-failed");
         releaseResources();
         registerService();

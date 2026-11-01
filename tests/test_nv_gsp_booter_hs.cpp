@@ -2,12 +2,24 @@
 #include "NVGspBooterHs.hpp"
 
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
 
+// ctest runs this binary from tests/build, where the relative
+// reference/ga107-firmware path resolves to nothing (the 'fixture open'
+// failure fixed for test_nv_gsp_booter_success_retirement_plan in f5110c1).
+// CMake injects the source-tree path as NV_FIRMWARE_DIR (tests/CMakeLists.txt);
+// the fallback keeps a hand-built binary run from the repo root working.
+// A wrong path still FAILS, never skips.
+#ifndef NV_FIRMWARE_DIR
+#define NV_FIRMWARE_DIR "reference/ga107-firmware"
+#endif
+
+static unsigned gChecks=0;
 static unsigned gFailures=0;
 
 static void fail(const std::string &what)
@@ -16,8 +28,9 @@ static void fail(const std::string &what)
     ++gFailures;
 }
 
-static void check(bool cond,const std::string &what)
+static void checkThat(bool cond,const std::string &what)
 {
+    ++gChecks;
     if (!cond) fail(what);
 }
 
@@ -48,7 +61,7 @@ static NVGspBooterHsPlan plan(const std::vector<unsigned char> &b,
     if (v!=NV_GSP_BOOTER_HS_OK) {
         fail(std::string(label)+" verdict="+nvGspBooterHsVerdictName(v));
     }
-    check(p.valid,std::string(label)+" valid");
+    checkThat(p.valid,std::string(label)+" valid");
     return p;
 }
 
@@ -56,40 +69,40 @@ static void checkGa107Load(const NVGspBooterHsPlan &p)
 {
     // Golden values measured from reference/ga107-firmware and independently
     // reproduced by NVIDIA's open-gpu-kernel-modules firmware extractor.
-    check(p.paddedBytes==0x0000f000u,"load padded bytes");
-    check(p.firmwareOffset==0x00000378u,"load firmware offset");
-    check(p.firmwareBytes==0x0000ec00u,"load firmware bytes");
-    check(p.signatureOffset==0x0000003cu,"load signature offset");
-    check(p.signatureBytes==0x00000300u,"load signature bytes");
-    check(p.signatureCount==2u,"load signature count");
-    check(p.signatureStride==0x00000180u,"load signature stride");
-    check(p.patchLocation==0x00008a10u,"load patch location");
-    check(p.fuseVersion==1u,"load fuse version");
-    check(p.engineId==1u,"load engine id");
-    check(p.ucodeId==3u,"load ucode id");
-    check(p.osCodeOffset==0u && p.osCodeBytes==0x100u,"load os code");
-    check(p.osDataOffset==0x8a00u && p.osDataBytes==0x6200u,"load os data");
-    check(p.appCodeOffset==0x100u && p.appCodeBytes==0x8900u,"load app code");
-    check(p.appDataOffset==0x100u && p.appDataBytes==0u,"load app data");
+    checkThat(p.paddedBytes==0x0000f000u,"load padded bytes");
+    checkThat(p.firmwareOffset==0x00000378u,"load firmware offset");
+    checkThat(p.firmwareBytes==0x0000ec00u,"load firmware bytes");
+    checkThat(p.signatureOffset==0x0000003cu,"load signature offset");
+    checkThat(p.signatureBytes==0x00000300u,"load signature bytes");
+    checkThat(p.signatureCount==2u,"load signature count");
+    checkThat(p.signatureStride==0x00000180u,"load signature stride");
+    checkThat(p.patchLocation==0x00008a10u,"load patch location");
+    checkThat(p.fuseVersion==1u,"load fuse version");
+    checkThat(p.engineId==1u,"load engine id");
+    checkThat(p.ucodeId==3u,"load ucode id");
+    checkThat(p.osCodeOffset==0u && p.osCodeBytes==0x100u,"load os code");
+    checkThat(p.osDataOffset==0x8a00u && p.osDataBytes==0x6200u,"load os data");
+    checkThat(p.appCodeOffset==0x100u && p.appCodeBytes==0x8900u,"load app code");
+    checkThat(p.appDataOffset==0x100u && p.appDataBytes==0u,"load app data");
 }
 
 static void checkGa107Unload(const NVGspBooterHsPlan &p)
 {
-    check(p.paddedBytes==0x0000a100u,"unload padded bytes");
-    check(p.firmwareOffset==0x00000378u,"unload firmware offset");
-    check(p.firmwareBytes==0x00009d00u,"unload firmware bytes");
-    check(p.signatureOffset==0x0000003cu,"unload signature offset");
-    check(p.signatureBytes==0x00000300u,"unload signature bytes");
-    check(p.signatureCount==2u,"unload signature count");
-    check(p.signatureStride==0x00000180u,"unload signature stride");
-    check(p.patchLocation==0x00005010u,"unload patch location");
-    check(p.fuseVersion==1u,"unload fuse version");
-    check(p.engineId==1u,"unload engine id");
-    check(p.ucodeId==3u,"unload ucode id");
-    check(p.osCodeOffset==0u && p.osCodeBytes==0x100u,"unload os code");
-    check(p.osDataOffset==0x5000u && p.osDataBytes==0x4d00u,"unload os data");
-    check(p.appCodeOffset==0x100u && p.appCodeBytes==0x4f00u,"unload app code");
-    check(p.appDataOffset==0x100u && p.appDataBytes==0u,"unload app data");
+    checkThat(p.paddedBytes==0x0000a100u,"unload padded bytes");
+    checkThat(p.firmwareOffset==0x00000378u,"unload firmware offset");
+    checkThat(p.firmwareBytes==0x00009d00u,"unload firmware bytes");
+    checkThat(p.signatureOffset==0x0000003cu,"unload signature offset");
+    checkThat(p.signatureBytes==0x00000300u,"unload signature bytes");
+    checkThat(p.signatureCount==2u,"unload signature count");
+    checkThat(p.signatureStride==0x00000180u,"unload signature stride");
+    checkThat(p.patchLocation==0x00005010u,"unload patch location");
+    checkThat(p.fuseVersion==1u,"unload fuse version");
+    checkThat(p.engineId==1u,"unload engine id");
+    checkThat(p.ucodeId==3u,"unload ucode id");
+    checkThat(p.osCodeOffset==0u && p.osCodeBytes==0x100u,"unload os code");
+    checkThat(p.osDataOffset==0x5000u && p.osDataBytes==0x4d00u,"unload os data");
+    checkThat(p.appCodeOffset==0x100u && p.appCodeBytes==0x4f00u,"unload app code");
+    checkThat(p.appDataOffset==0x100u && p.appDataBytes==0u,"unload app data");
 }
 
 static void expectRefusal(const std::vector<unsigned char> &b,
@@ -100,27 +113,27 @@ static void expectRefusal(const std::vector<unsigned char> &b,
     p.signatureOffset=0xdeadbeefu;
     p.valid=false;
     const auto v=nvGspPlanBooterHs(b.data(),b.size(),&p);
-    check(v==expected,std::string(label)+" verdict");
+    checkThat(v==expected,std::string(label)+" verdict");
     // Atomic refusal: a bad candidate must not partially publish a plan.
-    check(p.signatureOffset==0xdeadbeefu,std::string(label)+" atomic output");
-    check(!p.valid,std::string(label)+" remains invalid");
+    checkThat(p.signatureOffset==0xdeadbeefu,std::string(label)+" atomic output");
+    checkThat(!p.valid,std::string(label)+" remains invalid");
 }
 
 int main()
 {
-    auto loadBlob=load("reference/ga107-firmware/booter_load-570.144.bin");
-    auto unloadBlob=load("reference/ga107-firmware/booter_unload-570.144.bin");
+    auto loadBlob=load(NV_FIRMWARE_DIR "/booter_load-570.144.bin");
+    auto unloadBlob=load(NV_FIRMWARE_DIR "/booter_unload-570.144.bin");
     if (loadBlob.empty() || unloadBlob.empty()) return 1;
 
-    check(loadBlob.size()==61304u,"load file bytes");
-    check(unloadBlob.size()==41080u,"unload file bytes");
+    checkThat(loadBlob.size()==61304u,"load file bytes");
+    checkThat(unloadBlob.size()==41080u,"unload file bytes");
     checkGa107Load(plan(loadBlob,"booter_load"));
     checkGa107Unload(plan(unloadBlob,"booter_unload"));
 
     NVGspBooterHsPlan unused={};
-    check(nvGspPlanBooterHs(loadBlob.data(),loadBlob.size(),nullptr)==
+    checkThat(nvGspPlanBooterHs(loadBlob.data(),loadBlob.size(),nullptr)==
           NV_GSP_BOOTER_HS_ERR_NULL_OUTPUT,"null output refusal");
-    check(nvGspPlanBooterHs(nullptr,0,&unused)==NV_GSP_BOOTER_HS_ERR_SHORT,
+    checkThat(nvGspPlanBooterHs(nullptr,0,&unused)==NV_GSP_BOOTER_HS_ERR_SHORT,
           "null buffer refusal");
 
     {
@@ -164,10 +177,6 @@ int main()
         expectRefusal(b,NV_GSP_BOOTER_HS_ERR_LOAD_HEADER,"code boundary mismatch");
     }
 
-    if (gFailures) {
-        std::cerr << gFailures << " Booter HS test(s) failed\n";
-        return 1;
-    }
-    std::cout << "GA107 Booter HS planner: all tests passed\n";
-    return 0;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }

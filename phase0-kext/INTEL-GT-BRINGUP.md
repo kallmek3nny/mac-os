@@ -17,7 +17,7 @@ IntelGtBlitter.cpp was cross-compiled with Clang for x86_64-apple-darwin24 using
 
 The entire kext and userspace client have NOT been compiled against the Apple SDK. Windows has no xcrun/Kernel.framework. The macOS VMware guest was started. SSH initially timed out and VMware Tools lost its heartbeat; the latest attempt reached SSH but was rejected with Permission denied (publickey,password,keyboard-interactive). The previous guest SSH private key is not present in the current host SSH directory, and no guest credentials are configured in the MCP process. A whole-backend host compilation attempt stopped at the missing pexpert/pexpert.h header. No host shim or Mach-O encoder object substitutes for an Apple-SDK kext build. No test suites were run, no kext was loaded, and no GPU execution was attempted.
 
-Once the macOS build guest is accessible, copy the current phase0-kext sources to a writable directory there and run:
+Once the macOS build guest is accessible, copy the current phase0-kext sources to a writable directory there. The iggt-blit client is a host tool, so its source is `tools/iggt-blit.cpp`, outside the kext directory; `make gt-blit-tool` reads it from a `tools/` directory beside `phase0-kext/`, so copy that file into a sibling `tools/` directory as well. Then run, inside the copied `phase0-kext/`:
 
 ```sh
 make

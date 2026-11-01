@@ -39,7 +39,10 @@ bool IntelGtBringup::init(OSDictionary *dict) {
     bzero(fSavedPtes,sizeof(fSavedPtes));
     fGGTTBase=0; fGGTTEntries=0; fStage=0; fTrace=0; fPteCount=0;
     fOldRingMode=0; fOldMiMode=0; fOldHws=0; fPatIndex=0; fOldPCICommand=0;
-    fOpened=false; fPrepared=false; fDMABound=false; fPCIChanged=false;
+    fOpened=false;
+    fPrepared=false;
+    fDMABound=false;
+    fPCIChanged=false;
     fRenderWake=false; fGTWake=false; fEngineChanged=false;
     fSubmissionPending=false; fCompleted=false; fQuarantined=false;
     fOldCsbPointer=0; fCsbHead=IG_GTCSB_ENTRIES_I915_12-1u;
@@ -114,7 +117,9 @@ bool IntelGtBringup::claimEngine() {
 bool IntelGtBringup::allocateMemory() {
     fPool=IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
         kIODirectionInOut|kIOMemoryPhysicallyContiguous,PoolBytes,AddressMask);
-    if (!fPool || fPool->prepare(kIODirectionInOut)!=kIOReturnSuccess) return false;
+    if (!fPool || fPool->prepare(kIODirectionInOut)!=kIOReturnSuccess) {
+        return false;
+    }
     fPrepared=true;
     // CPU completion reads must not see a stale cache line. Never use the
     // descriptor's default cached pointer while this uncached map is alive.
@@ -125,7 +130,9 @@ bool IntelGtBringup::allocateMemory() {
     bzero(fCPU,PoolBytes);
     fDMA=IODMACommand::withSpecification(&IODMACommand::OutputHost64,46,
         PoolBytes,IODMACommand::kMapped,PoolBytes,4096);
-    if (!fDMA || fDMA->setMemoryDescriptor(fPool,true)!=kIOReturnSuccess) return false;
+    if (!fDMA || fDMA->setMemoryDescriptor(fPool,true)!=kIOReturnSuccess) {
+        return false;
+    }
     fDMABound=true;
     UInt64 offset=0; UInt32 count=1; IODMACommand::Segment64 seg={};
     if (fDMA->gen64IOVMSegments(&offset,&seg,&count)!=kIOReturnSuccess ||
@@ -486,18 +493,31 @@ void IntelGtBringup::cleanup() {
         return;
     }
     restoreGGTT();
-    if (fDMABound) { fDMA->clearMemoryDescriptor(); fDMABound=false; }
-    if (fDMA) { fDMA->release(); fDMA=nullptr; }
+    // Clear each flag BEFORE its release so a re-entrant teardown is a no-op.
+    // fDMABound implies fDMA and fPrepared implies fPool: each is set only
+    // after its acquire succeeds in allocateMemory() and cleared here before
+    // the object is dropped.
+    if (fDMABound) {
+        fDMABound=false;
+        fDMA->clearMemoryDescriptor();
+    }
+    OSSafeReleaseNULL(fDMA);
     if (fPoolMap) { fPoolMap->release(); fPoolMap=nullptr; }
-    if (fPrepared) { fPool->complete(kIODirectionInOut); fPrepared=false; }
-    if (fPool) { fPool->release(); fPool=nullptr; }
+    if (fPrepared) {
+        fPrepared=false;
+        fPool->complete(kIODirectionInOut);
+    }
+    OSSafeReleaseNULL(fPool);
     fCPU=nullptr;
     if (fPCIChanged) { fPCI->configWrite16(4,fOldPCICommand); fPCIChanged=false; }
     releaseWake();
     if (fBarMap) { fBarMap->release(); fBarMap=nullptr; }
     fMMIO=nullptr;
-    if (fOpened) { fPCI->close(this); fOpened=false; }
-    if (fPCI) { fPCI->release(); fPCI=nullptr; }
+    if (fOpened) {
+        fOpened=false;
+        fPCI->close(this);
+    }
+    OSSafeReleaseNULL(fPCI);
 }
 
 bool IntelGtBringup::start(IOService *provider) {

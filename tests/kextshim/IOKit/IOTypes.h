@@ -57,6 +57,19 @@ typedef unsigned long long mach_vm_address_t;
 typedef unsigned long long mach_vm_size_t;
 typedef unsigned long long vm_size_t;
 
+// Added for t-fccff1. Seven phase0-kext .cpp files cast an alignment to
+// vm_offset_t at their IOBufferMemoryDescriptor::inTaskWithOptions() call:
+// IntelGtBringupSurface, IntelGtSurfaceStageService, NVGspQueueBackingService,
+// NVGspRmImageStageService, NVGspWprBootUcodeStageService,
+// NVGspWprFactsObserver and NVGspWprMetaStageService. Apple's headers use the
+// type (step7-results/apple-headers/IOKit/IOLib.h:131, IOMallocAligned, and
+// IOBufferMemoryDescriptor.h:79/91/142/154/178/204) but define it in a mach
+// vm_types.h that step7-results/apple-headers does not carry, so no Apple
+// declaration is quoted here. It gets the same width as vm_size_t above, which
+// is all those call sites rely on. Like the rest of this block it comes from a
+// mach header on macOS, not IOTypes.h: FLATTER.
+typedef unsigned long long vm_offset_t;
+
 typedef unsigned int IODirection;
 
 //
@@ -91,6 +104,18 @@ typedef unsigned long long uintptr_t;
 // leaving it out would have reddened the gate for the right reason at the wrong
 // place.
 #define kIOReturnBadArgument 0x2c2
+
+// Added for t-fccff1, same convention as kIOReturnBadArgument above: the bare
+// low code, not the full iokit_common_err() value, because only the name has to
+// resolve. The t-fccff1 probe found these undeclared in IntelGtFill.cpp,
+// IntelGtPersistentSurfaces.cpp and IntelGtBringup.cpp. Apple's lines, from
+// step7-results/apple-headers/IOKit/IOReturn.h:
+//   112: #define kIOReturnIOError         iokit_common_err(0x2ca) // General I/O error
+//   126: #define kIOReturnNotReady        iokit_common_err(0x2d8) // not ready
+//   138: #define kIOReturnNotPermitted    iokit_common_err(0x2e2) // not permitted
+#define kIOReturnIOError      0x2ca
+#define kIOReturnNotReady     0x2d8
+#define kIOReturnNotPermitted 0x2e2
 
 #define kIOMapInhibitCache         0x100
 #define kIOMapAnywhere             0x1

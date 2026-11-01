@@ -7,7 +7,7 @@
 static unsigned gChecks = 0u;
 static unsigned gFailures = 0u;
 
-static void check(bool cond, const char *what)
+static void checkTrue(bool cond, const char *what)
 {
     ++gChecks;
     if (!cond) {
@@ -92,36 +92,36 @@ static void expectRefusal(const IgPlaneTransitionPlan &transition,
     const auto before = out;
     const IGU32 verdict =
         igPlaneRetirementEvidencePlan(&transition, &observation, &out);
-    check(verdict == expected, what);
-    check(sameBytes(out, before), "refusal leaves output untouched");
+    checkTrue(verdict == expected, what);
+    checkTrue(sameBytes(out, before), "refusal leaves output untouched");
 }
 
 static void checkAlwaysNoWrite(const IgPlaneRetirementEvidencePlan &p)
 {
-    check(p.synchronousFlipRequired, "retirement proof stays synchronous");
-    check(p.flipDoneBit == (1u << 3), "TGL pipe-A plane-1 flip-done is bit 3");
-    check(p.exactPrimaryPlaneFlipDoneRequired,
+    checkTrue(p.synchronousFlipRequired, "retirement proof stays synchronous");
+    checkTrue(p.flipDoneBit == (1u << 3), "TGL pipe-A plane-1 flip-done is bit 3");
+    checkTrue(p.exactPrimaryPlaneFlipDoneRequired,
           "exact primary-plane completion event required");
-    check(p.flipDoneMustBeUnmaskedBeforeArm &&
+    checkTrue(p.flipDoneMustBeUnmaskedBeforeArm &&
               p.flipDoneMustBeEnabledBeforeArm &&
               p.staleFlipDoneMustBeClearedBeforeArm,
           "interrupt path must be prepared before surface arm");
-    check(p.completionEventMustFollowSurfaceArm,
+    checkTrue(p.completionEventMustFollowSurfaceArm,
           "completion event must be fresh after the arm point");
-    check(p.boundedCompletionWaitRequired,
+    checkTrue(p.boundedCompletionWaitRequired,
           "completion wait is explicitly bounded");
-    check(p.doubleBufferStallMayDelayCompletion,
+    checkTrue(p.doubleBufferStallMayDelayCompletion,
           "double-buffer stall cannot be mistaken for completion");
-    check(p.disabledPlaneImmediateEventNotApplicable,
+    checkTrue(p.disabledPlaneImmediateEventNotApplicable,
           "disabled-plane immediate-event special case is excluded");
-    check(!p.vblankOnlyRetirementProofAccepted,
+    checkTrue(!p.vblankOnlyRetirementProofAccepted,
           "vblank-only evidence is not retirement proof");
-    check(!p.surfLiveOnlyRetirementProofAccepted,
+    checkTrue(!p.surfLiveOnlyRetirementProofAccepted,
           "SURFLIVE-only evidence is not retirement proof");
-    check(!p.targetMappingReleaseAuthorized,
+    checkTrue(!p.targetMappingReleaseAuthorized,
           "new active target mapping never becomes releaseable here");
-    check(!p.rollbackSafe, "completion does not invent rollback safety");
-    check(!p.runtimeWriteAuthorized,
+    checkTrue(!p.rollbackSafe, "completion does not invent rollback safety");
+    checkTrue(!p.runtimeWriteAuthorized,
           "retirement evidence planner never authorizes display writes");
 }
 
@@ -134,25 +134,25 @@ static void testGoldenFlipDoneRetirement()
 
     const IGU32 verdict =
         igPlaneRetirementEvidencePlan(&transition, &observation, &out);
-    check(verdict == IG_PLANE_RETIREMENT_OK, "golden evidence accepted");
-    check(out.valid, "golden retirement plan valid");
-    check(out.deviceId == IG_DEVICE_OBSERVED_2026_08_16 &&
+    checkTrue(verdict == IG_PLANE_RETIREMENT_OK, "golden evidence accepted");
+    checkTrue(out.valid, "golden retirement plan valid");
+    checkTrue(out.deviceId == IG_DEVICE_OBSERVED_2026_08_16 &&
               out.pipe == IG_TRANSCODER_A &&
               out.plane == IG_PLANE_PROGRAM_PLAN_PRIMARY_PLANE,
           "exact target identity retained");
-    check(out.interruptSetupProven, "pre-arm interrupt setup proven");
-    check(out.exactFreshFlipDoneProven, "fresh exact flip-done proven");
-    check(out.boundedCompletionProven, "bounded completion proven");
-    check(out.retirementProven, "old-surface retirement proven");
-    check(!out.oldSurfaceMustRemainPinned &&
+    checkTrue(out.interruptSetupProven, "pre-arm interrupt setup proven");
+    checkTrue(out.exactFreshFlipDoneProven, "fresh exact flip-done proven");
+    checkTrue(out.boundedCompletionProven, "bounded completion proven");
+    checkTrue(out.retirementProven, "old-surface retirement proven");
+    checkTrue(!out.oldSurfaceMustRemainPinned &&
               out.oldSurfaceBackingReleaseAuthorized,
           "old backing may be released only after retirement proof");
-    check(out.newSurfaceMustRemainPinned &&
+    checkTrue(out.newSurfaceMustRemainPinned &&
               out.targetMappingMustRemainCommitted,
           "new active surface and mapping remain pinned");
-    check(!out.completionUncertain,
+    checkTrue(!out.completionUncertain,
           "proven completion is not marked uncertain");
-    check(!out.quarantineOldSurfaceOnUncertainCompletion &&
+    checkTrue(!out.quarantineOldSurfaceOnUncertainCompletion &&
               !out.quarantineNewSurfaceOnUncertainCompletion &&
               !out.quarantineTargetMappingOnUncertainCompletion,
           "successful retirement needs no uncertainty quarantine");
@@ -171,20 +171,20 @@ static void testTimeoutQuarantine()
     observation.coherentTargetLiveObservedAfterArm = true;
 
     IgPlaneRetirementEvidencePlan out = {};
-    check(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
+    checkTrue(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
               IG_PLANE_RETIREMENT_OK,
           "timeout yields safety policy instead of optimistic refusal");
-    check(out.interruptSetupProven, "timeout does not erase valid interrupt setup");
-    check(!out.exactFreshFlipDoneProven && !out.boundedCompletionProven,
+    checkTrue(out.interruptSetupProven, "timeout does not erase valid interrupt setup");
+    checkTrue(!out.exactFreshFlipDoneProven && !out.boundedCompletionProven,
           "timeout has no fresh bounded completion proof");
-    check(!out.retirementProven && out.completionUncertain,
+    checkTrue(!out.retirementProven && out.completionUncertain,
           "timeout leaves retirement uncertain");
-    check(out.oldSurfaceMustRemainPinned && out.newSurfaceMustRemainPinned &&
+    checkTrue(out.oldSurfaceMustRemainPinned && out.newSurfaceMustRemainPinned &&
               out.targetMappingMustRemainCommitted,
           "timeout retains both surfaces and target mapping");
-    check(!out.oldSurfaceBackingReleaseAuthorized,
+    checkTrue(!out.oldSurfaceBackingReleaseAuthorized,
           "timeout never authorizes old backing release");
-    check(out.quarantineOldSurfaceOnUncertainCompletion &&
+    checkTrue(out.quarantineOldSurfaceOnUncertainCompletion &&
               out.quarantineNewSurfaceOnUncertainCompletion &&
               out.quarantineTargetMappingOnUncertainCompletion,
           "timeout quarantines all possibly referenced display objects");
@@ -202,18 +202,18 @@ static void testCorroborationIsNotRetirement()
     observation.vblankAdvancedAfterArm = true;
     observation.coherentTargetLiveObservedAfterArm = false;
     IgPlaneRetirementEvidencePlan out = {};
-    check(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
+    checkTrue(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
               IG_PLANE_RETIREMENT_OK,
           "vblank-only observation accepted as uncertain policy input");
-    check(!out.retirementProven && out.oldSurfaceMustRemainPinned,
+    checkTrue(!out.retirementProven && out.oldSurfaceMustRemainPinned,
           "vblank-only observation does not release old backing");
 
     observation.vblankAdvancedAfterArm = false;
     observation.coherentTargetLiveObservedAfterArm = true;
-    check(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
+    checkTrue(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
               IG_PLANE_RETIREMENT_OK,
           "SURFLIVE-only observation accepted as uncertain policy input");
-    check(!out.retirementProven && out.oldSurfaceMustRemainPinned,
+    checkTrue(!out.retirementProven && out.oldSurfaceMustRemainPinned,
           "SURFLIVE-only observation does not release old backing");
     checkAlwaysNoWrite(out);
 }
@@ -226,28 +226,28 @@ static void testStaleOrUnpreparedInterruptIsNotProof()
     auto observation = goldenObservation();
     observation.staleFlipDoneStatusClearedBeforeArm = false;
     IgPlaneRetirementEvidencePlan out = {};
-    check(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
+    checkTrue(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
               IG_PLANE_RETIREMENT_OK,
           "uncleared status yields conservative plan");
-    check(!out.interruptSetupProven && !out.retirementProven,
+    checkTrue(!out.interruptSetupProven && !out.retirementProven,
           "uncleared stale status cannot prove fresh completion");
-    check(out.oldSurfaceMustRemainPinned && out.completionUncertain,
+    checkTrue(out.oldSurfaceMustRemainPinned && out.completionUncertain,
           "uncleared stale status retains old backing");
 
     observation = goldenObservation();
     observation.flipDoneInterruptUnmaskedBeforeArm = false;
-    check(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
+    checkTrue(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
               IG_PLANE_RETIREMENT_OK,
           "masked pre-arm event path yields conservative plan");
-    check(!out.retirementProven && out.quarantineOldSurfaceOnUncertainCompletion,
+    checkTrue(!out.retirementProven && out.quarantineOldSurfaceOnUncertainCompletion,
           "masked event path cannot prove retirement");
 
     observation = goldenObservation();
     observation.flipDoneInterruptEnabledBeforeArm = false;
-    check(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
+    checkTrue(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
               IG_PLANE_RETIREMENT_OK,
           "disabled pre-arm event path yields conservative plan");
-    check(!out.retirementProven && out.quarantineTargetMappingOnUncertainCompletion,
+    checkTrue(!out.retirementProven && out.quarantineTargetMappingOnUncertainCompletion,
           "disabled event path preserves mapping quarantine");
     checkAlwaysNoWrite(out);
 }
@@ -259,13 +259,13 @@ static void testIdentityTransitionAndAtomicity()
     const auto observation = goldenObservation();
     IgPlaneRetirementEvidencePlan out = {};
 
-    check(igPlaneRetirementEvidencePlan(&transition, &observation, nullptr) ==
+    checkTrue(igPlaneRetirementEvidencePlan(&transition, &observation, nullptr) ==
               IG_PLANE_RETIREMENT_ERR_NULL_OUTPUT,
           "null output refused");
-    check(igPlaneRetirementEvidencePlan(nullptr, &observation, &out) ==
+    checkTrue(igPlaneRetirementEvidencePlan(nullptr, &observation, &out) ==
               IG_PLANE_RETIREMENT_ERR_NULL_TRANSITION,
           "null transition refused");
-    check(igPlaneRetirementEvidencePlan(&transition, nullptr, &out) ==
+    checkTrue(igPlaneRetirementEvidencePlan(&transition, nullptr, &out) ==
               IG_PLANE_RETIREMENT_ERR_NULL_OBSERVATION,
           "null observation refused");
 
@@ -329,10 +329,10 @@ static void testVerdicts()
 {
     std::puts("7. verdict names remain stable");
     for (IGU32 v = 0u; v <= IG_PLANE_RETIREMENT_VERDICT_LIMIT; ++v) {
-        check(std::strcmp(igPlaneRetirementVerdictName(v), "unknown") != 0,
+        checkTrue(std::strcmp(igPlaneRetirementVerdictName(v), "unknown") != 0,
               "in-range verdict named");
     }
-    check(std::strcmp(igPlaneRetirementVerdictName(
+    checkTrue(std::strcmp(igPlaneRetirementVerdictName(
                           IG_PLANE_RETIREMENT_VERDICT_LIMIT + 1u),
                       "unknown") == 0,
           "out-of-range verdict unknown");

@@ -9,7 +9,7 @@ static unsigned gFailures = 0u;
 static constexpr NVIntelHandoffU64 kEpoch = 0x1111222233334444ull;
 static constexpr NVIntelHandoffU64 kToken = 0x5555666677778888ull;
 
-static void check(bool condition, const char *label)
+static void checkThat(bool condition, const char *label)
 {
     ++gChecks;
     if (!condition) {
@@ -149,37 +149,37 @@ static void testValidPublicationBuildsPreEvidenceAnchor()
     const auto e = validEvidence();
     NVAmpereCopyPublicationBridge out = {};
 
-    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+    checkThat(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_OK,
           "valid ordered publication accepted");
-    check(out.valid && out.copyPublicationProven &&
+    checkThat(out.valid && out.copyPublicationProven &&
               out.trackingFencePublicationProven &&
               out.completionObservationMayBegin,
           "bridge opens only the completion-observation boundary");
-    check(out.channelReadiness.allocationReady &&
+    checkThat(out.channelReadiness.allocationReady &&
               out.channelReadiness.ceBoundReady &&
               out.channelReadiness.submitReady,
           "channel readiness is inherited from channel contract");
-    check(out.copyProgress.peerMappingValidated &&
+    checkThat(out.copyProgress.peerMappingValidated &&
               out.copyProgress.channelSubmitReady &&
               out.copyProgress.copySubmissionPublished &&
               out.copyProgress.trackingFencePublishedAfterCopy,
           "published milestones become copy lifetime progress");
-    check(!out.copyProgress.boundedCompletionWaitUsed &&
+    checkThat(!out.copyProgress.boundedCompletionWaitUsed &&
               !out.copyProgress.boundedCompletionWaitFinished &&
               !out.copyProgress.completionPayloadReadSucceeded &&
               !out.copyProgress.completionWaitTimedOut,
           "bridge remains strictly before completion observation");
-    check(out.copyProgress.completedBeforeSubmission == 100ull &&
+    checkThat(out.copyProgress.completedBeforeSubmission == 100ull &&
               out.copyProgress.submittedTrackingValue == 101ull &&
               out.copyProgress.maxCredibleCompletionJump == 8ull,
           "tracking-counter identity is preserved");
-    check(out.transactionAnchor.valid() &&
+    checkThat(out.transactionAnchor.valid() &&
               out.transactionAnchor.handoffEpoch() == kEpoch &&
               out.transactionAnchor.transactionToken() == kToken &&
               out.transactionAnchor.submittedTrackingValue() == 101ull,
           "opaque anchor binds the published transaction");
-    check(!out.runtimeWriteAuthorized &&
+    checkThat(!out.runtimeWriteAuthorized &&
               !out.transactionAnchor.runtimeWriteAuthorized(),
           "bridge and anchor never authorize runtime writes");
 }
@@ -193,10 +193,10 @@ static void testChannelRefusalIsAtomic()
     poison(&out);
     const auto before = out;
 
-    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+    checkThat(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_CHANNEL,
           "missing provider submission token is refused");
-    check(sameState(out, before), "channel refusal leaves output untouched");
+    checkThat(sameState(out, before), "channel refusal leaves output untouched");
 }
 
 static void testPeerMappingRequiredAtomically()
@@ -208,10 +208,10 @@ static void testPeerMappingRequiredAtomically()
     poison(&out);
     const auto before = out;
 
-    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+    checkThat(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_PEER_MAPPING,
           "missing peer mapping proof is refused");
-    check(sameState(out, before), "peer refusal leaves output untouched");
+    checkThat(sameState(out, before), "peer refusal leaves output untouched");
 }
 
 static void testCopyPublicationOrderingRefuses()
@@ -223,10 +223,10 @@ static void testCopyPublicationOrderingRefuses()
     poison(&out);
     const auto before = out;
 
-    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+    checkThat(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_SEQUENCE,
           "gpPut cannot be published without ring entry storage");
-    check(sameState(out, before), "copy ordering refusal is atomic");
+    checkThat(sameState(out, before), "copy ordering refusal is atomic");
 }
 
 static void testFenceCannotPublishBeforeCopyKick()
@@ -239,10 +239,10 @@ static void testFenceCannotPublishBeforeCopyKick()
     poison(&out);
     const auto before = out;
 
-    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+    checkThat(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_SEQUENCE,
           "fence ring publication before copy kick is refused");
-    check(sameState(out, before), "cross-submission ordering refusal is atomic");
+    checkThat(sameState(out, before), "cross-submission ordering refusal is atomic");
 }
 
 static void testPartialPublicationCannotMintAnchor()
@@ -255,10 +255,10 @@ static void testPartialPublicationCannotMintAnchor()
     poison(&out);
     const auto before = out;
 
-    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+    checkThat(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_SEQUENCE,
           "anchor waits for ordered tracking-fence publication");
-    check(sameState(out, before), "partial publication leaves output untouched");
+    checkThat(sameState(out, before), "partial publication leaves output untouched");
 }
 
 static void testAmbiguousAllTrueSnapshotRefuses()
@@ -270,16 +270,16 @@ static void testAmbiguousAllTrueSnapshotRefuses()
     poison(&out);
     const auto before = out;
 
-    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+    checkThat(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_SEQUENCE,
           "equal publication ordinals cannot manufacture temporal order");
-    check(sameState(out, before), "ambiguous-order refusal is atomic");
+    checkThat(sameState(out, before), "ambiguous-order refusal is atomic");
 
     e.trackingFencePublicationOrdinal = e.copyPublicationOrdinal - 1ull;
-    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+    checkThat(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_SEQUENCE,
           "reversed publication ordinals cannot manufacture temporal order");
-    check(sameState(out, before), "reversed-order refusal is atomic");
+    checkThat(sameState(out, before), "reversed-order refusal is atomic");
 }
 
 static void testStalePublicationOrdinalRefuses()
@@ -291,10 +291,10 @@ static void testStalePublicationOrdinalRefuses()
     poison(&out);
     const auto before = out;
 
-    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+    checkThat(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_SEQUENCE,
           "stale fence publication ordinal is refused");
-    check(sameState(out, before), "stale-ordinal refusal is atomic");
+    checkThat(sameState(out, before), "stale-ordinal refusal is atomic");
 }
 
 static void testInvalidTrackingTargetRefusesThroughAnchor()
@@ -306,10 +306,10 @@ static void testInvalidTrackingTargetRefusesThroughAnchor()
     poison(&out);
     const auto before = out;
 
-    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
+    checkThat(nvAmpereBuildCopyPublicationBridge(e, kEpoch, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_ANCHOR,
           "non-new tracking target cannot mint an anchor");
-    check(sameState(out, before), "tracking-target refusal is atomic");
+    checkThat(sameState(out, before), "tracking-target refusal is atomic");
 }
 
 static void testZeroIdentityRefusesThroughAnchor()
@@ -320,15 +320,15 @@ static void testZeroIdentityRefusesThroughAnchor()
     poison(&out);
     const auto before = out;
 
-    check(nvAmpereBuildCopyPublicationBridge(e, 0ull, kToken, &out) ==
+    checkThat(nvAmpereBuildCopyPublicationBridge(e, 0ull, kToken, &out) ==
               NV_COPY_PUBLICATION_ERR_ANCHOR,
           "zero handoff epoch refused");
-    check(sameState(out, before), "zero-epoch refusal is atomic");
+    checkThat(sameState(out, before), "zero-epoch refusal is atomic");
 
-    check(nvAmpereBuildCopyPublicationBridge(e, kEpoch, 0ull, &out) ==
+    checkThat(nvAmpereBuildCopyPublicationBridge(e, kEpoch, 0ull, &out) ==
               NV_COPY_PUBLICATION_ERR_ANCHOR,
           "zero transaction token refused");
-    check(sameState(out, before), "zero-token refusal is atomic");
+    checkThat(sameState(out, before), "zero-token refusal is atomic");
 }
 
 int main()

@@ -671,6 +671,47 @@ Each was measured this session rather than carried forward, except where noted.
    a count format. Only `tests/` changed, so the `build-payload/` staleness is
    unchanged. Hygiene only: the offload distance moves by zero and the kext
    has still never been loaded. Not pushed.
+   **The last ten suites registered 2026-11-01 (t-3abea7; uncommitted when
+   this entry was written).** `test_intel_gt_surface`, `test_intel_gt_surface_handles`,
+   `test_intel_gt_surface_txn`, `test_intel_plane_live_observe`,
+   `test_nv_gsp_booter_fuse_patch_policy`, `test_nv_gsp_booter_hs`,
+   `test_nv_gsp_booter_patch`, `test_nv_gsp_booter_run_plan`,
+   `test_nv_intel_shared_surface_handoff_provenance_teardown_success` and
+   `test_nv_intel_shared_surface_handoff_teardown_failure` were the last
+   unregistered `tests/*.cpp` suites. Seven ended `main()` on an early-return
+   `"%d failure(s)"` line or a `std::cerr`/`std::cout` tail with no check
+   counter. Their check helpers now count calls, and each `main()` ends on the
+   exact `"\n%d checks, %d failures\n"` line and a gate-accepted return tail.
+   The four GSP booter suites among them now open their firmware fixtures
+   through `NV_FIRMWARE_DIR`, which `tests/CMakeLists.txt` injects, because
+   ctest runs them from `tests/build`. The other three already printed that
+   line but sat below `STATIC_CALL_FLOOR`. `test_intel_gt_surface_handles`
+   renamed its three check helpers to names the floor gate counts (0 to 74
+   static calls). The two shared surface-handoff teardown suites split each
+   combined check into one assertion per field and gained a matched control,
+   a replay control and teardown-order refusals. All ten are now in
+   `tests/CMakeLists.txt`, in `SUITES`, the `checks, failures` list and the
+   `BothFormatsStillInUseTests` expected list in
+   `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++ 16.1.0
+   reading (`-Wall -Wextra -Wpedantic`) on 2026-11-01: 64, 314, 44, 70, 61,
+   60, 77, 95, 40 and 29 checks, 0 failures, exit 0. Readings after the last
+   edit: `tests\build-msvc.bat` exit 0, 96 of 96 passed, no `error` or
+   `fatal` lines (warning lines were not counted);
+   `test_check_count_last_line` 18 of 18 OK and `test_check_count_floor`
+   16 of 16 OK, `test_each_suite_calls_check_helpers_many_times` included;
+   `tests\run-python-tests.bat` `Ran 1479 tests`, `FAILED (failures=4)`.
+   `test_cmake_registration` is no longer red, and none of the four is a
+   t-3abea7 target: `test_the_checked_in_gate_is_currently_correct` (13
+   `phase0-kext/` headers that no gate section parses, t-fccff1), the two
+   `test_guest_build_kext` payload-freshness tests (the `build-payload/`
+   staleness), and `test_every_compiled_source_is_an_iokit_shell`
+   (t-01a7b0). Other cards landed tests and fixes in parallel, so the drop
+   from 13 failures and the rise from 1442 tests are not this card's alone.
+   No `tests/*.cpp` suite is left unregistered. Only `tests/` changed, so the
+   `build-payload/` staleness is unchanged. Hygiene only: the offload
+   distance moves by zero and the kext has still never been loaded. At the time
+   of this entry, these changes had not been pushed.
 5. **One `kextload` on a machine containing the card.** Unchanged, and still the
    single highest-value action in the whole project. Blocked on hardware, on SIP,
    and on `3050-handoff27.md` §1's mutual exclusion: the laptop cannot hold Linux

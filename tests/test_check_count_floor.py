@@ -1600,9 +1600,48 @@ MEASURED = {
     #   test_intel_gt_fill 34 checks, 0 failures
     #   test_intel_gt_surface_handle_abi 14 checks, 0 failures
     #   test_intel_sink_ggtt_txn 32 checks, 0 failures
-    "test_intel_gt_fill": 34,
-    "test_intel_gt_surface_handle_abi": 14,
+    # t-ecdc2b added gt_fill's untested refusal paths (zero and oversized
+    # extents, unaligned address and pitch, pitch over 32767, a surface past
+    # 4 GiB, a fence overlapping from below, a null batch) and the abutting-
+    # fence boundary; static calls 4 -> 27. MSVC gate reading, exited 0:
+    #   test_intel_gt_fill 55 checks, 0 failures
+    "test_intel_gt_fill": 55,
+    # t-ecdc2b added handle_abi's field-offset checks: both sides copy these
+    # structs byte for byte, so a field reorder breaks the ABI even when
+    # every size still matches; static calls 0 -> 14 (bare check renamed to
+    # checkTrue) -> 31. MSVC gate reading, exited 0:
+    #   test_intel_gt_surface_handle_abi 31 checks, 0 failures
+    "test_intel_gt_surface_handle_abi": 31,
     "test_intel_sink_ggtt_txn": 32,
+    # Measured 2026-11-01, after the three above: first readings of the last
+    # 10 unregistered suites (t-3abea7), registered once main() ended on the
+    # exact "\n%d checks, %d failures\n" line with a gate-accepted return
+    # tail. The four GSP booter suites read firmware through NV_FIRMWARE_DIR.
+    # test_intel_gt_surface_handles and the two shared surface-handoff
+    # teardown suites were brought over STATIC_CALL_FLOOR with named check
+    # helpers. g++ 16.1.0 -Wall -Wextra -Wpedantic build, each exited 0. NOT
+    # yet MSVC readings; tests\build-msvc.bat turns them into the gate's own
+    # numbers.
+    #   test_intel_gt_surface 64 checks, 0 failures
+    #   test_intel_gt_surface_handles 314 checks, 0 failures
+    #   test_intel_gt_surface_txn 44 checks, 0 failures
+    #   test_intel_plane_live_observe 70 checks, 0 failures
+    #   test_nv_gsp_booter_fuse_patch_policy 61 checks, 0 failures
+    #   test_nv_gsp_booter_hs 60 checks, 0 failures
+    #   test_nv_gsp_booter_patch 77 checks, 0 failures
+    #   test_nv_gsp_booter_run_plan 95 checks, 0 failures
+    #   test_nv_intel_shared_surface_handoff_provenance_teardown_success 40 checks, 0 failures
+    #   test_nv_intel_shared_surface_handoff_teardown_failure 29 checks, 0 failures
+    "test_intel_gt_surface": 64,
+    "test_intel_gt_surface_handles": 314,
+    "test_intel_gt_surface_txn": 44,
+    "test_intel_plane_live_observe": 70,
+    "test_nv_gsp_booter_fuse_patch_policy": 61,
+    "test_nv_gsp_booter_hs": 60,
+    "test_nv_gsp_booter_patch": 77,
+    "test_nv_gsp_booter_run_plan": 95,
+    "test_nv_intel_shared_surface_handoff_provenance_teardown_success": 40,
+    "test_nv_intel_shared_surface_handoff_teardown_failure": 29,
 }
 
 # A suite must call check helpers many times over. Uniform across suites on

@@ -58,9 +58,12 @@ bool IntelGtSurfaceStageService::acceleratorPresent(void)
 
 void IntelGtSurfaceStageService::releaseResources(void)
 {
-    if (fDMABound && fDMA) {
-        fDMA->clearMemoryDescriptor();
+    // Clear the flag BEFORE the release so a re-entrant teardown is a no-op.
+    // fDMABound implies fDMA: it is set only after a successful bind and
+    // cleared here before fDMA is dropped.
+    if (fDMABound) {
         fDMABound=false;
+        fDMA->clearMemoryDescriptor();
     }
     OSSafeReleaseNULL(fDMA);
     OSSafeReleaseNULL(fBacking);

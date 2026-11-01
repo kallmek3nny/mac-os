@@ -471,6 +471,25 @@ def mutate(source, anchor, replacement, expected_count=1):
 # ---------------------------------------------------------------------------
 
 
+def derived_publishers(source):
+    """Every method audit() treats as a publisher, in source order.
+
+    The same derivation audit() performs -- a body that calls both READ_CALL
+    and PUBLISH_CALL -- exposed once so the positive control and the
+    missing-body control assert on one definition rather than two copies.
+    """
+    code = strip_comments_and_strings(source)
+    derived = []
+    for name in method_names(code):
+        span = function_body(code, name)
+        if span is None:
+            continue
+        body = code[span[0] : span[1]]
+        if call_sites(body, READ_CALL) and call_sites(body, PUBLISH_CALL):
+            derived.append(name)
+    return derived
+
+
 class TestLiveTree(unittest.TestCase):
     def test_probe_source_exists(self):
         self.assertTrue(
@@ -484,22 +503,21 @@ class TestLiveTree(unittest.TestCase):
         )
 
     def test_both_known_publishers_are_derived(self):
-        """The derived set must actually contain the two real publishers.
+        """The derived set must actually contain the real publishers.
 
         Without this, a bug that derived an EMPTY set for the wrong reason
         would still let every quantified rule above pass vacuously.
+
+        publishPlaneLiveObservation is pinned as well.  It reaches the rules by
+        derivation, not by name -- which is how this gate caught it publishing
+        ten unsampled reads (3050-handoff44) -- and pinning it here means a
+        rename or a refactor that hides its reads cannot quietly drop it out
+        of scope.
         """
-        code = strip_comments_and_strings(live_source())
-        derived = []
-        for name in method_names(code):
-            span = function_body(code, name)
-            if span is None:
-                continue
-            body = code[span[0] : span[1]]
-            if call_sites(body, READ_CALL) and call_sites(body, PUBLISH_CALL):
-                derived.append(name)
+        derived = derived_publishers(live_source())
         self.assertIn("publishTranscoder", derived)
         self.assertIn("publishPlane", derived)
+        self.assertIn("publishPlaneLiveObservation", derived)
 
     def test_publish_identity_is_not_a_publisher(self):
         """publishIdentity publishes and reads NO registers, so it is out of scope.
@@ -568,6 +586,39 @@ class TestNegativeControls(unittest.TestCase):
         close = matching_bracket(body, paren, "(", ")")
         semi = body.find(";", close)
         mutated = source[: span[0]] + body[: m.start()] + body[semi + 1 :] + source[span[1] :]
+        self.assertFailsWith(audit(mutated), "never calls %s()" % SAMPLE_CALL)
+
+    def test_deleting_the_live_observer_sample_is_caught(self):
+        """The 3050-handoff44 defect restored: ten reads published unsampled.
+
+        publishPlaneLiveObservation reaches the audit by derivation, so this
+        proves the gate still reddens on the exact shape it caught.  Its
+        verdict local is readSample (sample already names the snapshot), so
+        the transcoder control's `sample =` pattern cannot find it; this
+        control has its own locator and asserts that it matched.
+        """
+        source = live_source()
+        code = strip_comments_and_strings(source)
+        span = function_body(code, "publishPlaneLiveObservation")
+        self.assertIsNotNone(span, "publishPlaneLiveObservation body not found")
+
+        code_body = code[span[0] : span[1]]
+        raw_body = source[span[0] : span[1]]
+
+        m = re.search(r"\w+\s+readSample\s*=\s*igSampleVerdict\s*\(", code_body)
+        self.assertIsNotNone(m, "could not locate the live observer sample call")
+        paren = m.end() - 1
+        close = matching_bracket(code_body, paren, "(", ")")
+        self.assertIsNotNone(close, "live observer sample call is unbalanced")
+        semi = code_body.find(";", close)
+        self.assertNotEqual(semi, -1, "live observer sample call is unterminated")
+
+        mutated = (
+            source[: span[0]]
+            + raw_body[: m.start()]
+            + raw_body[semi + 1 :]
+            + source[span[1] :]
+        )
         self.assertFailsWith(audit(mutated), "never calls %s()" % SAMPLE_CALL)
 
     def test_dropping_a_read_from_the_sampled_array_is_caught(self):
@@ -740,13 +791,35 @@ class TestNegativeControls(unittest.TestCase):
         self.assertFailsWith(audit(mutated), "land in named variables")
 
     def test_a_missing_body_refuses_rather_than_passes(self):
-        """The failure mode that makes a shape gate vacuous."""
+        """The failure mode that makes a shape gate vacuous.
+
+        The anchor carries the opening parenthesis because the bare
+        `IntelDisplayProbe::publishPlane` is also a prefix of
+        `IntelDisplayProbe::publishPlaneLiveObservation`.  mutate() refused the
+        bare form on a count of 2 (3050-handoff44), which is its precondition
+        working; with the parenthesis it names exactly one definition.
+
+        The old `failures or True` assertion could never fail.  What a rename
+        must not do is drop the method out of scope: publishers are derived
+        from what their bodies call, not from their names, so the renamed
+        method must still be derived and the old name must be gone.
+        """
         source = live_source()
-        mutated = mutate(source, "IntelDisplayProbe::publishPlane", "IntelDisplayProbe::publishPlaneRenamed")
-        failures = audit(mutated)
-        self.assertTrue(
-            failures or True,
+        mutated = mutate(
+            source,
+            "IntelDisplayProbe::publishPlane(",
+            "IntelDisplayProbe::publishPlaneRenamed(",
+        )
+        derived = derived_publishers(mutated)
+        self.assertIn(
+            "publishPlaneRenamed",
+            derived,
             "renaming must not silently drop the subject",
+        )
+        self.assertNotIn(
+            "publishPlane",
+            derived,
+            "the rename matched nothing: the old name is still derived",
         )
         code = strip_comments_and_strings(mutated)
         self.assertIsNone(
