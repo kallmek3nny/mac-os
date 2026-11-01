@@ -537,6 +537,26 @@ Each was measured this session rather than carried forward, except where noted.
    `tests/` changed, so the `build-payload/` staleness is unchanged. Hygiene
    only: the offload distance moves by zero and the kext has still never been
    loaded. Not pushed.
+   **Two NVIDIA suites registered 2026-11-01 (`1ae367d`).**
+   `test_nv_ga107_pci_identity` and `test_nv_gsp_rpc_receive_tracker` were
+   unregistered only because `main()` printed `"%u checks, %u failures\n"`
+   from `unsigned` counters, which the count-last-line gate does not accept.
+   Each now prints the exact `"\n%d checks, %d failures\n"` line with
+   `static_cast<int>` arguments and keeps its `return failures?1:0;` tail,
+   which the tail pattern in `tests/test_check_count_last_line.py` now accepts
+   next to `gFailures==0?0:1` and `gFailures?1:0`. Both are now in
+   `tests/CMakeLists.txt`, in `SUITES` and the `checks, failures` list in
+   `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++ 16.1.0
+   reading on 2026-11-01: 24 and 325 checks, 0 failures, zero warnings.
+   Neither calls a `check[A-Z]*` helper, so `SourcesStillCallChecks` counts 0
+   for both; that test was already red at `c066cf7`. Readings after the last
+   edit: `tests\build-msvc.bat` exit 0, 70 of 70 passed;
+   `tests\run-python-tests.bat` `Ran 1442 tests`, `FAILED (failures=13)`, the
+   same 13 test methods as at `c066cf7`. Still open: the other 26 suites,
+   whose final line is not a count format. Only `tests/` changed, so the
+   `build-payload/` staleness is unchanged. Hygiene only: the offload distance
+   moves by zero and the kext has still never been loaded. Not pushed.
 5. **One `kextload` on a machine containing the card.** Unchanged, and still the
    single highest-value action in the whole project. Blocked on hardware, on SIP,
    and on `3050-handoff27.md` §1's mutual exclusion: the laptop cannot hold Linux
