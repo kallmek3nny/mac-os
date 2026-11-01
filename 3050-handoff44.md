@@ -590,6 +590,34 @@ Each was measured this session rather than carried forward, except where noted.
    commit also changed two `phase0-kext/` headers, and `build-payload/` was
    not rebuilt. Hygiene only: the offload distance moves by zero and the kext
    has still never been loaded. Not pushed.
+   **Six Intel display/plane and GSP booter suites registered 2026-11-01
+   (`35ec60b`).** `test_intel_display_transaction_lifetime`,
+   `test_intel_plane_program_plan`, `test_intel_plane_retirement_evidence`,
+   `test_intel_plane_transition_plan`, `test_nv_gsp_booter_exec_sequence_plan`
+   and `test_nv_gsp_booter_recovery_plan` were unregistered only because
+   `main()` ended on a labelled `"all %u ... checks passed"` or
+   `"... %u checks passed"` line from `unsigned` counters, after a
+   `"%u/%u ... checks failed"` early return. Each now prints the exact
+   `"\n%d checks, %d failures\n"` line with `static_cast<int>` arguments and
+   returns `gFailures == 0 ? 0 : 1`. All six are now in
+   `tests/CMakeLists.txt`, in `SUITES` and the `checks, failures` list in
+   `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++ 16.1.0
+   reading on 2026-11-01: 119, 127, 116, 77, 67 and 141 checks, 0 failures,
+   zero warnings. The two GSP booter suites now open their firmware fixtures
+   through `NV_FIRMWARE_DIR`, which `tests/CMakeLists.txt` injects, because
+   ctest runs them from `tests/build`. Readings after the last edit:
+   `tests\build-msvc.bat` exit 0, 79 of 79 passed, no compiler error or
+   warning lines; `tests\run-python-tests.bat` `Ran 1442 tests`,
+   `FAILED (failures=13)`, the same 13 test methods as at `de3e641`.
+   `test_each_suite_calls_check_helpers_many_times` still stops on
+   `test_intel_display_transaction_lifetime.cpp`: 7 static check-helper calls
+   against a floor of 20, although the suite reports 119 checks at run time,
+   so registering it did not close that failure. Still open: the other 17
+   suites, whose final line is not a count format. Only `tests/` changed, so
+   the `build-payload/` staleness is unchanged. Hygiene only: the offload
+   distance moves by zero and the kext has still never been loaded. Not
+   pushed.
 5. **One `kextload` on a machine containing the card.** Unchanged, and still the
    single highest-value action in the whole project. Blocked on hardware, on SIP,
    and on `3050-handoff27.md` §1's mutual exclusion: the laptop cannot hold Linux
