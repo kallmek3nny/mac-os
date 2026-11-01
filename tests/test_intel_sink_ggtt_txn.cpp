@@ -3,9 +3,10 @@
 #include <cstdio>
 #include <cstring>
 
-static int fails=0;
-static void ck32(unsigned g,unsigned w,const char*s){if(g!=w){std::printf("FAIL: %s got=%u want=%u\n",s,g,w);++fails;}}
-static void ck64(unsigned long long g,unsigned long long w,const char*s){if(g!=w){std::printf("FAIL: %s got=%llx want=%llx\n",s,g,w);++fails;}}
+static int checks=0;
+static int failures=0;
+static void ck32(unsigned g,unsigned w,const char*s){++checks;if(g!=w){std::printf("FAIL: %s got=%u want=%u\n",s,g,w);++failures;}}
+static void ck64(unsigned long long g,unsigned long long w,const char*s){++checks;if(g!=w){std::printf("FAIL: %s got=%llx want=%llx\n",s,g,w);++failures;}}
 
 struct Fake {
     unsigned long long pte[32];
@@ -83,4 +84,11 @@ static void restoreSafety(){
     ck64(c.f.pte[8],n[0],"owned first reinstalled");ck64(c.f.pte[9],n[1],"owned failed reinstalled");ck64(c.f.pte[10],n[2],"owned suffix unchanged");
 }
 
-int main(){happy();refusals();installRollback();restoreSafety();if(fails){std::printf("%d failure(s)\n",fails);return 1;}std::puts("Tiger Lake sink GGTT transaction tests passed");return 0;}
+int main(){
+    happy();
+    refusals();
+    installRollback();
+    restoreSafety();
+    std::printf("\n%d checks, %d failures\n",checks,failures);
+    return failures ? 1 : 0;
+}

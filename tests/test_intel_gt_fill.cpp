@@ -4,11 +4,14 @@
 #include "IntelGtBlitter.hpp"
 #include "IntelGtBlitABI.h"
 
+static int checks=0;
 static int failures=0;
 static void check(bool ok,const char *what) {
+    ++checks;
     if (!ok) { std::printf("FAIL: %s\n",what); ++failures; }
 }
 static void checkU32(unsigned int got,unsigned int want,const char *what) {
+    ++checks;
     if (got!=want) {
         std::printf("FAIL: %s got=%08x want=%08x\n",what,got,want);
         ++failures;
@@ -80,10 +83,6 @@ int main() {
     testAbi();
     testGoldenFill();
     testRefusals();
-    if (failures) {
-        std::printf("%d failure(s)\n",failures);
-        return 1;
-    }
-    std::puts("Tiger Lake fenced fill tests passed");
-    return 0;
+    std::printf("\n%d checks, %d failures\n",checks,failures);
+    return failures ? 1 : 0;
 }

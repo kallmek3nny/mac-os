@@ -1586,6 +1586,23 @@ MEASURED = {
     "test_nv_gsp_booter_transaction_recovery_contract": 35,
     "test_nv_intel_shared_copy_lifetime": 82,
     "test_nv_intel_shared_surface_handoff": 114,
+    # Measured 2026-11-01, after the four above: first readings of the Intel
+    # GT fill-encoder, persistent-surface handle ABI and sink GGTT transaction
+    # suites, registered once main() stopped ending on an early-return
+    # '%d failure(s)' line and a 'tests passed' puts with no check counter.
+    # Each check helper now counts its calls, and main() prints the exact
+    # "\n%d checks, %d failures\n" line with a failures ? 1 : 0 tail.
+    # test_intel_gt_fill links phase0-kext/IntelGtBlitter.cpp for
+    # gtEncodeFill32. g++ -Wall -Wextra -Wpedantic build, zero warnings, each
+    # exited 0. NOT yet MSVC readings; tests\build-msvc.bat turns them into
+    # the gate's own numbers. SourcesStillCallChecks counts fewer than 20
+    # check-helper calls in each; that test was already red at 2687e72.
+    #   test_intel_gt_fill 34 checks, 0 failures
+    #   test_intel_gt_surface_handle_abi 14 checks, 0 failures
+    #   test_intel_sink_ggtt_txn 32 checks, 0 failures
+    "test_intel_gt_fill": 34,
+    "test_intel_gt_surface_handle_abi": 14,
+    "test_intel_sink_ggtt_txn": 32,
 }
 
 # A suite must call check helpers many times over. Uniform across suites on

@@ -3,9 +3,11 @@
 #include <cstdio>
 #include "IntelGtBlitABI.h"
 
+static int checks=0;
 static int failures=0;
 static void check(bool ok,const char *what)
 {
+    ++checks;
     if (!ok) { std::printf("FAIL: %s\n",what); ++failures; }
 }
 
@@ -30,10 +32,6 @@ int main()
     response.handle=0x00123456789abc04ull;
     check(response.handle==0x00123456789abc04ull,"opaque handle preserves all 64 bits");
 
-    if (failures) {
-        std::printf("%d failure(s)\n",failures);
-        return 1;
-    }
-    std::puts("intel persistent surface handle ABI tests passed");
-    return 0;
+    std::printf("\n%d checks, %d failures\n",checks,failures);
+    return failures ? 1 : 0;
 }

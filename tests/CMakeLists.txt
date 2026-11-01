@@ -551,12 +551,10 @@ add_kext_test(test_intel_gt_forcewake test_intel_gt_forcewake.cpp)
 # Their first readings are recorded in MEASURED in
 # tests/test_check_count_floor.py.
 #
-# 13 other tests/*.cpp suites are still unregistered on purpose. They compile
+# 10 other tests/*.cpp suites are still unregistered on purpose. They compile
 # and pass under g++, but their final line is not one of the two count formats,
 # so listing them here -- and in the count gate, which must match this list --
-# would redden that gate. test_intel_gt_fill also needs
-# phase0-kext/IntelGtBlitter.cpp linked in, which a two-argument add_kext_test
-# cannot express.
+# would redden that gate.
 
 # Intel GT engine and sink layers.
 add_kext_test(test_intel_gt_copy_plan test_intel_gt_copy_plan.cpp)
@@ -669,3 +667,20 @@ add_kext_test(test_nv_gsp_booter_transaction_lifetime test_nv_gsp_booter_transac
 add_kext_test(test_nv_gsp_booter_transaction_recovery_contract test_nv_gsp_booter_transaction_recovery_contract.cpp)
 add_kext_test(test_nv_intel_shared_copy_lifetime test_nv_intel_shared_copy_lifetime.cpp)
 add_kext_test(test_nv_intel_shared_surface_handoff test_nv_intel_shared_surface_handoff.cpp)
+
+# Registered after those four, also on 2026-11-01. These three Intel suites
+# were unregistered only because main() ended on an early-return
+# '%d failure(s)' line and a 'tests passed' puts, with no check counter, which
+# the count-last-line gate does not accept. Each check helper now counts its
+# calls, and main() prints the exact '\n%d checks, %d failures\n' line and
+# returns failures ? 1 : 0 (test_intel_sink_ggtt_txn also renames its fails
+# counter to failures and spreads main() over several lines).
+# test_intel_gt_fill exercises the production gtEncodeFill32 encoder, which is
+# defined in phase0-kext/IntelGtBlitter.cpp, so that source is linked in with
+# target_sources. add_kext_test takes one source, and test_cmake_registration
+# reads only that two-argument form. First g++ readings (-Wall -Wextra
+# -Wpedantic), zero warnings, exit 0: 34, 14 and 32 checks, 0 failures.
+add_kext_test(test_intel_gt_fill test_intel_gt_fill.cpp)
+target_sources(test_intel_gt_fill PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../phase0-kext/IntelGtBlitter.cpp)
+add_kext_test(test_intel_gt_surface_handle_abi test_intel_gt_surface_handle_abi.cpp)
+add_kext_test(test_intel_sink_ggtt_txn test_intel_sink_ggtt_txn.cpp)
