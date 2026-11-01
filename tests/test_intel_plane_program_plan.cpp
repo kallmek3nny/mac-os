@@ -370,11 +370,6 @@ int main()
     testMappingSafety();
     testVerdictNamesAndAtomicity();
 
-    if (gFailures != 0u) {
-        std::printf("%u/%u Intel plane program-plan checks failed\n", gFailures, gChecks);
-        return 1;
-    }
-
-    std::printf("Intel Tiger Lake plane program plan: %u checks passed\n", gChecks);
-    return 0;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }

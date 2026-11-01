@@ -348,12 +348,6 @@ int main()
     testContradictions();
     testVerdicts();
 
-    if (gFailures != 0u) {
-        std::printf("%u/%u Intel plane retirement-evidence checks failed\n",
-                    gFailures, gChecks);
-        return 1;
-    }
-
-    std::printf("all %u Intel plane retirement-evidence checks passed\n", gChecks);
-    return 0;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }

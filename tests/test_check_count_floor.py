@@ -1544,6 +1544,29 @@ MEASURED = {
     "test_nv_gsp_booter_success_retirement_plan": 59,
     "test_nv_intel_shared_surface_handoff_anchored_provenance": 44,
     "test_nv_intel_shared_surface_handoff_provenance": 67,
+    # Measured 2026-11-01, later still: first readings of the Intel display
+    # transaction-lifetime, plane program-plan, plane retirement-evidence and
+    # plane transition-plan suites and the GSP booter exec-sequence and
+    # recovery plan suites, registered once their final printf moved from a
+    # labelled 'all %u ... checks passed' or '... %u checks passed' line on
+    # unsigned counters (after a '%u/%u ... checks failed' early return) to the
+    # exact "\n%d checks, %d failures\n" format with static_cast<int>
+    # arguments and a gFailures == 0 ? 0 : 1 tail. The two booter suites also
+    # open their firmware fixtures through NV_FIRMWARE_DIR now. Same g++ 16.1.0
+    # build as above, zero warnings, each exited 0. NOT yet MSVC readings;
+    # tests\build-msvc.bat turns them into the gate's own numbers.
+    #   test_intel_display_transaction_lifetime 119 checks, 0 failures
+    #   test_intel_plane_program_plan 127 checks, 0 failures
+    #   test_intel_plane_retirement_evidence 116 checks, 0 failures
+    #   test_intel_plane_transition_plan 77 checks, 0 failures
+    #   test_nv_gsp_booter_exec_sequence_plan 67 checks, 0 failures
+    #   test_nv_gsp_booter_recovery_plan 141 checks, 0 failures
+    "test_intel_display_transaction_lifetime": 119,
+    "test_intel_plane_program_plan": 127,
+    "test_intel_plane_retirement_evidence": 116,
+    "test_intel_plane_transition_plan": 77,
+    "test_nv_gsp_booter_exec_sequence_plan": 67,
+    "test_nv_gsp_booter_recovery_plan": 141,
 }
 
 # A suite must call check helpers many times over. Uniform across suites on

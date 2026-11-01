@@ -8,6 +8,16 @@
 #include <string>
 #include <vector>
 
+// ctest runs each suite from tests/build, where a cwd-relative
+// reference/ga107-firmware path resolves to nothing: MSVC ctest failed
+// test_nv_gsp_booter_success_retirement_plan on 'fixture open' for exactly
+// that (fixed in f5110c1). CMake injects the source-tree path as
+// NV_FIRMWARE_DIR (tests/CMakeLists.txt); the fallback keeps a hand-built
+// binary run from the repo root working. A wrong path still FAILS, never skips.
+#ifndef NV_FIRMWARE_DIR
+#define NV_FIRMWARE_DIR "reference/ga107-firmware"
+#endif
+
 static unsigned gChecks = 0u;
 static unsigned gFailures = 0u;
 
@@ -316,7 +326,7 @@ static void testVerdictNames(void)
 
 int main()
 {
-    const auto blob = load("reference/ga107-firmware/booter_load-570.144.bin");
+    const auto blob = load(NV_FIRMWARE_DIR "/booter_load-570.144.bin");
     if (blob.empty())
         return 1;
 
@@ -328,10 +338,6 @@ int main()
     testRefusalsAndAtomicity(sequence);
     testVerdictNames();
 
-    if (gFailures != 0u) {
-        std::printf("%u/%u GA107 SEC2 recovery checks failed\n", gFailures, gChecks);
-        return 1;
-    }
-    std::printf("GA107 SEC2 recovery planner: %u checks passed\n", gChecks);
-    return 0;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }

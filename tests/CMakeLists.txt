@@ -551,7 +551,7 @@ add_kext_test(test_intel_gt_forcewake test_intel_gt_forcewake.cpp)
 # Their first readings are recorded in MEASURED in
 # tests/test_check_count_floor.py.
 #
-# 23 other tests/*.cpp suites are still unregistered on purpose. They compile
+# 17 other tests/*.cpp suites are still unregistered on purpose. They compile
 # and pass under g++, but their final line is not one of the two count formats,
 # so listing them here -- and in the count gate, which must match this list --
 # would redden that gate. test_intel_gt_fill also needs
@@ -639,3 +639,19 @@ add_kext_test(test_nv_gsp_rpc_receive_tracker test_nv_gsp_rpc_receive_tracker.cp
 add_kext_test(test_nv_gsp_booter_success_retirement_plan test_nv_gsp_booter_success_retirement_plan.cpp)
 add_kext_test(test_nv_intel_shared_surface_handoff_anchored_provenance test_nv_intel_shared_surface_handoff_anchored_provenance.cpp)
 add_kext_test(test_nv_intel_shared_surface_handoff_provenance test_nv_intel_shared_surface_handoff_provenance.cpp)
+
+# Registered later still on 2026-11-01. These six were unregistered only
+# because main() ended on a labelled summary from unsigned counters ('all %u
+# ... checks passed' or '... %u checks passed', after a '%u/%u ... checks
+# failed' early return), which the count-last-line gate does not accept. Each
+# now prints the exact '\n%d checks, %d failures\n' line with static_cast<int>
+# arguments and returns gFailures == 0 ? 0 : 1. The two GSP booter suites also
+# open their firmware fixtures through NV_FIRMWARE_DIR, since ctest runs them
+# from tests/build. First g++ 16.1.0 readings, zero warnings, exit 0: 119, 127,
+# 116, 77, 67 and 141 checks, 0 failures.
+add_kext_test(test_intel_display_transaction_lifetime test_intel_display_transaction_lifetime.cpp)
+add_kext_test(test_intel_plane_program_plan test_intel_plane_program_plan.cpp)
+add_kext_test(test_intel_plane_retirement_evidence test_intel_plane_retirement_evidence.cpp)
+add_kext_test(test_intel_plane_transition_plan test_intel_plane_transition_plan.cpp)
+add_kext_test(test_nv_gsp_booter_exec_sequence_plan test_nv_gsp_booter_exec_sequence_plan.cpp)
+add_kext_test(test_nv_gsp_booter_recovery_plan test_nv_gsp_booter_recovery_plan.cpp)
