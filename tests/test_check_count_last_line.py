@@ -149,9 +149,12 @@ SUITES = (
     "test_nv_gsp_rpc_response.cpp",
     "test_nv_gsp_rpc_transaction.cpp",
     "test_nv_gsp_wpr_boot_ucode.cpp",
+    "test_nv_gsp_wpr_candidate.cpp",
     "test_nv_gsp_wpr_ga107.cpp",
+    "test_nv_gsp_wpr_ga107_facts.cpp",
     "test_nv_gsp_wpr_image.cpp",
     "test_nv_gsp_wpr_meta.cpp",
+    "test_nv_gsp_wpr_sysmem.cpp",
     "test_riscv_ucode.cpp",
 )
 
@@ -289,7 +292,9 @@ class NoOtherOutputChannelTests(unittest.TestCase):
             stripped = re.sub(r"\s+", "", remainder)
             # Two spellings of one exit status are in use, 'gFailures == 0 ?
             # 0 : 1' and 'gFailures ? 1 : 0' (five suites registered
-            # 2026-11-01). Any other tail, 'return 0;' included, stays red.
+            # 2026-11-01, three WPR suites later that day; the whitespace strip
+            # also folds test_nv_gsp_wpr_ga107_facts's 'gFailures?1:0' into the
+            # second). Any other tail, 'return 0;' included, stays red.
             self.assertTrue(
                 re.fullmatch(r"return(?:gFailures==0\?0:1|gFailures\?1:0);\}",
                              stripped),
@@ -381,9 +386,12 @@ class BothFormatsStillInUseTests(unittest.TestCase):
              "test_nv_gsp_rpc_response.cpp",
              "test_nv_gsp_rpc_transaction.cpp",
              "test_nv_gsp_wpr_boot_ucode.cpp",
+             "test_nv_gsp_wpr_candidate.cpp",
              "test_nv_gsp_wpr_ga107.cpp",
+             "test_nv_gsp_wpr_ga107_facts.cpp",
              "test_nv_gsp_wpr_image.cpp",
              "test_nv_gsp_wpr_meta.cpp",
+             "test_nv_gsp_wpr_sysmem.cpp",
              "test_riscv_ucode.cpp"],
             users)
 

@@ -93,6 +93,6 @@ int main(void) {
     std::memset(&out,0,sizeof(out));
     checkU32("radix root is not contiguous range",nvGspPlanWprSysmem(&in,&out),NV_GSP_WPR_SYSMEM_OK);
 
-    std::printf("WPR sysmem bridge: %d checks, %d failures\n",gChecks,gFailures);
+    std::printf("\n%d checks, %d failures\n",gChecks,gFailures);
     return gFailures ? 1 : 0;
 }

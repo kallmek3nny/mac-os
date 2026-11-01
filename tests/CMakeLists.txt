@@ -551,7 +551,7 @@ add_kext_test(test_intel_gt_forcewake test_intel_gt_forcewake.cpp)
 # Their first readings are recorded in MEASURED in
 # tests/test_check_count_floor.py.
 #
-# 34 other tests/*.cpp suites are still unregistered on purpose. They compile
+# 31 other tests/*.cpp suites are still unregistered on purpose. They compile
 # and pass under g++, but their final line is not one of the two count formats,
 # so listing them here -- and in the count gate, which must match this list --
 # would redden that gate. test_intel_gt_fill also needs
@@ -598,3 +598,13 @@ add_kext_test(test_nv_gsp_wpr_boot_ucode test_nv_gsp_wpr_boot_ucode.cpp)
 add_kext_test(test_nv_gsp_wpr_ga107 test_nv_gsp_wpr_ga107.cpp)
 add_kext_test(test_nv_gsp_wpr_image test_nv_gsp_wpr_image.cpp)
 add_kext_test(test_nv_gsp_wpr_meta test_nv_gsp_wpr_meta.cpp)
+
+# Registered later on 2026-11-01. These three were unregistered only because
+# main() ended on a labelled count line ('GA107 WPR candidate: ...', 'GA107 WPR
+# facts: ...', 'WPR sysmem bridge: ...'). The label was dropped, so each now
+# prints the exact '\n%d checks, %d failures\n' line and returns
+# gFailures ? 1 : 0. First g++ 16.1.0 readings, zero warnings, exit 0: 45, 38
+# and 35 checks, 0 failures.
+add_kext_test(test_nv_gsp_wpr_candidate test_nv_gsp_wpr_candidate.cpp)
+add_kext_test(test_nv_gsp_wpr_ga107_facts test_nv_gsp_wpr_ga107_facts.cpp)
+add_kext_test(test_nv_gsp_wpr_sysmem test_nv_gsp_wpr_sysmem.cpp)

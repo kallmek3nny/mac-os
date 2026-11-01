@@ -1489,6 +1489,18 @@ MEASURED = {
     "test_nv_gsp_wpr_ga107": 61,
     "test_nv_gsp_wpr_image": 97,
     "test_nv_gsp_wpr_meta": 78,
+    # Measured 2026-11-01, later the same day: first readings of the three WPR
+    # suites registered once their final printf was cut to the exact
+    # "\n%d checks, %d failures\n" format (it had carried a "GA107 WPR
+    # candidate:", "GA107 WPR facts:" or "WPR sysmem bridge:" label). Same g++
+    # 16.1.0 build as above, zero warnings, each exited 0. NOT yet MSVC
+    # readings; tests\build-msvc.bat turns them into the gate's own numbers.
+    #   test_nv_gsp_wpr_candidate 45 checks, 0 failures
+    #   test_nv_gsp_wpr_ga107_facts 38 checks, 0 failures
+    #   test_nv_gsp_wpr_sysmem 35 checks, 0 failures
+    "test_nv_gsp_wpr_candidate": 45,
+    "test_nv_gsp_wpr_ga107_facts": 38,
+    "test_nv_gsp_wpr_sysmem": 35,
 }
 
 # A suite must call check helpers many times over. Uniform across suites on

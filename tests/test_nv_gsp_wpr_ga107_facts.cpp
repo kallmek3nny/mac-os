@@ -160,6 +160,6 @@ int main(void)
     upperBoundary();
     refusalsAtomic();
 
-    std::printf("\nGA107 WPR facts: %d checks, %d failures\n",gChecks,gFailures);
+    std::printf("\n%d checks, %d failures\n",gChecks,gFailures);
     return gFailures?1:0;
 }

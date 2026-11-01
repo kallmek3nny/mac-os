@@ -196,6 +196,6 @@ int main(void)
              NV_GSP_WPR_CANDIDATE_POLICY_REFUSED);
     checkAtomic("policy refusal atomic",poison,before);
 
-    std::printf("GA107 WPR candidate: %d checks, %d failures\n",gChecks,gFailures);
+    std::printf("\n%d checks, %d failures\n",gChecks,gFailures);
     return gFailures ? 1 : 0;
 }
