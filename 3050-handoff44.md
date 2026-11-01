@@ -618,6 +618,32 @@ Each was measured this session rather than carried forward, except where noted.
    the `build-payload/` staleness is unchanged. Hygiene only: the offload
    distance moves by zero and the kext has still never been loaded. Not
    pushed.
+   **Four GSP booter transaction and shared copy/surface handoff suites
+   registered 2026-11-01 (`c8c6d38`).**
+   `test_nv_gsp_booter_transaction_lifetime`,
+   `test_nv_gsp_booter_transaction_recovery_contract`,
+   `test_nv_intel_shared_copy_lifetime` and
+   `test_nv_intel_shared_surface_handoff` were unregistered only because
+   `main()` ended on a labelled `"all %u ... checks passed"` line from
+   `unsigned` counters, after a `"%u/%u ... checks failed"` early return.
+   Each now prints the exact `"\n%d checks, %d failures\n"` line with
+   `static_cast<int>` arguments and returns `gFailures == 0 ? 0 : 1`. All four
+   are now in `tests/CMakeLists.txt`, in `SUITES` and the `checks, failures`
+   list in `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++
+   reading (`-Wall -Wextra -Wpedantic`) on 2026-11-01: 208, 35, 82 and 114
+   checks, 0 failures, zero warnings. The transaction-lifetime suite now opens
+   its firmware fixture through `NV_FIRMWARE_DIR`, which
+   `tests/CMakeLists.txt` injects, because ctest runs it from `tests/build`.
+   Readings after the last edit: `tests\build-msvc.bat` exit 0, 83 of 83
+   passed, no compiler error or warning lines; `tests\run-python-tests.bat`
+   `Ran 1442 tests`, `FAILED (failures=13)`, the same 13 test methods as at
+   `e59f732`. `test_each_suite_calls_check_helpers_many_times` still stops on
+   `test_intel_display_transaction_lifetime.cpp` (7 static check-helper
+   calls, floor 20). Still open: the other 13 suites, whose final line is not
+   a count format. Only `tests/` changed, so the `build-payload/` staleness is
+   unchanged. Hygiene only: the offload distance moves by zero and the kext
+   has still never been loaded. Not pushed.
 5. **One `kextload` on a machine containing the card.** Unchanged, and still the
    single highest-value action in the whole project. Blocked on hardware, on SIP,
    and on `3050-handoff27.md` §1's mutual exclusion: the laptop cannot hold Linux
