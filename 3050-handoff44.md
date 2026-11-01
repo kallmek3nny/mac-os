@@ -557,6 +557,39 @@ Each was measured this session rather than carried forward, except where noted.
    whose final line is not a count format. Only `tests/` changed, so the
    `build-payload/` staleness is unchanged. Hygiene only: the offload distance
    moves by zero and the kext has still never been loaded. Not pushed.
+   **Three NVIDIA suites registered 2026-11-01 (`f5110c1`).**
+   `test_nv_gsp_booter_success_retirement_plan`,
+   `test_nv_intel_shared_surface_handoff_anchored_provenance` and
+   `test_nv_intel_shared_surface_handoff_provenance` were unregistered only
+   because `main()` printed `"checks=%u failures=%u\n"` (the booter suite) or
+   `"%u checks, %u failures\n"` (the two handoff suites) from `unsigned`
+   counters, with a `gFailures == 0u` tail. Each now prints the exact
+   `"\n%d checks, %d failures\n"` line with `static_cast<int>` arguments and
+   returns `gFailures == 0 ? 0 : 1`. All three are now in
+   `tests/CMakeLists.txt`, in `SUITES` and the `checks, failures` list in
+   `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++ 16.1.0
+   reading on 2026-11-01: 59, 44 and 67 checks, 0 failures, zero warnings.
+   Registering them exposed three MSVC-only faults that the g++ readings did
+   not show. The booter suite opened its fixture through a cwd-relative path,
+   and ctest runs it from `tests/build`, so MSVC failed it on `fixture open`.
+   It now opens the fixture through `NV_FIRMWARE_DIR`, which
+   `tests/CMakeLists.txt` injects. A fallback keeps a hand-built binary run
+   from the repo root working. `phase0-kext/NVGspBooterPatch.hpp` used
+   `__UINTPTR_TYPE__`, which cl.exe does not have (C4430/C2146).
+   `NVGspBooterPatchPtr` now falls back to `unsigned __int64` on `_WIN64` and
+   `unsigned int` otherwise, and any other compiler without it stops at
+   `#error`. `phase0-kext/NVGspBooterRunPlan.hpp` now passes the 32-bit
+   `hs.firmwareBytes`, already proven equal to `privateImageBytes`, to the
+   three `nvGspBooterHsRegionFits` calls. That clears C4244, and the verdict is
+   unchanged for every input. Readings after the last edit:
+   `tests\build-msvc.bat` exit 0, 73 of 73 passed, no compiler error or
+   warning lines; `tests\run-python-tests.bat` `Ran 1442 tests`,
+   `FAILED (failures=13)`, the same 13 test methods as at `1ae367d`. Still
+   open: the other 23 suites, whose final line is not a count format. This
+   commit also changed two `phase0-kext/` headers, and `build-payload/` was
+   not rebuilt. Hygiene only: the offload distance moves by zero and the kext
+   has still never been loaded. Not pushed.
 5. **One `kextload` on a machine containing the card.** Unchanged, and still the
    single highest-value action in the whole project. Blocked on hardware, on SIP,
    and on `3050-handoff27.md` §1's mutual exclusion: the laptop cannot hold Linux
