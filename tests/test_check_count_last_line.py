@@ -136,6 +136,7 @@ SUITES = (
     "test_nv_ga107_pci_identity.cpp",
     "test_nv_gsp_bootargs_rehearsal.cpp",
     "test_nv_gsp_booter_fuse.cpp",
+    "test_nv_gsp_booter_success_retirement_plan.cpp",
     "test_nv_gsp_cached_args.cpp",
     "test_nv_gsp_fw_container.cpp",
     "test_nv_gsp_libos_init.cpp",
@@ -160,6 +161,8 @@ SUITES = (
     "test_nv_gsp_wpr_image.cpp",
     "test_nv_gsp_wpr_meta.cpp",
     "test_nv_gsp_wpr_sysmem.cpp",
+    "test_nv_intel_shared_surface_handoff_anchored_provenance.cpp",
+    "test_nv_intel_shared_surface_handoff_provenance.cpp",
     "test_riscv_ucode.cpp",
 )
 
@@ -381,6 +384,7 @@ class BothFormatsStillInUseTests(unittest.TestCase):
              "test_nv_ga107_pci_identity.cpp",
              "test_nv_gsp_bootargs_rehearsal.cpp",
              "test_nv_gsp_booter_fuse.cpp",
+             "test_nv_gsp_booter_success_retirement_plan.cpp",
              "test_nv_gsp_cached_args.cpp",
              "test_nv_gsp_fw_container.cpp",
              "test_nv_gsp_libos_init.cpp",
@@ -405,6 +409,8 @@ class BothFormatsStillInUseTests(unittest.TestCase):
              "test_nv_gsp_wpr_image.cpp",
              "test_nv_gsp_wpr_meta.cpp",
              "test_nv_gsp_wpr_sysmem.cpp",
+             "test_nv_intel_shared_surface_handoff_anchored_provenance.cpp",
+             "test_nv_intel_shared_surface_handoff_provenance.cpp",
              "test_riscv_ucode.cpp"],
             users)
 

@@ -33,7 +33,17 @@
 
 // Clang/GCC provide this builtin integer type without libc/stdint.h, keeping
 // the helper suitable for both host tests and kernel C++ translation units.
+#if defined(__UINTPTR_TYPE__)
 typedef __UINTPTR_TYPE__ NVGspBooterPatchPtr;
+#elif defined(_MSC_VER) && defined(_WIN64)
+// cl.exe host-test builds have no __UINTPTR_TYPE__; use the same pointer-sized
+// unsigned types vcruntime.h uses for uintptr_t.
+typedef unsigned __int64 NVGspBooterPatchPtr;
+#elif defined(_MSC_VER)
+typedef unsigned int NVGspBooterPatchPtr;
+#else
+#error "NVGspBooterPatch.hpp: no pointer-sized unsigned integer type for this compiler"
+#endif
 
 struct NVGspBooterPatchPlan {
     NVGspBooterHsU32 hardwareFuseVersion;

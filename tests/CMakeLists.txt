@@ -551,7 +551,7 @@ add_kext_test(test_intel_gt_forcewake test_intel_gt_forcewake.cpp)
 # Their first readings are recorded in MEASURED in
 # tests/test_check_count_floor.py.
 #
-# 26 other tests/*.cpp suites are still unregistered on purpose. They compile
+# 23 other tests/*.cpp suites are still unregistered on purpose. They compile
 # and pass under g++, but their final line is not one of the two count formats,
 # so listing them here -- and in the count gate, which must match this list --
 # would redden that gate. test_intel_gt_fill also needs
@@ -627,3 +627,15 @@ add_kext_test(test_nv_ampere_copy_publication_runtime test_nv_ampere_copy_public
 # 24 and 325 checks, 0 failures.
 add_kext_test(test_nv_ga107_pci_identity test_nv_ga107_pci_identity.cpp)
 add_kext_test(test_nv_gsp_rpc_receive_tracker test_nv_gsp_rpc_receive_tracker.cpp)
+
+# Registered later still on 2026-11-01. These three were unregistered only
+# because main() printed 'checks=%u failures=%u\n' (booter success-retirement
+# plan) or '%u checks, %u failures\n' (the two shared-surface handoff
+# provenance suites) from unsigned counters and returned
+# gFailures == 0u ? 0 : 1, and the count-last-line gate accepts neither. Each
+# now prints the exact '\n%d checks, %d failures\n' line with static_cast<int>
+# arguments and returns gFailures == 0 ? 0 : 1. First g++ 16.1.0 readings,
+# zero warnings, exit 0: 59, 44 and 67 checks, 0 failures.
+add_kext_test(test_nv_gsp_booter_success_retirement_plan test_nv_gsp_booter_success_retirement_plan.cpp)
+add_kext_test(test_nv_intel_shared_surface_handoff_anchored_provenance test_nv_intel_shared_surface_handoff_anchored_provenance.cpp)
+add_kext_test(test_nv_intel_shared_surface_handoff_provenance test_nv_intel_shared_surface_handoff_provenance.cpp)

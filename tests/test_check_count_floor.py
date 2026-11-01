@@ -1528,6 +1528,22 @@ MEASURED = {
     #   test_nv_gsp_rpc_receive_tracker 325 checks, 0 failures
     "test_nv_ga107_pci_identity": 24,
     "test_nv_gsp_rpc_receive_tracker": 325,
+    # Measured 2026-11-01, later still: first readings of the GSP booter
+    # success-retirement plan and the two shared-surface handoff provenance
+    # suites, registered once their final printf moved from
+    # 'checks=%u failures=%u\n' or '%u checks, %u failures\n' on unsigned
+    # counters to the exact "\n%d checks, %d failures\n" format with
+    # static_cast<int> arguments, and their tail from gFailures == 0u to
+    # gFailures == 0. Same g++ 16.1.0 build as above, zero warnings, each
+    # exited 0. NOT yet MSVC readings; tests\build-msvc.bat turns them into
+    # the gate's own numbers. SourcesStillCallChecks counts 0, 0 and 5
+    # check[A-Z]* helper calls for them; that test was already red at c066cf7.
+    #   test_nv_gsp_booter_success_retirement_plan 59 checks, 0 failures
+    #   test_nv_intel_shared_surface_handoff_anchored_provenance 44 checks, 0 failures
+    #   test_nv_intel_shared_surface_handoff_provenance 67 checks, 0 failures
+    "test_nv_gsp_booter_success_retirement_plan": 59,
+    "test_nv_intel_shared_surface_handoff_anchored_provenance": 44,
+    "test_nv_intel_shared_surface_handoff_provenance": 67,
 }
 
 # A suite must call check helpers many times over. Uniform across suites on

@@ -279,9 +279,19 @@ static void testNullsAndVerdictNames(const NVGspBooterExecSequencePlan &sequence
           "out-of-range verdict unknown");
 }
 
+// ctest runs each suite from tests/build, so the cwd-relative path this used
+// to open resolved to nothing there: MSVC ctest failed on 'fixture open' while
+// the g++ reading, run from the repo root, passed 59/0. CMake injects the
+// source-tree path as NV_FIRMWARE_DIR (tests/CMakeLists.txt), the same way
+// test_riscv_ucode.cpp finds its files. The fallback keeps a hand-built binary
+// run from the repo root working; a wrong path still FAILS here, never skips.
+#ifndef NV_FIRMWARE_DIR
+#define NV_FIRMWARE_DIR "reference/ga107-firmware"
+#endif
+
 int main()
 {
-    const auto blob = load("reference/ga107-firmware/booter_load-570.144.bin");
+    const auto blob = load(NV_FIRMWARE_DIR "/booter_load-570.144.bin");
     if (blob.empty())
         return 1;
 
@@ -292,6 +302,6 @@ int main()
     testSequenceRefusals(sequence);
     testNullsAndVerdictNames(sequence);
 
-    std::printf("checks=%u failures=%u\n", gChecks, gFailures);
-    return gFailures == 0u ? 0 : 1;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }
