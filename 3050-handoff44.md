@@ -495,6 +495,28 @@ Each was measured this session rather than carried forward, except where noted.
    staleness `test_guest_build_kext` already reports; not rebuilt, and the
    header edit was not built in the guest. Hygiene only: the offload distance
    moves by zero and the kext has still never been loaded. Not pushed.
+   **Three WPR suites registered 2026-11-01 (`6045861`).**
+   `test_nv_gsp_wpr_candidate`, `test_nv_gsp_wpr_ga107_facts` and
+   `test_nv_gsp_wpr_sysmem` were unregistered only because `main()` ended on a
+   labelled count line (`GA107 WPR candidate: ...`, `GA107 WPR facts: ...`,
+   `WPR sysmem bridge: ...`). The label is gone: each now prints the exact
+   `"\n%d checks, %d failures\n"` line, and their existing `gFailures ? 1 : 0`
+   tails already pass the count-last-line gate (`test_nv_gsp_wpr_ga107_facts`
+   writes it `gFailures?1:0`, which the whitespace strip folds in). No Python
+   gate matched the old labels. All three are now in `tests/CMakeLists.txt`, in
+   `SUITES` and the `checks, failures` list in
+   `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++ 16.1.0
+   reading on 2026-11-01: 45, 38 and 35 checks, 0 failures, zero warnings. The
+   new CMakeLists comment quotes the old labels with single quotes, because a
+   first draft with double quotes tripped `test_no_quoted_hash_in_cmakelists`.
+   Readings after the last edit: `tests\build-msvc.bat` exit 0, 65 of 65
+   passed; `tests\run-python-tests.bat` `Ran 1442 tests`,
+   `FAILED (failures=13)`, the same 13 test methods as at `c6e07bb`. Still
+   open: the other 31 suites, whose final line is not a count format. Only
+   `tests/` changed, so the `build-payload/` staleness is unchanged. Hygiene
+   only: the offload distance moves by zero and the kext has still never been
+   loaded. Not pushed.
 5. **One `kextload` on a machine containing the card.** Unchanged, and still the
    single highest-value action in the whole project. Blocked on hardware, on SIP,
    and on `3050-handoff27.md` §1's mutual exclusion: the laptop cannot hold Linux
