@@ -542,3 +542,59 @@ add_kext_test(test_intel_gt_reset test_intel_gt_reset.cpp)
 # bit, because 0xFFFFFFFF has FORCEWAKE_KERNEL set and would otherwise report
 # a dead BAR as an awake well.
 add_kext_test(test_intel_gt_forcewake test_intel_gt_forcewake.cpp)
+
+# Registered 2026-11-01. These 35 suites were committed under tests/ with no
+# registration here, so ctest never built or ran them. Each was first compiled
+# standalone with g++ 16.1.0 -std=c++17 -Wall -Wextra -Wpedantic (zero
+# warnings) and run once: every one exited 0, and every one ends main() with
+# the exact count printf that tests/test_check_count_last_line.py requires.
+# Their first readings are recorded in MEASURED in
+# tests/test_check_count_floor.py.
+#
+# 34 other tests/*.cpp suites are still unregistered on purpose. They compile
+# and pass under g++, but their final line is not one of the two count formats,
+# so listing them here -- and in the count gate, which must match this list --
+# would redden that gate. test_intel_gt_fill also needs
+# phase0-kext/IntelGtBlitter.cpp linked in, which a two-argument add_kext_test
+# cannot express.
+
+# Intel GT engine and sink layers.
+add_kext_test(test_intel_gt_copy_plan test_intel_gt_copy_plan.cpp)
+add_kext_test(test_intel_gt_csb test_intel_gt_csb.cpp)
+add_kext_test(test_intel_gt_dispatch test_intel_gt_dispatch.cpp)
+add_kext_test(test_intel_gt_lrc test_intel_gt_lrc.cpp)
+add_kext_test(test_intel_gt_ppgtt test_intel_gt_ppgtt.cpp)
+add_kext_test(test_intel_sink_candidate test_intel_sink_candidate.cpp)
+add_kext_test(test_intel_sink_ggtt test_intel_sink_ggtt.cpp)
+add_kext_test(test_intel_sink_peer test_intel_sink_peer.cpp)
+
+# NVIDIA GA107 channel, copy, fence and submit rehearsals.
+add_kext_test(test_nv_ampere_channel test_nv_ampere_channel.cpp)
+add_kext_test(test_nv_ampere_copy test_nv_ampere_copy.cpp)
+add_kext_test(test_nv_ampere_fence test_nv_ampere_fence.cpp)
+add_kext_test(test_nv_ampere_rm_plan test_nv_ampere_rm_plan.cpp)
+add_kext_test(test_nv_ampere_submit test_nv_ampere_submit.cpp)
+
+# NVIDIA GA107 GSP boot, queue and RPC layers.
+add_kext_test(test_nv_gsp_bootargs_rehearsal test_nv_gsp_bootargs_rehearsal.cpp)
+add_kext_test(test_nv_gsp_booter_fuse test_nv_gsp_booter_fuse.cpp)
+add_kext_test(test_nv_gsp_cached_args test_nv_gsp_cached_args.cpp)
+add_kext_test(test_nv_gsp_fw_container test_nv_gsp_fw_container.cpp)
+add_kext_test(test_nv_gsp_libos_init test_nv_gsp_libos_init.cpp)
+add_kext_test(test_nv_gsp_queue_dma test_nv_gsp_queue_dma.cpp)
+add_kext_test(test_nv_gsp_queue_init test_nv_gsp_queue_init.cpp)
+add_kext_test(test_nv_gsp_queue_memory test_nv_gsp_queue_memory.cpp)
+add_kext_test(test_nv_gsp_queue_observe test_nv_gsp_queue_observe.cpp)
+add_kext_test(test_nv_gsp_queue_plan test_nv_gsp_queue_plan.cpp)
+add_kext_test(test_nv_gsp_queue_regs test_nv_gsp_queue_regs.cpp)
+add_kext_test(test_nv_gsp_queue_rx test_nv_gsp_queue_rx.cpp)
+add_kext_test(test_nv_gsp_queue_tx test_nv_gsp_queue_tx.cpp)
+add_kext_test(test_nv_gsp_radix3 test_nv_gsp_radix3.cpp)
+add_kext_test(test_nv_gsp_rm_image test_nv_gsp_rm_image.cpp)
+add_kext_test(test_nv_gsp_rpc_frame test_nv_gsp_rpc_frame.cpp)
+add_kext_test(test_nv_gsp_rpc_response test_nv_gsp_rpc_response.cpp)
+add_kext_test(test_nv_gsp_rpc_transaction test_nv_gsp_rpc_transaction.cpp)
+add_kext_test(test_nv_gsp_wpr_boot_ucode test_nv_gsp_wpr_boot_ucode.cpp)
+add_kext_test(test_nv_gsp_wpr_ga107 test_nv_gsp_wpr_ga107.cpp)
+add_kext_test(test_nv_gsp_wpr_image test_nv_gsp_wpr_image.cpp)
+add_kext_test(test_nv_gsp_wpr_meta test_nv_gsp_wpr_meta.cpp)

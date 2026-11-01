@@ -1412,6 +1412,83 @@ MEASURED = {
     "test_intel_sink_alloc": 21,
     # Step (b) composed over a firmware plane read (IntelSinkRehearse.hpp).
     "test_intel_sink_rehearse": 60,
+    # Measured 2026-11-01: first readings of 35 suites that had no entry here,
+    # no tests/CMakeLists.txt registration and no count-gate listing. Each was
+    # built standalone with g++ 16.1.0 (WinLibs UCRT) -std=c++17 -Wall -Wextra
+    # -Wpedantic, zero warnings, and run once; every one exited 0 and its final
+    # line was the count below. These are NOT yet MSVC readings: tests/build held
+    # no binary for any of them when this was written, so tests\build-msvc.bat is
+    # what turns them into the gate's own numbers.
+    #   test_intel_gt_copy_plan 75 checks, 0 failures
+    #   test_intel_gt_csb 71 checks, 0 failures
+    #   test_intel_gt_dispatch 30 checks, 0 failures
+    #   test_intel_gt_lrc 74 checks, 0 failures
+    #   test_intel_gt_ppgtt 82 checks, 0 failures
+    #   test_intel_sink_candidate 48 checks, 0 failures
+    #   test_intel_sink_ggtt 62 checks, 0 failures
+    #   test_intel_sink_peer 34 checks, 0 failures
+    #   test_nv_ampere_channel 71 checks, 0 failures
+    #   test_nv_ampere_copy 66 checks, 0 failures
+    #   test_nv_ampere_fence 61 checks, 0 failures
+    #   test_nv_ampere_rm_plan 67 checks, 0 failures
+    #   test_nv_ampere_submit 85 checks, 0 failures
+    #   test_nv_gsp_bootargs_rehearsal 28 checks, 0 failures
+    #   test_nv_gsp_booter_fuse 62 checks, 0 failures
+    #   test_nv_gsp_cached_args 77 checks, 0 failures
+    #   test_nv_gsp_fw_container 81 checks, 0 failures
+    #   test_nv_gsp_libos_init 79 checks, 0 failures
+    #   test_nv_gsp_queue_dma 207 checks, 0 failures
+    #   test_nv_gsp_queue_init 84 checks, 0 failures
+    #   test_nv_gsp_queue_memory 217 checks, 0 failures
+    #   test_nv_gsp_queue_observe 102 checks, 0 failures
+    #   test_nv_gsp_queue_plan 59 checks, 0 failures
+    #   test_nv_gsp_queue_regs 69 checks, 0 failures
+    #   test_nv_gsp_queue_rx 75 checks, 0 failures
+    #   test_nv_gsp_queue_tx 73 checks, 0 failures
+    #   test_nv_gsp_radix3 84 checks, 0 failures
+    #   test_nv_gsp_rm_image 45 checks, 0 failures
+    #   test_nv_gsp_rpc_frame 59 checks, 0 failures
+    #   test_nv_gsp_rpc_response 108 checks, 0 failures
+    #   test_nv_gsp_rpc_transaction 73 checks, 0 failures
+    #   test_nv_gsp_wpr_boot_ucode 41 checks, 0 failures
+    #   test_nv_gsp_wpr_ga107 61 checks, 0 failures
+    #   test_nv_gsp_wpr_image 97 checks, 0 failures
+    #   test_nv_gsp_wpr_meta 78 checks, 0 failures
+    "test_intel_gt_copy_plan": 75,
+    "test_intel_gt_csb": 71,
+    "test_intel_gt_dispatch": 30,
+    "test_intel_gt_lrc": 74,
+    "test_intel_gt_ppgtt": 82,
+    "test_intel_sink_candidate": 48,
+    "test_intel_sink_ggtt": 62,
+    "test_intel_sink_peer": 34,
+    "test_nv_ampere_channel": 71,
+    "test_nv_ampere_copy": 66,
+    "test_nv_ampere_fence": 61,
+    "test_nv_ampere_rm_plan": 67,
+    "test_nv_ampere_submit": 85,
+    "test_nv_gsp_bootargs_rehearsal": 28,
+    "test_nv_gsp_booter_fuse": 62,
+    "test_nv_gsp_cached_args": 77,
+    "test_nv_gsp_fw_container": 81,
+    "test_nv_gsp_libos_init": 79,
+    "test_nv_gsp_queue_dma": 207,
+    "test_nv_gsp_queue_init": 84,
+    "test_nv_gsp_queue_memory": 217,
+    "test_nv_gsp_queue_observe": 102,
+    "test_nv_gsp_queue_plan": 59,
+    "test_nv_gsp_queue_regs": 69,
+    "test_nv_gsp_queue_rx": 75,
+    "test_nv_gsp_queue_tx": 73,
+    "test_nv_gsp_radix3": 84,
+    "test_nv_gsp_rm_image": 45,
+    "test_nv_gsp_rpc_frame": 59,
+    "test_nv_gsp_rpc_response": 108,
+    "test_nv_gsp_rpc_transaction": 73,
+    "test_nv_gsp_wpr_boot_ucode": 41,
+    "test_nv_gsp_wpr_ga107": 61,
+    "test_nv_gsp_wpr_image": 97,
+    "test_nv_gsp_wpr_meta": 78,
 }
 
 # A suite must call check helpers many times over. Uniform across suites on
