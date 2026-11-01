@@ -551,7 +551,7 @@ add_kext_test(test_intel_gt_forcewake test_intel_gt_forcewake.cpp)
 # Their first readings are recorded in MEASURED in
 # tests/test_check_count_floor.py.
 #
-# 31 other tests/*.cpp suites are still unregistered on purpose. They compile
+# 28 other tests/*.cpp suites are still unregistered on purpose. They compile
 # and pass under g++, but their final line is not one of the two count formats,
 # so listing them here -- and in the count gate, which must match this list --
 # would redden that gate. test_intel_gt_fill also needs
@@ -608,3 +608,13 @@ add_kext_test(test_nv_gsp_wpr_meta test_nv_gsp_wpr_meta.cpp)
 add_kext_test(test_nv_gsp_wpr_candidate test_nv_gsp_wpr_candidate.cpp)
 add_kext_test(test_nv_gsp_wpr_ga107_facts test_nv_gsp_wpr_ga107_facts.cpp)
 add_kext_test(test_nv_gsp_wpr_sysmem test_nv_gsp_wpr_sysmem.cpp)
+
+# Registered later again on 2026-11-01. These three were unregistered only
+# because main() printed '%u checks, %u failures\n' from unsigned counters and
+# returned gFailures == 0u ? 0 : 1, and the count-last-line gate accepts
+# neither. Each now prints the exact '\n%d checks, %d failures\n' line with
+# static_cast<int> arguments and returns gFailures == 0 ? 0 : 1. First g++
+# 16.1.0 readings, zero warnings, exit 0: 164, 30 and 182 checks, 0 failures.
+add_kext_test(test_nv_ampere_channel_runtime test_nv_ampere_channel_runtime.cpp)
+add_kext_test(test_nv_ampere_copy_publication_bridge test_nv_ampere_copy_publication_bridge.cpp)
+add_kext_test(test_nv_ampere_copy_publication_runtime test_nv_ampere_copy_publication_runtime.cpp)

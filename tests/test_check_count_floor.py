@@ -1501,6 +1501,20 @@ MEASURED = {
     "test_nv_gsp_wpr_candidate": 45,
     "test_nv_gsp_wpr_ga107_facts": 38,
     "test_nv_gsp_wpr_sysmem": 35,
+    # Measured 2026-11-01, later again: first readings of the three Ampere
+    # runtime and publication suites, registered once their final printf moved
+    # from '%u checks, %u failures\n' on unsigned counters to the exact
+    # "\n%d checks, %d failures\n" format with static_cast<int> arguments and
+    # their tail from 'gFailures == 0u ? 0 : 1' to 'gFailures == 0 ? 0 : 1'.
+    # Same g++ 16.1.0 build as above, zero warnings, each exited 0. NOT yet
+    # MSVC readings; tests\build-msvc.bat turns them into the gate's own
+    # numbers.
+    #   test_nv_ampere_channel_runtime 164 checks, 0 failures
+    #   test_nv_ampere_copy_publication_bridge 30 checks, 0 failures
+    #   test_nv_ampere_copy_publication_runtime 182 checks, 0 failures
+    "test_nv_ampere_channel_runtime": 164,
+    "test_nv_ampere_copy_publication_bridge": 30,
+    "test_nv_ampere_copy_publication_runtime": 182,
 }
 
 # A suite must call check helpers many times over. Uniform across suites on

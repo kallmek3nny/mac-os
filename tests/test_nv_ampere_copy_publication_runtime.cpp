@@ -625,6 +625,6 @@ int main()
     testProviderStartGateIsFailClosed();
     testMilestoneIntegrityAndWitnesses();
 
-    std::printf("%u checks, %u failures\n", gChecks, gFailures);
-    return gFailures == 0u ? 0 : 1;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }
