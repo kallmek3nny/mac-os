@@ -551,7 +551,7 @@ add_kext_test(test_intel_gt_forcewake test_intel_gt_forcewake.cpp)
 # Their first readings are recorded in MEASURED in
 # tests/test_check_count_floor.py.
 #
-# 28 other tests/*.cpp suites are still unregistered on purpose. They compile
+# 26 other tests/*.cpp suites are still unregistered on purpose. They compile
 # and pass under g++, but their final line is not one of the two count formats,
 # so listing them here -- and in the count gate, which must match this list --
 # would redden that gate. test_intel_gt_fill also needs
@@ -618,3 +618,12 @@ add_kext_test(test_nv_gsp_wpr_sysmem test_nv_gsp_wpr_sysmem.cpp)
 add_kext_test(test_nv_ampere_channel_runtime test_nv_ampere_channel_runtime.cpp)
 add_kext_test(test_nv_ampere_copy_publication_bridge test_nv_ampere_copy_publication_bridge.cpp)
 add_kext_test(test_nv_ampere_copy_publication_runtime test_nv_ampere_copy_publication_runtime.cpp)
+
+# Registered later again on 2026-11-01. These two were unregistered only
+# because main() printed '%u checks, %u failures\n' from unsigned counters,
+# which the count-last-line gate does not accept. Each now prints the exact
+# '\n%d checks, %d failures\n' line with static_cast<int> arguments and keeps
+# its 'failures?1:0' tail. First g++ 16.1.0 readings, zero warnings, exit 0:
+# 24 and 325 checks, 0 failures.
+add_kext_test(test_nv_ga107_pci_identity test_nv_ga107_pci_identity.cpp)
+add_kext_test(test_nv_gsp_rpc_receive_tracker test_nv_gsp_rpc_receive_tracker.cpp)

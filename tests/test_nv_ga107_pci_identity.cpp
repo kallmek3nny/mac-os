@@ -49,6 +49,6 @@ int main() {
         !nvGa107PciIdentityStableAcrossStage(
             0xffffffffu,0xffffffffu,0xffffffffu,
             0xffffffffu,0xffffffffu,0xffffffffu));
-    std::printf("%u checks, %u failures\n",checks,failures);
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(checks), static_cast<int>(failures));
     return failures?1:0;
 }

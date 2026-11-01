@@ -1515,6 +1515,19 @@ MEASURED = {
     "test_nv_ampere_channel_runtime": 164,
     "test_nv_ampere_copy_publication_bridge": 30,
     "test_nv_ampere_copy_publication_runtime": 182,
+    # Measured 2026-11-01, later again: first readings of the GA107 PCI
+    # identity and GSP RPC receive-tracker suites, registered once their final
+    # printf moved from '%u checks, %u failures\n' on unsigned counters to the
+    # exact "\n%d checks, %d failures\n" format with static_cast<int>
+    # arguments. Their 'failures?1:0' tail is unchanged. Same g++ 16.1.0 build
+    # as above, zero warnings, each exited 0. NOT yet MSVC readings;
+    # tests\build-msvc.bat turns them into the gate's own numbers. Neither
+    # calls a check[A-Z]* helper, so SourcesStillCallChecks counts 0 for both;
+    # that test was already red at c066cf7.
+    #   test_nv_ga107_pci_identity 24 checks, 0 failures
+    #   test_nv_gsp_rpc_receive_tracker 325 checks, 0 failures
+    "test_nv_ga107_pci_identity": 24,
+    "test_nv_gsp_rpc_receive_tracker": 325,
 }
 
 # A suite must call check helpers many times over. Uniform across suites on

@@ -133,6 +133,7 @@ SUITES = (
     "test_nv_ampere_fence.cpp",
     "test_nv_ampere_rm_plan.cpp",
     "test_nv_ampere_submit.cpp",
+    "test_nv_ga107_pci_identity.cpp",
     "test_nv_gsp_bootargs_rehearsal.cpp",
     "test_nv_gsp_booter_fuse.cpp",
     "test_nv_gsp_cached_args.cpp",
@@ -149,6 +150,7 @@ SUITES = (
     "test_nv_gsp_radix3.cpp",
     "test_nv_gsp_rm_image.cpp",
     "test_nv_gsp_rpc_frame.cpp",
+    "test_nv_gsp_rpc_receive_tracker.cpp",
     "test_nv_gsp_rpc_response.cpp",
     "test_nv_gsp_rpc_transaction.cpp",
     "test_nv_gsp_wpr_boot_ucode.cpp",
@@ -297,10 +299,13 @@ class NoOtherOutputChannelTests(unittest.TestCase):
             # 0 : 1' and 'gFailures ? 1 : 0' (five suites registered
             # 2026-11-01, three WPR suites later that day; the whitespace strip
             # also folds test_nv_gsp_wpr_ga107_facts's 'gFailures?1:0' into the
-            # second). Any other tail, 'return 0;' included, stays red.
+            # second). test_nv_ga107_pci_identity and
+            # test_nv_gsp_rpc_receive_tracker (registered later again that day)
+            # write the second with an unprefixed counter, 'failures?1:0', the
+            # same exit status. Any other tail, 'return 0;' included, stays red.
             self.assertTrue(
-                re.fullmatch(r"return(?:gFailures==0\?0:1|gFailures\?1:0);\}",
-                             stripped),
+                re.fullmatch(r"return(?:gFailures==0\?0:1|gFailures\?1:0"
+                             r"|failures\?1:0);\}", stripped),
                 "%s: unexpected tail after the count: %r" % (name, remainder))
 
     def test_main_is_the_last_function(self):
@@ -373,6 +378,7 @@ class BothFormatsStillInUseTests(unittest.TestCase):
              "test_nv_ampere_fence.cpp",
              "test_nv_ampere_rm_plan.cpp",
              "test_nv_ampere_submit.cpp",
+             "test_nv_ga107_pci_identity.cpp",
              "test_nv_gsp_bootargs_rehearsal.cpp",
              "test_nv_gsp_booter_fuse.cpp",
              "test_nv_gsp_cached_args.cpp",
@@ -389,6 +395,7 @@ class BothFormatsStillInUseTests(unittest.TestCase):
              "test_nv_gsp_radix3.cpp",
              "test_nv_gsp_rm_image.cpp",
              "test_nv_gsp_rpc_frame.cpp",
+             "test_nv_gsp_rpc_receive_tracker.cpp",
              "test_nv_gsp_rpc_response.cpp",
              "test_nv_gsp_rpc_transaction.cpp",
              "test_nv_gsp_wpr_boot_ucode.cpp",

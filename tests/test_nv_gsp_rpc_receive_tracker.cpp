@@ -423,6 +423,6 @@ int main(void) {
     testBadTransportAtomicity();
     testPublicationReceiptGate();
     testConsumeTailPublicationWitness();
-    std::printf("%u checks, %u failures\n",checks,failures);
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(checks), static_cast<int>(failures));
     return failures?1:0;
 }
