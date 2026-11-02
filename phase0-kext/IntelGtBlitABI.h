@@ -8,9 +8,11 @@
 #define IGGT_SURFACE_FREE_SELECTOR 3
 #define IGGT_SURFACE_FILL32_SELECTOR 4
 #define IGGT_SURFACE_COPY32_SELECTOR 5
+#define IGGT_SCANOUT_FILL32_SELECTOR 6
 #define IGGT_COPY32_ABI_VERSION 2
 #define IGGT_FILL32_ABI_VERSION 1
 #define IGGT_SURFACE32_ABI_VERSION 1
+#define IGGT_SCANOUT32_ABI_VERSION 1
 #define IGGT_COPY32_MAX_BYTES (64u * 1024u)
 #define IGGT_FILL32_MAX_BYTES IGGT_COPY32_MAX_BYTES
 struct IgGtCopy32Request {
@@ -60,6 +62,23 @@ struct IgGtSurfaceCopy32Request {
     unsigned long long destinationHandle;
 };
 struct IgGtSurfaceCopy32Response {
+    unsigned int completed;
+    unsigned int reserved;
+};
+
+// Inherited-scanout fill (GT-1k, t-619d61). x, y, width and height are pixels
+// of the pipe A plane 1 surface sampled at iggt-bringup=4. No address crosses
+// the boundary. The kernel refuses unless that sample was IG_PRESENT_OK and
+// x+width and y+height fit inside it. reserved must be zero.
+struct IgGtScanoutFill32Request {
+    unsigned int x;
+    unsigned int y;
+    unsigned int width;
+    unsigned int height;
+    unsigned int color;
+    unsigned int reserved;
+};
+struct IgGtScanoutFill32Response {
     unsigned int completed;
     unsigned int reserved;
 };

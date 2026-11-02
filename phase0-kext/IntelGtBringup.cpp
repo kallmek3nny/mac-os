@@ -35,6 +35,7 @@ bool IntelGtBringup::init(OSDictionary *dict) {
     fQueueLock=nullptr;
     fPCI=nullptr; fBarMap=nullptr; fPoolMap=nullptr; fPool=nullptr; fDMA=nullptr;
     fSurfaceRuntime=nullptr;
+    fScanoutRuntime=nullptr;
     fMMIO=nullptr; fCPU=nullptr; fBarBytes=0; fBusAddress=0;
     bzero(fSavedPtes,sizeof(fSavedPtes));
     fGGTTBase=0; fGGTTEntries=0; fStage=0; fTrace=0; fPteCount=0;
@@ -484,6 +485,15 @@ void IntelGtBringup::cleanup() {
                 0xffff0000|(fOldCsbPointer & 0xffff));
         fEngineChanged=false;
     }
+    // The borrowed scanout leaf tables hang from the same private PD, so drop
+    // them first, while fCPU still maps it. Their pages belong to the display
+    // engine and are never freed here, only the driver-owned tables.
+    if (!releaseScanout()) {
+        fQuarantined=true;
+        setProperty("GTBringupScanoutQuarantined",true);
+        fail("inherited scanout PD restore uncertain; DMA retained");
+        return;
+    }
     // The private PPGTT root must remain CPU-visible until every persistent
     // arena leaf has either restored its exact snapshot or been quarantined.
     if (!releasePersistentSurface()) {
@@ -523,7 +533,7 @@ void IntelGtBringup::cleanup() {
 bool IntelGtBringup::start(IOService *provider) {
     int stage=0;
     // No boot argument = no PCI open, no MMIO map and no hardware write.
-    if (!PE_parse_boot_argn("iggt-bringup",&stage,sizeof(stage)) || stage<1 || stage>3) return false;
+    if (!PE_parse_boot_argn("iggt-bringup",&stage,sizeof(stage)) || stage<1 || stage>4) return false;
     if (!IOService::start(provider)) return false;
     fStage=(UInt32)stage;
     fPCI=OSDynamicCast(IOPCIDevice,provider);
@@ -562,8 +572,21 @@ bool IntelGtBringup::start(IOService *provider) {
         fail("memory/context preparation failed"); cleanup(); return false;
     }
     if (fStage==2) { cleanup(); setProperty("GTMemorySetupCompleted",true); registerService(); return true; }
+    // Stage 4 (IntelGtScanout.cpp): borrow the inherited pipe A plane 1 scanout
+    // BEFORE the first submit, so no context has walked pd[1..] yet. A refusal
+    // submits nothing: tear down like stage 2 but stay registered so
+    // GTScanoutState and its verdicts remain readable.
+    if (fStage==4 && !mapScanout()) {
+        fail("stage 4 inherited scanout refused before any submit; see GTScanoutState");
+        cleanup(); registerService(); return true;
+    }
     bool copied=submitCopy();
     if (!copied && !fQuarantined) { cleanup(); return false; }
+    // Stage 4: one small rectangle, only after the self-test copy has fenced
+    // and its CSB retirement was observed. Stages 1-3 never reach this.
+    if (copied && fStage==4 && !drawScanoutProbe()) {
+        fail("stage 4 scanout fill refused or faulted; see GTScanoutFillVerdict");
+    }
     // Keep the diagnostic service registered even after submission failure.
     // Its retained DMA cannot safely be torn down without engine retirement.
     registerService();

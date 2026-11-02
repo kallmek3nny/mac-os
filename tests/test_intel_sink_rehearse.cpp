@@ -34,7 +34,7 @@ static void checkTrue(bool ok, const char *what)
 //  IG_FB_SURF_OBSERVED value (0x01058000): firmware does not place the plane
 //  at a fixed GGTT offset across boots, which is why the kext samples it
 //  rather than reusing a constant.
-static const IGFB32 kCtl    = 0x82009000u;   // enabled, XRGB8888, Y-tiled, RC (bit 15)
+static const IGFB32 kCtl    = 0x82009000u;   // enabled, XRGB_2101010 (27:24=2, t-a7929c), Y-tiled, RC (bit 15)
 static const IGFB32 kStride = 0x0000003Cu;   // 60 * 128 = 7680 bytes
 static const IGFB32 kSize   = 0x0437077Fu;   // 1920 x 1080
 static const IGFB32 kSurf   = 0x01A7C000u;
@@ -195,7 +195,7 @@ static void testRefusalArms()
     //  A firmware format that is not 32 bpp: the sink does not convert it.
     const IGFB32 fmtMask = IG_FB_CTL_FORMAT_MASK << IG_FB_CTL_FORMAT_SHIFT;
     const IGFB32 rgb565 = (kCtl & ~fmtMask)
-                        | (IG_FB_FORMAT_RGB_565 << IG_FB_CTL_FORMAT_SHIFT);
+                        | igFbFormatCtlBits(IG_FB_FORMAT_RGB_565);  // t-a7929c
     checkTrue(run(rgb565, kStride, kSize, kSurf, kAux, kAperture, &r)
               == IG_SINK_REHEARSE_ALLOC_REFUSED
               && r.allocResult == IG_SINK_ALLOC_BAD_BPP,

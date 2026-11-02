@@ -131,10 +131,159 @@ PLANE_SURF (+0x1C) and PLANE_SURFLIVE (+0x2C) both read 0x01058000 -- a
 real 4 KiB-aligned GGTT offset, and their agreement is evidence both
 addresses are right rather than one being an alias.
 
-PLANE_CTL 0x82009000 decodes as: bit31 ENABLE=1, bits 27:23 format=4
-(XRGB8888), bits 12:10 tiling=4 (PLANE_CTL_TILED_Y). Bit 15 is set and
-is NOT decoded here on purpose -- naming it would mean inventing a name.
+PLANE_CTL 0x82009000 -- CORRECTED by t-62871b (bright-hawk-ab, 2026-11-01).
+The set bits are 31, 25, 15 and 12, and no others. This paragraph used to
+say "bits 27:23 format=4 (XRGB8888)" and "Bit 15 ... NOT decoded". Checked
+against the vendored header, both statements are wrong:
+  - FORMAT. The header's format values are shift-24 values in
+    PLANE_CTL_FORMAT_MASK_SKL 27:24 (:48), and :43-47 says the ICL+ 27:23
+    field maps onto them only while bit 23 is 0. Bit 23 is 0 here, so
+    bits 27:24 = 2 = PLANE_CTL_FORMAT_XRGB_2101010 (:52). The raw 27:23
+    value 4 is that same 2, read one bit low. It is NOT
+    PLANE_CTL_FORMAT_XRGB_8888 (:54), which would set bit 26. The
+    script's "format=0x04" on the Q3 plane-1 line is the raw 27:23 field.
+  - BIT 15 is named: PLANE_CTL_RENDER_DECOMPRESSION_ENABLE (:79).
+  - Bits 12:10 = 4 = PLANE_CTL_TILED_Y (:83, :86). Unchanged.
 
 PLANE_STRIDE 0x3C = 60. The panel is 1920 px at 4 B/px = 7680 B/line,
 and 7680 / 60 = 128, so the stride unit on this Y-tiled surface is 128
 bytes. Derived from ONE sample; it is not a witnessed unit field.
+
+================================================================
+PLANE-1 WORD DECODE (t-62871b): pipe A plane 1, 0x70180..0x7027F
+Every name below comes from reference/i915/skl_universal_plane_regs.h,
+cited as :line. If the header does not spell an offset, the word is
+UNNAMED and only its raw value is given. "macro" marks an offset that
+is reachable only as base + n*4 through a header DW macro (:13-14),
+counting only offsets below the next spelled register. The header does
+not bound those indices, so macro words stay UNNAMED.
+================================================================
+
+off   addr     value       name (:line) and field decode
++0x00 0x70180  0x82009000  PLANE_CTL (:31)
+                           ENABLE=1 (:38), bits 30:28=0 (:39),
+                           FORMAT 27:24=2 XRGB_2101010 (:48, :52),
+                           KEY_ENABLE 22:21=0 (:68), ORDER_RGBX=0 (:71),
+                           RENDER_DECOMPRESSION_ENABLE=1 (:79),
+                           TRICKLE_FEED_DISABLE=0 (:80),
+                           CLEAR_COLOR_DISABLE=0 (:81, tgl+),
+                           TILED 12:10=4 TILED_Y (:83, :86),
+                           ASYNC_FLIP=0 (:89), FLIP_HORIZONTAL=0 (:90),
+                           MEDIA_DECOMPRESSION_ENABLE=0 (:91, tgl+),
+                           ROTATE 1:0=0 ROTATE_0 (:96-97)
++0x04 0x70184  0x00000000  UNNAMED
++0x08 0x70188  0x0000003C  PLANE_STRIDE (:102)
+                           STRIDE 11:0=60 (:109). Header gives no unit.
++0x0C 0x7018C  0x00000000  PLANE_POS (:112)  Y 31:16=0, X 15:0=0 (:119, :121)
++0x10 0x70190  0x0437077F  PLANE_SIZE (:124)
+                           HEIGHT 31:16=1079, WIDTH 15:0=1919 (:131, :133)
++0x14 0x70194  0x00000000  PLANE_KEYVAL (:136)
++0x18 0x70198  0x00000000  PLANE_KEYMSK (:144)  ALPHA_ENABLE=0 (:151)
++0x1C 0x7019C  0x01058000  PLANE_SURF (:153)
+                           ADDR 31:12 masked=0x01058000 (:160),
+                           DECRYPT=0 (:161), bits 11:0 all 0
++0x20 0x701A0  0xFF000000  PLANE_KEYMAX (:163)  ALPHA 31:24=0xFF (:170)
++0x24 0x701A4  0x00000000  PLANE_OFFSET (:173)  Y=0, X=0 (:180, :182)
++0x28 0x701A8  0x00000000  UNNAMED
++0x2C 0x701AC  0x01058000  PLANE_SURFLIVE (:185)  header defines no fields
++0x30 0x701B0  0x00000000  UNNAMED
++0x34 0x701B4  0x00000000  PLANE_CC_VAL dw 0 (:193, :197)
++0x38 0x701B8  0x00000000  UNNAMED (macro: PLANE_CC_VAL dw 1, :197)
++0x3C 0x701BC  0x00000000  UNNAMED (macro: PLANE_CC_VAL dw 2, :197)
++0x40 0x701C0  0x007F8000  PLANE_AUX_DIST (:201)
+                           AUX_DISTANCE 31:12 masked=0x007F8000 (:208),
+                           AUX_STRIDE 11:0=0 (:209)
++0x44 0x701C4  0x00000000  PLANE_AUX_OFFSET (:212)  header defines no fields
++0x48 0x701C8  0x00000000  PLANE_CUS_CTL (:220)  CUS_ENABLE=0 (:227)
++0x4C 0x701CC  0x00002000  PLANE_COLOR_CTL (:244)
+                           PLANE_GAMMA_DISABLE=1 (:262),
+                           YUV_RANGE_CORRECTION_DISABLE=0 (:252),
+                           PLANE_CSC_ENABLE=0 (:254),
+                           INPUT_CSC_ENABLE=0 (:255),
+                           CSC_MODE 19:17=0 BYPASS (:256-257),
+                           ALPHA 5:4=0 ALPHA_DISABLE (:263-264)
++0x50 0x701D0  0x000004BF  UNNAMED
++0x54 0x701D4  0x00000000  UNNAMED
++0x58 0x701D8  0x0000043F  UNNAMED
++0x5C 0x701DC  0x015ECD0F  UNNAMED
++0x60 0x701E0  0x00000000  PLANE_INPUT_CSC_RY_GY (:268), index 0 of :272
++0x64..+0x74   0x00000000  UNNAMED x5 (macro: PLANE_INPUT_CSC_COEFF 1-5, :272)
++0x78 0x701F8  0x00000000  PLANE_INPUT_CSC_PREOFF_HI (:276)
++0x7C, +0x80   0x00000000  UNNAMED x2
+                           (macro: PLANE_INPUT_CSC_PREOFF 1-2, :280)
++0x84 0x70204  0x00000000  PLANE_INPUT_CSC_POSTOFF_HI (:284)
++0x88, +0x8C   0x00000000  UNNAMED x2
+                           (macro: PLANE_INPUT_CSC_POSTOFF 1-2, :288)
++0x90 0x70210  0x00000000  PLANE_CSC_RY_GY (:292)
++0x94..+0xA4   0x00000000  UNNAMED x5 (macro: PLANE_CSC_COEFF 1-5, :296)
++0xA8 0x70228  0x00000000  PLANE_CSC_PREOFF_HI (:300)
++0xAC, +0xB0   0x00000000  UNNAMED x2 (macro: PLANE_CSC_PREOFF 1-2, :304)
++0xB4 0x70234  0x00000000  PLANE_CSC_POSTOFF_HI (:308)
++0xB8, +0xBC   0x00000000  UNNAMED x2 (macro: PLANE_CSC_POSTOFF 1-2, :312)
++0xC0 0x70240  0x8001003E  PLANE_WM level 0 (_PLANE_WM_1_A_0, :315)
+                           WM_EN=1 (:322), IGNORE_LINES=0 (:323),
+                           LINES 26:14=4 (:324), BLOCKS 11:0=62 (:325)
++0xC4 0x70244  0x800300B8  UNNAMED (macro: PLANE_WM level 1, :319)
++0xC8 0x70248  0x800300B8  UNNAMED (macro: PLANE_WM level 2, :319)
++0xCC 0x7024C  0x800300B8  UNNAMED (macro: PLANE_WM level 3, :319)
++0xD0 0x70250  0x800300B8  UNNAMED (macro: PLANE_WM level 4, :319)
++0xD4 0x70254  0x800380D7  UNNAMED (macro: PLANE_WM level 5, :319)
++0xD8 0x70258  0x80058151  PLANE_WM_SAGV (:327)
++0xDC 0x7025C  0x8006016F  PLANE_WM_SAGV_TRANS (:335)
++0xE0 0x70260  0x0000043F  UNNAMED
++0xE4 0x70264  0x077F3EEB  UNNAMED
++0xE8 0x70268  0x80000089  PLANE_WM_TRANS (:343)
++0xEC 0x7026C  0x00000000  PLANE_CHICKEN (:351, tgl+)
+                           DISABLE_DPT=0 (:358, tagged mtl+)
++0xF0 0x70270  0x00000000  UNNAMED
++0xF4 0x70274  0x00000000  UNNAMED
++0xF8 0x70278  0x00000000  PLANE_NV12_BUF_CFG (:360)
++0xFC 0x7027C  0x07AD0000  PLANE_BUF_CFG (:368)
+                           BUF_END 27:16=0x7AD=1965 (:376),
+                           BUF_START 11:0=0 (:378). 0x7AD fits the
+                           icl+ 11-bit width given at :375.
+
+Totals: the header spells 28 of the 64 words, and 36 are UNNAMED. Of
+those 36, 25 are macro-reachable and 11 are not reachable at all:
++0x04 +0x28 +0x30 +0x50 +0x54 +0x58 +0x5C +0xE0 +0xE4 +0xF0 +0xF4.
+Ten UNNAMED words are non-zero. Five are unreachable (+0x50 0x000004BF,
++0x58 0x0000043F, +0x5C 0x015ECD0F, +0xE0 0x0000043F,
++0xE4 0x077F3EEB), and five are the macro-only watermark levels 1-5
+at +0xC4..+0xD4.
+
+THE CARD'S OPEN OBSERVATIONS
+  - PLANE_CTL bit 15: RESOLVED. It is PLANE_CTL_RENDER_DECOMPRESSION_ENABLE
+    (:79). With CLEAR_COLOR_DISABLE (:81) clear and TILED_Y, the plane
+    is a Y-tiled, render-compressed surface. The header gives no name
+    for that combination and none is assigned here.
+  - +0x1C / +0x2C: RESOLVED as two registers. The header spells 0x7019c
+    as PLANE_SURF (:153) and 0x701ac as PLANE_SURFLIVE (:185), so the
+    two equal 0x01058000 readings agree across two distinct addresses.
+    They are not one register printed twice. A single sample taken
+    with no flip in flight cannot show SURFLIVE trailing SURF.
+  - PLANE_STRIDE unit: still DERIVED FROM ONE SAMPLE. The header gives
+    only the 11:0 mask (:109) and no unit, so 128 B per unit stays an
+    inference from 7680 / 60.
+  - NEW: the format is XRGB_2101010 (:52), not XRGB_8888. See the
+    corrected PLANE_CTL paragraph above. Both are 4 B/px formats, so
+    the stride arithmetic still holds. Anything downstream that copied
+    "XRGB8888" from this file needs to be re-checked.
+
+WATERMARK FIELDS, ASSUMPTION-LABELLED
+The header defines WM_EN, IGNORE_LINES, LINES and BLOCKS (:322-325)
+directly under PLANE_WM (:319). It does not say they also apply to
+WM_SAGV, WM_SAGV_TRANS or WM_TRANS, or to the macro-only levels. IF
+the same layout applies, the words read (EN / lines / blocks):
+  level 1-4 +0xC4..+0xD0  1 / 12 / 184
+  level 5   +0xD4         1 / 14 / 215
+  SAGV      +0xD8         1 / 22 / 337
+  SAGV_TRANS +0xDC        1 / 24 / 367
+  TRANS     +0xE8         1 /  0 / 137
+
+ARITHMETIC ONLY. These are not names.
+  - AUX_DISTANCE 0x007F8000 = 8355840 = 7680 x 1088, which is 1088 lines
+    of the 7680 B stride, 8 more than the 1080 visible lines.
+  - UNNAMED +0x58 and +0xE0 both read 0x43F = 1087 = 1088 - 1.
+  - UNNAMED +0xE4 0x077F3EEB has 0x077F = 1919 = width - 1 in 31:16.
+These are coincidences to test on a second capture (another mode or
+another surface). They do not establish fields.

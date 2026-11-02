@@ -835,6 +835,15 @@ BUILD_DIR = os.path.join(HERE, "build")
 # Lake is icl+, so bit 23 is part of the format field, and (0x82009000 >> 24) &
 # 0x0F is 2, which is ALSO a format this header names. A narrowed mask therefore
 # yields a plausible wrong answer rather than an obvious one.
+#
+# CORRECTED 2026-11-01 (t-a7929c). Both decodes in this paragraph are wrong;
+# it is left as written because it records what section 7b was built on. The
+# five-bit field 27:23 of 0x82009000 is 4, but the format codes are four-bit
+# and sit at bit 24 (reference/i915/skl_universal_plane_regs.h:43-47), so raw
+# 4 is code 2, XRGB_2101010 (:52), not XRGB8888 (:54): the FOUR-bit reading is
+# the right one, not the plausible wrong one. 0x84000000 is likewise code 4,
+# XRGB_8888, not an unnamed format 8. igFbFormat() now returns the code. Both
+# are 32 bpp, but the component layouts differ (8 vs 10 bits per channel).
 # Measured 2026-08-20 by running tests/build/test_intel_fb_present.exe, the FIRST
 # reading of a suite that did not exist before this date:
 #   test_intel_fb_present 140 checks, 0 failures

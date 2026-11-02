@@ -65,7 +65,7 @@ SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp NVGspQueueObserver.cpp \
 	NVGspWprFactsObserver.cpp NVGspQueueBackingService.cpp NVGspBootArgsRehearsalService.cpp \
 	NVGspRmImageStageService.cpp NVGspWprBootUcodeStageService.cpp NVGspWprMetaStageService.cpp \
 	IntelDisplayProbe.cpp IntelFbPresentProbe.cpp IntelSinkCandidateService.cpp \
-	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtBringupSurface.cpp IntelGtPersistentSurfaces.cpp IntelGtSurfaceStageService.cpp IntelGtBlitter.cpp IntelGtFill.cpp IntelGtBlitUserClient.cpp
+	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtBringupSurface.cpp IntelGtPersistentSurfaces.cpp IntelGtSurfaceStageService.cpp IntelGtBlitter.cpp IntelGtFill.cpp IntelGtBlitUserClient.cpp IntelGtScanout.cpp
 OBJECTS      := $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 
 SDK          := $(shell xcrun --sdk macosx --show-sdk-path)

@@ -32,6 +32,24 @@
 class IODeviceMemory : public IOMemoryDescriptor {
 public:
     virtual IOPhysicalAddress getPhysicalAddress();
+
+    // Apple (xnu iokit/IOKit/IODeviceMemory.h):
+    //     static OSPtr<IODeviceMemory> withSubRange(
+    //         IODeviceMemory *    of,
+    //         IOPhysicalAddress   offset,
+    //         IOPhysicalLength    length );
+    // OSPtr<T> is a plain T* in a kext build unless IOKIT_ENABLE_SHARED_PTR is
+    // defined. That mapping comes from libkern/c++/OSPtr.h, which was NOT
+    // fetched for this file, so re-check it with the SIGNATURES.md recipe on a
+    // macOS host. Returns the range `length` bytes long starting `offset` bytes
+    // into `of`; the CALLER owns the returned reference and must release it.
+    // IntelFbPresentProbe::sliceScanout() is the user: the scanout slice of
+    // GMADR that getApertureRange(kIOFBSystemAperture) hands IOKit.
+    // NARROWER: withRange() and arrayFromList() are left out until a
+    // phase0-kext source needs them.
+    static IODeviceMemory *withSubRange(IODeviceMemory *of,
+                                        IOPhysicalAddress offset,
+                                        IOPhysicalLength length);
 };
 
 #endif // NVSHIM_IOKIT_IODEVICEMEMORY_H

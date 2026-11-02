@@ -627,7 +627,10 @@ class IntelFramebufferGateNonVacuityTests(unittest.TestCase):
     # that the probe never reached the line under test.
     #
     # 1 << 23 is the low bit of the five-bit format field: it turns the
-    # observed format 4 (XRGB_8888) into 12, which the header does not name.
+    # observed field 4, which decodes to XRGB_2101010 (2), into 5, which
+    # decodes to the icl-only code 0x12 (IG_FB_CTL_FORMAT_ICL_FLAG | 2) that
+    # the header does not name. CORRECTED 2026-11-01 (t-a7929c): this line
+    # used to call the raw field 4 XRGB_8888 and the mutated one 12.
     #
     MUTATION_BIT = {
         "IG_FB_CTL_OBSERVED_2026_08_16": 1 << 23,
@@ -733,10 +736,16 @@ class IntelFramebufferGateNonVacuityTests(unittest.TestCase):
         """The most consequential single mutation on this header.
 
         Shifting the format field to 24 and narrowing the mask to 4 bits is
-        the pre-icl reading. It is not garbage: the observed CTL 0x82009000
-        decodes to 2 (XRGB_2101010) instead of 4 (XRGB_8888), and BOTH are
-        formats the vendored header names, so the wrong reading yields a
-        plausible answer and a stride wrong by an integer factor.
+        the pre-icl reading of the FIELD. Tiger Lake is icl+, so bit 23 is
+        part of it and the shift/mask pins must go red. The observed-capture
+        row must go red too: the decode takes the code from the field's top
+        four bits, so on 0x82009000 the narrowed field 2 decodes to 1, a code
+        this header does not name, instead of 2 (XRGB_2101010).
+
+        CORRECTED 2026-11-01 (t-a7929c): this used to say the narrowed
+        reading gave 2 (XRGB_2101010) "instead of 4 (XRGB_8888)". 4 is the
+        raw five-bit field, never a decoded code; the captured word spells
+        XRGB_2101010 (reference/i915/skl_universal_plane_regs.h:52).
         """
         kext, src = self.fresh()
         kext["IG_FB_CTL_FORMAT_SHIFT"] = "24"
@@ -749,9 +758,9 @@ class IntelFramebufferGateNonVacuityTests(unittest.TestCase):
         self.assertIn("IG_FB_CTL_FORMAT_SHIFT", labels,
                       "the shift row did not fail: %s" % labels)
         self.assertIn("IG_FB_CTL_OBSERVED_2026_08_16", labels,
-                      "the observed capture still decoded to XRGB_8888 under "
-                      "the four-bit mask, so the capture is not separating "
-                      "the two readings: %s" % labels)
+                      "the observed capture still decoded to XRGB_2101010 "
+                      "under the four-bit mask, so the capture is not "
+                      "separating the two readings: %s" % labels)
 
     def test_a_cleared_render_decompression_bit_is_caught(self):
         """The header's most counterintuitive claim, pinned.

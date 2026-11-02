@@ -2044,9 +2044,14 @@ static void testObservedCapture20260818(void)
              igPlanePosY(IG_OBSERVED_PLANE_1A_POS_2026_08_18), 0u);
 
     //
-    //  The icl+ 5-bit format decode gives 4 (XRGB8888). The pre-icl 4-bit decode
+    //  The icl+ 5-bit format decode gives raw field 4. The pre-icl 4-bit decode
     //  is present in the header ONLY so this disagreement can be demonstrated on
     //  a real word rather than a constructed one.
+    //
+    //  CORRECTED 2026-11-01 (t-a7929c). This said raw field 4 was XRGB8888.
+    //  The 5-bit field holds the 4-bit code shifted up one bit, so raw 4 is
+    //  code 2, XRGB_2101010 (reference/i915/skl_universal_plane_regs.h :52);
+    //  XRGB_8888 is raw field 8 (:54). igFbFormat() returns the code.
     //
     checkU32("the captured plane format decodes as icl+ format 4",
              igPlaneFormat(IG_OBSERVED_PLANE_1A_CTL_2026_08_18), 4u);

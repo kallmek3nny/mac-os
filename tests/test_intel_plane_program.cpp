@@ -182,6 +182,17 @@ static void testBuildFromFirmwareCtl()
     checkTrue(v == IG_PLANE_OK, "panel-sized linear sink builds");
     checkTrue(igFbPlaneEnabled(r.ctl), "built CTL is enabled");
     checkTrue(igFbFormat(r.ctl) == kFmt, "built CTL decodes to XRGB8888");
+
+    //  NEGATIVE CONTROL (t-a7929c). igFbFormat() and igFbFormatCtlBits() are
+    //  inverses, so the round trip above passes for ANY consistent pair --
+    //  including the old one, which read the raw 5-bit field and wrote the
+    //  4-bit code at bit 23, so asking for XRGB_8888 programmed 0x02000000
+    //  (XRGB_2101010). Pin the absolute bits instead:
+    //  PLANE_CTL_FORMAT_XRGB_8888 is REG_FIELD_PREP(GENMASK(27, 24), 4)
+    //  (reference/i915/skl_universal_plane_regs.h:54), which is 0x04000000.
+    checkTrue((r.ctl & (IG_FB_CTL_FORMAT_MASK << IG_FB_CTL_FORMAT_SHIFT))
+                  == 0x04000000u,
+              "built CTL carries XRGB_8888 as 0x04000000, not 0x02000000");
     checkTrue(igFbTiling(r.ctl) == IG_FB_TILING_LINEAR,
           "built CTL is LINEAR even though firmware's was Y-tiled");
     checkTrue(igFbTiling(IG_FB_CTL_OBSERVED_2026_08_16) == IG_FB_TILING_Y,
@@ -204,7 +215,7 @@ static void testBuildClearsOwnedBits()
     poison(&r);
     IGFB32 dirty = IG_FB_CTL_RENDER_DECOMP | IG_FB_CTL_ASYNC_FLIP
                    | (IG_FB_TILING_YF_OR_4 << IG_FB_CTL_TILING_SHIFT)
-                   | (IG_FB_FORMAT_RGB_565 << IG_FB_CTL_FORMAT_SHIFT);
+                   | igFbFormatCtlBits(IG_FB_FORMAT_RGB_565);  // t-a7929c
     checkTrue(igPlaneBuildLinear(dirty, kFmt, kSurf, kW, kH, kStride, &r)
               == IG_PLANE_OK,
           "build from a base CTL with every owned bit dirty");

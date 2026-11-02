@@ -428,37 +428,43 @@ static void testUsable(void)
 
     //  The format the firmware programmed on this silicon. The PLANE_CTL word
     //  is MEASURED, not chosen: igpu-results/tgl-capture-2026-08-16-022556.txt
-    //  line 134 reads it as 0x82009000 and decodes bits 27:23 to format 4,
-    //  XRGB8888. An earlier revision of this line invented a plausible-looking
-    //  0x84000000 instead, which decodes to 8 -- a code this tree does not name
-    //  -- and the control correctly went red. A fabricated register word beside
-    //  measured ones is the exact thing CLAUDE.md forbids, and here it failed
-    //  loudly only because the whitelist refuses unnamed codes.
+    //  line 134 reads it as 0x82009000. An earlier revision of this line
+    //  invented a plausible-looking 0x84000000 instead and the control went
+    //  red. A fabricated register word beside measured ones is the exact thing
+    //  CLAUDE.md forbids.
     //
-    //  Note the shift is 23, not 24: Tiger Lake is icl+, so the format field is
-    //  FIVE bits. (0x82009000 >> 24) & 0x0F is 2 (XRGB_2101010), which is also a
-    //  format this header names -- so a wrong mask yields a PLAUSIBLE answer
-    //  here, and this control pins the right one.
+    //  CORRECTED 2026-11-01 (t-a7929c). This control used to say bits 27:23
+    //  decode to format 4, XRGB8888, and pinned 8-bit components and masks.
+    //  The 5-bit field IS 4, but the codes are 4-bit and sit at bit 24
+    //  (reference/i915/skl_universal_plane_regs.h:43-60), so field 4 is code 2,
+    //  XRGB_2101010, and XRGB_8888 is field 8. That is 0x84000000, the invented
+    //  word, which went red only because the old decode read it as unnamed 8.
+    //  Both formats are 32 bpp, so the old reading gave the right geometry and
+    //  the wrong colours.
+    //
+    //  With bit 23 clear, the 4-bit SKL reading (0x82009000 >> 24) & 0x0F now
+    //  AGREES with the decode, so it separates nothing here. The reading that
+    //  must not be mistaken for the code is the raw 5-bit field.
     IGP32 fmt = igFbFormat(0x82009000u);
-    checkU32("the captured PLANE_CTL decodes to XRGB_8888", fmt, 4u);
+    checkU32("the captured PLANE_CTL decodes to XRGB_2101010", fmt, 2u);
 
-    //  And the wrong-mask reading is pinned as the thing it is NOT, so an edit
-    //  narrowing IG_FB_CTL_FORMAT_MASK back to 4 bits reddens here rather than
-    //  silently describing this surface as 10-bit.
-    checkInt("the 4-bit reading of the same word differs",
-             ((0x82009000u >> 24) & 0x0Fu) != fmt ? 1 : 0, 1);
+    //  NEGATIVE CONTROL: the raw field is 4, the XRGB_8888 code. A decoder that
+    //  returns the raw field reddens here rather than silently describing this
+    //  10-bit surface as 8-bit.
+    checkInt("the raw 5-bit field of the same word differs",
+             ((0x82009000u >> 23) & 0x1Fu) != fmt ? 1 : 0, 1);
 
     checkU32("and that format describes",       igPixelDescribe(fmt),       0u);
     checkInt("and reports usable",              igPixelUsable(igPixelDescribe(fmt)), 1);
     checkU32("and publishes 32 bits per pixel", igPixelBitsPerPixel(fmt),  32u);
-    checkU32("and 8 bits per component",        igPixelComponentBits(fmt),  8u);
+    checkU32("and 10 bits per component",       igPixelComponentBits(fmt), 10u);
     checkU32("and three components",            igPixelComponentCount(fmt), 3u);
 
     IGP32 r = 0u, g = 0u, b = 0u;
     checkU32("and three real channel masks", igPixelMasks(fmt, &r, &g, &b), 0u);
-    checkU32("captured surface red",   r, 0x00FF0000u);
-    checkU32("captured surface green", g, 0x0000FF00u);
-    checkU32("captured surface blue",  b, 0x000000FFu);
+    checkU32("captured surface red",   r, 0x3FF00000u);
+    checkU32("captured surface green", g, 0x000FFC00u);
+    checkU32("captured surface blue",  b, 0x000003FFu);
 }
 
 int main(void)

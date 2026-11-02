@@ -145,8 +145,10 @@ IDENT = r"[A-Za-z_]\w*"
 #   by that handle; there is no member to carry a flag.
 #
 #   IOServiceOpen/IOServiceClose, IOServiceGetMatchingService/IOObjectRelease
-#   -- userspace: iggt-blit.cpp lives in phase0-kext/ and is globbed with the
-#   kext sources. Free functions whose result IS the handle being released.
+#   -- userspace only. Their caller, iggt-blit.cpp, moved out of phase0-kext/
+#   to tools/ in 20aafb2 (GATE GREEN 3, t-fd9746) and is no longer globbed
+#   with the kext sources. Free functions whose result IS the handle being
+#   released.
 #
 #   Everything else the audit listed (get*, configRead*, gen64IOVMSegments,
 #   synchronize, metaCast, the surface fill/copy calls, ...) acquires nothing.

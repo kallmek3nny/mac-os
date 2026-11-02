@@ -251,7 +251,7 @@ static void testSurfaceOnlyRefusal()
     prior.ctlWord &= ~(formatMask | tilingMask |
                        IG_FB_CTL_RENDER_DECOMP | IG_FB_CTL_ASYNC_FLIP);
     prior.ctlWord |= IG_FB_CTL_ENABLE |
-        (IG_FB_FORMAT_XRGB_8888 << IG_FB_CTL_FORMAT_SHIFT) |
+        igFbFormatCtlBits(IG_FB_FORMAT_XRGB_8888) |  // bit 26 (t-a7929c)
         (IG_FB_TILING_LINEAR << IG_FB_CTL_TILING_SHIFT);
     prior.strideWord = target.linearStrideUnits;
     prior.strideBytes = target.strideBytes;

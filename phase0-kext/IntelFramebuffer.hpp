@@ -100,31 +100,56 @@ typedef unsigned int IGFB32;
 #define IG_FB_CTL_ENABLE                0x80000000u
 
 //
-//  THE FORMAT FIELD IS 5 BITS ON THIS SILICON, NOT 4.
+//  THE FORMAT FIELD IS 5 BITS ON THIS SILICON, BUT THE CODES ARE 4-BIT.
 //
-//  The vendored header carries BOTH definitions and says why:
+//  The vendored header carries BOTH masks (reference/i915/
+//  skl_universal_plane_regs.h:43-66):
 //
 //      PLANE_CTL_FORMAT_MASK_SKL  REG_GENMASK(27, 24)   pre-icl
 //      PLANE_CTL_FORMAT_MASK_ICL  REG_GENMASK(27, 23)   icl+
 //
-//  Tiger Lake is icl+, so bit 23 is part of the field. Every FORMAT_* value
-//  the header spells is REG_FIELD_PREP'd against the SKL mask even for the
-//  icl-only codes, which means the numeric codes are stated in 4-bit terms and
-//  the 5-bit field simply widens the space below them. Decoding with the SKL
-//  mask on TGL silently drops bit 23: an ICL-only format sitting at an odd
-//  5-bit code would decode as a DIFFERENT, valid, pre-icl format rather than as
-//  garbage -- and a plane decoded as the wrong bpp produces a stride that is
-//  wrong by an integer factor, which lands the scanout inside the framebuffer
-//  rather than outside it. No fault, just a sheared picture.
+//  Tiger Lake is icl+, so bit 23 is part of the field. But every RGB code this
+//  driver names is REG_FIELD_PREP'd against the SKL mask (:50-60), which puts
+//  code n at bit 24 -- 2n in the 5-bit field, with bit 23 clear. Only the
+//  icl-only Y210..Y416 codes are prepped against the ICL mask (:61-66), and
+//  they are exactly the odd 5-bit values. The header states the rule itself
+//  (:43-47): "the shift-24 based values correctly map to the same formats in
+//  ICL, as long as bit 23 is set to 0".
 //
-//  The observed CTL is 0x82009000. (0x82009000 >> 23) & 0x1F == 0x04, and
-//  (0x82009000 >> 24) & 0x0F == 0x02. Both are formats the header names
-//  (XRGB_8888 is 4, XRGB_2101010 is 2), so this is exactly the case where a
-//  wrong mask yields a plausible answer. The panel is a 32-bpp desktop, so 4 is
-//  the correct reading and the 5-bit mask is the correct mask.
+//  So igFbFormat() reads the whole 5-bit field and returns a code in the
+//  header's 4-bit numbering: bits 27:24 as the code, plus
+//  IG_FB_CTL_FORMAT_ICL_FLAG when bit 23 is set. Every odd (icl-only) field
+//  value lands at 0x10 or above, where no 4-bit IG_FB_FORMAT_* code can match
+//  it. Nothing is dropped: the map is a bijection on 0..31, and
+//  igFbFormatCtlBits() is its inverse.
+//
+//  CORRECTED 2026-11-01 (t-a7929c). This comment used to say the 4-bit codes
+//  could be matched against the raw 5-bit field, and that the observed CTL
+//  0x82009000 was therefore XRGB_8888. Both were wrong. (0x82009000 >> 23) &
+//  0x1F == 4 == 2 << 1: bit 23 clear and bits 27:24 == 2, which is
+//  PLANE_CTL_FORMAT_XRGB_2101010 (:52). XRGB_8888 (:54) is field value 8.
+//  "The panel is a 32-bpp desktop" could not separate them, because both are 32
+//  bpp. igPlaneBuildLinear() made the mirror error on the way out, writing
+//  XRGB_8888 as 0x02000000 (XRGB_2101010) and RGB_565 as 0x07000000 (P016).
+//
+//  A wrong reading still does not fault. It yields a different valid format,
+//  and a plane decoded at the wrong bpp produces a stride wrong by an integer
+//  factor, landing the scanout inside the framebuffer: a sheared picture. At
+//  equal bpp (8888 against 2101010) the geometry is right and only the colours
+//  are wrong, which no stride or size check can catch.
 //
 #define IG_FB_CTL_FORMAT_SHIFT          23u
 #define IG_FB_CTL_FORMAT_MASK           0x1Fu
+
+//
+//  Where REG_FIELD_PREP(PLANE_CTL_FORMAT_MASK_SKL, n) puts a 4-bit code
+//  (GENMASK(27, 24) == 0x0F << 24), and the bit a DECODED code uses to carry
+//  PLANE_CTL bit 23, the icl-only extension. The flag sits above every 4-bit
+//  code and inside the 5-bit field, so it can never equal a named format.
+//
+#define IG_FB_CTL_FORMAT_CODE_SHIFT     24u
+#define IG_FB_CTL_FORMAT_CODE_MASK      0x0Fu
+#define IG_FB_CTL_FORMAT_ICL_FLAG       0x10u
 
 //
 //  Format codes, transcribed from the vendored REG_FIELD_PREP values. Only the
@@ -198,7 +223,9 @@ typedef unsigned int IGFB32;
 //  guessed:
 //
 //      panel is 1920x1080, PIPESRC 0x077F0437 decodes +1 to exactly 1920x1080
-//      format is XRGB_8888, so 4 bytes per pixel
+//      format is XRGB_2101010 (FORMAT 27:24 == 2), so 4 bytes per pixel
+//        (corrected 2026-11-01, t-a7929c: this line said XRGB_8888; both
+//        formats are 32 bpp, so nothing below it changes)
 //      a tight row is 1920 * 4 == 7680 bytes
 //      the observed STRIDE field is 0x3C == 60
 //      7680 / 60 == 128
@@ -293,9 +320,31 @@ static inline bool igFbPlaneEnabled(IGFB32 ctl)
     return (ctl & IG_FB_CTL_ENABLE) != 0u;
 }
 
+//
+//  The format code in the header's 4-bit numbering (section 2): bits 27:24,
+//  plus IG_FB_CTL_FORMAT_ICL_FLAG when bit 23 is set. 0x82009000 decodes to 2
+//  (XRGB_2101010), 0x84000000 to 4 (XRGB_8888), and 0x00800000 (Y210, icl
+//  field 1) to 0x10, which no IG_FB_FORMAT_* code matches.
+//
 static inline IGFB32 igFbFormat(IGFB32 ctl)
 {
-    return (ctl >> IG_FB_CTL_FORMAT_SHIFT) & IG_FB_CTL_FORMAT_MASK;
+    const IGFB32 field =
+        (ctl >> IG_FB_CTL_FORMAT_SHIFT) & IG_FB_CTL_FORMAT_MASK;
+    return ((field >> 1) & IG_FB_CTL_FORMAT_CODE_MASK)
+           | ((field & 1u) != 0u ? IG_FB_CTL_FORMAT_ICL_FLAG : 0u);
+}
+
+//
+//  The inverse of igFbFormat(): the in-place PLANE_CTL bits for a decoded code.
+//  A 4-bit code lands at bit 24 with bit 23 clear, which is exactly
+//  REG_FIELD_PREP(PLANE_CTL_FORMAT_MASK_SKL, code). Bits above
+//  IG_FB_CTL_FORMAT_ICL_FLAG are dropped, so the result never leaves 27:23.
+//
+static inline IGFB32 igFbFormatCtlBits(IGFB32 code)
+{
+    return ((code & IG_FB_CTL_FORMAT_CODE_MASK) << IG_FB_CTL_FORMAT_CODE_SHIFT)
+           | ((code & IG_FB_CTL_FORMAT_ICL_FLAG) != 0u
+                  ? (1u << IG_FB_CTL_FORMAT_SHIFT) : 0u);
 }
 
 static inline IGFB32 igFbTiling(IGFB32 ctl)

@@ -256,12 +256,12 @@ REM that uncertainty quarantines rather than frees.
 REM tests/test_intel_display_transaction_lifetime.cpp is what reads those.
 "!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelDisplayTransactionLifetime.hpp
 if errorlevel 1 (set FAILED=1 & echo   FAIL IntelDisplayTransactionLifetime.hpp) else (echo   ok   IntelDisplayTransactionLifetime.hpp)
-REM t-1b120d (GATE GREEN 8): the 65 headers below are the dependency-free
+REM t-1b120d (GATE GREEN 8): the 66 headers below are the dependency-free
 REM ones tools/check-header-coverage.py listed as never parsed standalone here.
 REM Each has no angle-bracket include, so -I phase0-kext alone must parse it.
 REM A clean parse proves only that the header is valid C++ on its own; its
 REM behaviour is checked by the matching suite under tests/, not by this line.
-REM Intel GT family (9), dependency-free, added under t-1b120d.
+REM Intel GT family (10), dependency-free, added under t-1b120d (IntelGtRegSemantics.hpp: t-4f24b2).
 "!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtBlitter.hpp
 if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtBlitter.hpp) else (echo   ok   IntelGtBlitter.hpp)
 "!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtCopyPlan.hpp
@@ -274,12 +274,19 @@ if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtDispatch.hpp) else (echo   ok
 if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtLrc.hpp) else (echo   ok   IntelGtLrc.hpp)
 "!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtPpgtt.hpp
 if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtPpgtt.hpp) else (echo   ok   IntelGtPpgtt.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtScanoutMap.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtScanoutMap.hpp) else (echo   ok   IntelGtScanoutMap.hpp)
 "!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtSurface.hpp
 if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtSurface.hpp) else (echo   ok   IntelGtSurface.hpp)
 "!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtSurfaceHandles.hpp
 if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtSurfaceHandles.hpp) else (echo   ok   IntelGtSurfaceHandles.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtRegSemantics.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtRegSemantics.hpp) else (echo   ok   IntelGtRegSemantics.hpp)
 "!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtSurfaceTxn.hpp
 if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtSurfaceTxn.hpp) else (echo   ok   IntelGtSurfaceTxn.hpp)
+REM Scanout fill rect bounds check, dependency-free, added under t-619d61.
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtScanoutRect.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtScanoutRect.hpp) else (echo   ok   IntelGtScanoutRect.hpp)
 REM Intel plane family (4), dependency-free, added under t-1b120d.
 "!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelPlaneLiveObserve.hpp
 if errorlevel 1 (set FAILED=1 & echo   FAIL IntelPlaneLiveObserve.hpp) else (echo   ok   IntelPlaneLiveObserve.hpp)

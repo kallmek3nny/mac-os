@@ -772,14 +772,34 @@ class NegativeControlTests(unittest.TestCase):
         # is byte-identical, in the IORegistry, to a width derived from four
         # registers that genuinely read.
         #
+        #
+        # The mutation must land INSIDE publishPresentation(), the only method
+        # P5 polices.  sliceScanout() now holds the first `if (!presentable())`
+        # in the file, so a file-wide anchor hoists the decode into a method P5
+        # never reads and the control prints vacuous while the gate is right --
+        # the trap test_deleted_guard_in_an_override_reddens_P1 documents above.
+        # The search starts at the DEFINITION, so a prose mention of the name
+        # cannot move it ahead of sliceScanout(), and it must not leave the
+        # method body.
+        #
         anchor = '    if (!presentable()) {'
-        self.assertIn(anchor, self.shell, "mutation anchor moved")
+        defn = re.compile(r"^void\s+" + CLASS + r"::publishPresentation\s*\(",
+                          re.M).search(self.shell)
+        self.assertIsNotNone(defn, "mutation anchor matched nothing -- "
+                                   "publishPresentation() definition not found")
+        at = self.shell.find(anchor, defn.end())
+        self.assertNotEqual(at, -1, "mutation anchor moved -- a mutation that "
+                                    "matches nothing prints ok")
+        self.assertIsNone(
+            re.search(r"^\}", self.shell[defn.end():at], re.M),
+            "mutation anchor left publishPresentation() -- the first guard "
+            "after its definition belongs to another method")
         hoisted = ('    setProperty("IGPresentWidth",\n'
                    '                (UInt64) igPresentWidth(fCtl, fStride, '
                    'fSize, fSurf,\n'
                    '                                        fApertureBytes), '
                    '32);\n')
-        mutated = self.shell.replace(anchor, hoisted + anchor, 1)
+        mutated = self.shell[:at] + hoisted + self.shell[at:]
         self._fails_with(mutated, "P5:")
 
     def test_guard_losing_the_sampled_flag_reddens_P2(self):

@@ -69,6 +69,16 @@ other. `PLANE_CTL` `0x82009000` decodes as ENABLE=1, format 4 (XRGB8888), tiling
 4 (`PLANE_CTL_TILED_Y`). Bit 15 is set and is deliberately **not** named — naming
 it here would mean inventing a name and filing it next to traced ones.
 
+> **Correction (2026-11-01, t-a7929c).** The format half of the `PLANE_CTL`
+> decode above is wrong; the sentence is left as written because this file is
+> history. Bits 27:24 of `0x82009000` are `2`, i.e. `PLANE_CTL_FORMAT_XRGB_2101010`
+> (`reference/i915/skl_universal_plane_regs.h:52`), not XRGB_8888 (`:54`). The
+> "format 4" came from reading the five-bit ICL field 27:23 raw (`0b00100`) and
+> matching it against codes that sit at bit 24; raw 27:23 value 4 is code 2.
+> Both formats are 4 bytes per pixel, so the 7680-byte row and the 128-byte
+> stride unit derived from this capture still hold. ENABLE=1 and tiling 4
+> (`PLANE_CTL_TILED_Y`) are unaffected.
+
 ## 2. What it did NOT settle, and why the probe could not have
 
 This is the section most likely to be misread, so it is stated before anything

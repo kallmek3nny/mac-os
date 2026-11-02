@@ -78,28 +78,69 @@ static void testObservedBlockIsWhatWasCaptured(void)
 //
 //  THE ARM THE CAPTURE CANNOT REACH.
 //
-//  0x82009000 has bit 23 CLEAR, so the 5-bit ICL mask and the 4-bit SKL mask
-//  both decode it to a supported 4-byte format and agree. Setting bit 23 is
-//  what separates them: ICL reads 5 (unnamed, bpp 0), SKL would read 2
-//  (XRGB_2101010, bpp 4). If this header ever regresses to the SKL mask, the
-//  bpp check below is the assertion that goes red.
+//  0x82009000 has bit 23 CLEAR, so the 5-bit decode and the 4-bit SKL reading
+//  agree on it: both give 2, XRGB_2101010. Setting bit 23 is what separates
+//  them: igFbFormat() carries it as IG_FB_CTL_FORMAT_ICL_FLAG (0x12, unnamed,
+//  bpp 0), while the SKL reading drops it and lands on 2 (XRGB_2101010, bpp
+//  4). If this header ever regresses to the SKL mask, the bpp check below is
+//  the assertion that goes red.
+//
+//  CORRECTED 2026-11-01 (t-a7929c). This section used to pin the RAW 5-bit
+//  field as the format code: 5 for 0x82800000, and 4 -- read as XRGB_8888 --
+//  for the capture. The codes are REG_FIELD_PREP'd against the SKL mask
+//  (reference/i915/skl_universal_plane_regs.h:43-60), so code n is 5-bit field
+//  2n: raw field 4 is code 2, XRGB_2101010, and XRGB_8888 is field 8. The
+//  checks after the contrast pair are the negative controls for that mapping.
 //
 static void testFormatMaskIsFiveBits(void)
 {
-    section("format field is 5 bits on tgl, not 4");
+    section("format field is 5 bits on tgl, codes are 4-bit");
 
-    //  bit 23 set, bits 27:24 == 2. ICL field = 5, SKL field = 2.
+    //  bit 23 set, bits 27:24 == 2. 5-bit field = 5, SKL code = 2.
     const IGFB32 ctl = 0x82800000u;
 
-    checkU32("icl reading of 0x82800000", igFbFormat(ctl), 5u);
+    checkU32("5-bit field of 0x82800000", (ctl >> 23) & 0x1Fu, 5u);
+    checkU32("icl decode keeps bit 23 as the flag", igFbFormat(ctl),
+             2u | IG_FB_CTL_FORMAT_ICL_FLAG);
     checkU32("bpp of that code is unsupported", igFbBytesPerPixel(igFbFormat(ctl)), 0u);
     checkU32("skl reading would have been", (ctl >> 24) & 0x0Fu, 2u);
     checkU32("and skl's code IS supported", igFbBytesPerPixel(2u), 4u);
 
-    //  The observed CTL, for contrast: both readings land on a supported
-    //  format, which is exactly why it proves nothing here.
-    checkU32("observed icl reading", igFbFormat(0x82009000u), 4u);
+    //  The observed CTL, for contrast: bit 23 is clear, so both readings give
+    //  2, which is exactly why it proves nothing about the mask here.
+    checkU32("observed decode is XRGB_2101010", igFbFormat(0x82009000u),
+             IG_FB_FORMAT_XRGB_2101010);
     checkU32("observed skl reading", (0x82009000u >> 24) & 0x0Fu, 2u);
+
+    //  NEGATIVE CONTROLS for the 2n mapping. The capture's raw field is 4, the
+    //  XRGB_8888 CODE -- the coincidence the old decode fell for. A decoder
+    //  that returns the raw field fails every check below except the first.
+    checkU32("observed raw 5-bit field is 4", (0x82009000u >> 23) & 0x1Fu, 4u);
+    checkBool("and that raw 4 is NOT read as XRGB_8888",
+              igFbFormat(0x82009000u) != IG_FB_FORMAT_XRGB_8888, true);
+    checkU32("XRGB_8888 is 5-bit field 8 (0x84000000)",
+             igFbFormat(0x84000000u), IG_FB_FORMAT_XRGB_8888);
+    checkU32("RGB_565 is 5-bit field 28 (0x8E000000)",
+             igFbFormat(0x8E000000u), IG_FB_FORMAT_RGB_565);
+    checkU32("the encoder puts XRGB_8888 at bit 26, not bit 25",
+             igFbFormatCtlBits(IG_FB_FORMAT_XRGB_8888), 0x04000000u);
+    checkU32("and RGB_565 at bits 27:25 with bit 23 clear",
+             igFbFormatCtlBits(IG_FB_FORMAT_RGB_565), 0x0E000000u);
+
+    //  igFbFormatCtlBits() inverts igFbFormat() on all 32 field values, and no
+    //  odd (icl-only) field value decodes to a code with a byte size.
+    IGFB32 roundTripMisses = 0u;
+    IGFB32 oddSized = 0u;
+    for (IGFB32 field = 0u; field < 32u; ++field) {
+        const IGFB32 word = field << 23;
+        const IGFB32 code = igFbFormat(word);
+        if (igFbFormatCtlBits(code) != word)
+            ++roundTripMisses;
+        if ((field & 1u) != 0u && igFbBytesPerPixel(code) != 0u)
+            ++oddSized;
+    }
+    checkU32("every 5-bit field value round-trips", roundTripMisses, 0u);
+    checkU32("no odd field value decodes to a sized format", oddSized, 0u);
 }
 
 static void testBytesPerPixel(void)
@@ -225,7 +266,9 @@ static void testInheritVerdicts(void)
 {
     section("inheritance verdicts (bit 15 cleared to reach past COMPRESSED)");
 
-    //  enabled, XRGB_8888 (icl field 4 -> bit 25), Tile Y, decomp clear.
+    //  enabled, XRGB_2101010 (code 2 -> bit 25, still 4 bpp), Tile Y, decomp
+    //  clear. CORRECTED 2026-11-01 (t-a7929c): this said XRGB_8888, which is
+    //  code 4 at bit 26.
     const IGFB32 ok = 0x82001000u;
 
     checkU32("the synthetic base decodes to bpp 4",

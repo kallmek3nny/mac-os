@@ -296,20 +296,54 @@
 			     conflict, because IOMatchCategory below puts them in separate
 			     categories and IOKit will attach both.
 
-			     IOMatchCategory is the load bearing key here and neither of the
-			     other two personalities needs it. Without it IOKit treats the
-			     provider's default category as exclusive, so exactly ONE of the
-			     two Intel personalities attaches and which one wins is decided
-			     by probe score. That failure is invisible in the way this
-			     project cares about: the kext loads, one driver appears in
-			     the IORegistry, and the missing one looks like a broken probe()
-			     rather than a plist that never offered it a slot.
+			     IOMatchCategory is the load bearing key here. FB-3 puts this
+			     personality in IOFramebuffer, the category the generic boot
+			     framebuffer already holds on the IGPU, so the two compete for one
+			     slot instead of both attaching. Before FB-3 it sat in a private
+			     IntelFbPresentProbe category, which IOKit fills independently of
+			     IOFramebuffer, so both framebuffers attached over the same pixels.
+			     Citations are apple-oss-distributions main as fetched 2026-11-01.
 
-			     The score is below IntelDisplayProbe's on purpose. This class
-			     ADOPTS a scanout rather than describing registers, so if only
-			     one Intel driver can ever attach on a given machine the read
-			     only reporter is the one worth having. It still exceeds
-			     IOPCIFamily's generic score of 0.
+			     The generic driver is IONDRVFramebuffer. IOGraphics
+			     Info-IONDRVSupport.plist:27-73 gives it three personalities, all with
+			     IOMatchCategory IOFramebuffer. Personality 3 (:59-73) takes any
+			     IOPCIDevice of PCI class 0x03 (IOPCIClassMatch 0x03000000 masked by
+			     0xff000000) at IOProbeScore 0. Personality 1 (:29-43) takes an
+			     IOPCIDevice whose name matches display (IONameMatch) at IOProbeScore
+			     20000. IONDRVFramebuffer::probe (IONDRVFramebuffer.cpp:248-273) only
+			     refuses on the IONDRV ignore property and does not set the score
+			     itself. So the bar to clear is 20000, not IOPCIFamily's 0.
+
+			     xnu iokit/Kernel/IOService.cpp, probeCandidates():
+			     :3947-3951 files a personality under its IOMatchCategory, or under
+			     the default category when it has none. :4128-4145 keeps one start
+			     list per category, ordered by IOProbeScore. :4182-4233 starts the
+			     highest score in each category first and calls startCandidate()
+			     only while started is false, so if this class's start() returns
+			     false the next candidate, IONDRVFramebuffer, is started and the
+			     panel stays on the generic driver.
+
+			     When this kext is loaded after boot, IONDRVFramebuffer already holds
+			     the category. :3952-3966 skips a personality whose category is taken
+			     unless the holder was matched at boot and the newcomer was not. In
+			     that case :3980-3984 terminates the boot driver with rematch if
+			     canTerminateForReplacement() allows it, and the rematch runs the
+			     ordered start above. If it does not allow it, :3987-3993 skips this
+			     personality and the boot driver keeps the panel: still one
+			     framebuffer, not two.
+
+			     It never allows it for IONDRVFramebuffer. canTerminateForReplacement()
+			     (:5452-5477) returns false unless the holder carries the
+			     IOPrimaryDriverTerminateOptions property, and no IONDRVSupport
+			     personality (Info-IONDRVSupport.plist:27-73), IONDRVFramebuffer.cpp
+			     or IOGraphicsFamily source sets it. It also returns false once IOKit
+			     stops hiding IOMedia (:5376-5377). So the score contest above happens
+			     only when both personalities are in the catalogue as the IGPU nub is
+			     first matched, which means this kext is in the primary (boot) kernel
+			     collection. IOCatalogue::personalityIsBoot() treats the auxiliary
+			     collection that kextload and kmutil load use as not boot (:3945), and
+			     from there this personality is skipped and IONDRVFramebuffer keeps
+			     the panel.
 
 			     Do not write a double hyphen anywhere in this comment. XML
 			     forbids it inside comments, and plutil/plistlib reject the
@@ -317,15 +351,14 @@
 			<key>IOPCIMatch</key>
 			<string>0x9a688086</string>
 			<key>IOMatchCategory</key>
-			<string>IntelFbPresentProbe</string>
+			<string>IOFramebuffer</string>
 			<key>IOProbeScore</key>
-			<integer>900</integer>
-			<!-- IntelDisplayProbe carries a matching IOMatchCategory of its own.
-			     Both are required: a category is a property of the personality
-			     that declares it, so setting it on ONE of two personalities
-			     sharing a provider leaves the other in the provider's default
-			     category and back in the exclusive slot this key exists to
-			     escape. One sided is the shape that reads as fixed and is not. -->
+			<integer>30000</integer>
+			<!-- 30000 clears IONDRVFramebuffer's 20000 with margin. A probe()
+			     override added to IntelFbPresentProbe.cpp must leave the score above
+			     20000 or the generic driver starts first. IntelDisplayProbe keeps its
+			     own IOMatchCategory, so it is not in this contest and IOKit fills its
+			     slot independently. -->
 		</dict>
 	</dict>
 	<key>OSBundleRequired</key>

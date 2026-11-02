@@ -131,20 +131,32 @@
 #define IG_PRESENT_REFRESH_UNMEASURED   0x003C0000u
 
 //
-//  The two BAR indices this class uses, and they are DIFFERENT BARs.
+//  The two BARs this class uses, named by CONFIG-SPACE REGISTER, and they are
+//  DIFFERENT BARs.
+//
+//  By register, not by index. getDeviceMemoryWithIndex() counts entries in the
+//  provider's device-memory list, and a 64-bit BAR spans two config registers
+//  but occupies ONE entry. On 8086:9a68 BAR0 (GTTMMADR, config 0x10) and BAR2
+//  (GMADR, config 0x18) are both 64-bit, so the aperture is entry 1, and entry
+//  2 -- what this file used to ask for as "the aperture" -- is most likely the
+//  I/O BAR or nothing, which left igPresentVerdict() judging the surface
+//  against the wrong length. getDeviceMemoryWithRegister() is the lookup
+//  IOPCIDevice.h documents for this: it returns "the physical memory range that
+//  was assigned to the configuration space base address register passed in",
+//  so no list order is assumed anywhere.
 //
 //  BAR0 is the MMIO register window the four plane words are read out of --
 //  spelled here rather than taken from IntelDisplayProbe.hpp for that file's own
-//  stated reason: a BAR index shared between classes is exactly the kind of
+//  stated reason: a BAR name shared between classes is exactly the kind of
 //  constant that reads as correct while naming the wrong aperture.
 //
-//  BAR2 is the graphics-memory aperture the scanout surface itself lives in, and
-//  it is what getApertureRange() hands IOKit. Its LENGTH is the one input
-//  igPresentVerdict() cannot derive from the plane words, which is why this class
-//  needs it at all -- it never maps it.
+//  BAR2 is the graphics-memory aperture the scanout surface itself lives in.
+//  Its LENGTH is the one input igPresentVerdict() cannot derive from the plane
+//  words, and the SLICE of it the surface occupies is what getApertureRange()
+//  hands IOKit -- see sliceScanout(). This class never maps it.
 //
-#define IG_PRESENT_BAR0_INDEX       0
-#define IG_PRESENT_APERTURE_INDEX   2
+#define IG_PRESENT_BAR0_REGISTER        kIOPCIConfigBaseAddress0
+#define IG_PRESENT_APERTURE_REGISTER    kIOPCIConfigBaseAddress2
 
 //
 //  Same warning threshold IntelDisplayProbe.hpp carries, and a warning for the
@@ -153,6 +165,19 @@
 //  the warning acquires a consequence.
 //
 #define IG_PRESENT_BAR0_EXPECTED    0x00080000u
+
+//
+//  The one display connection this class answers for.
+//
+//  Index 0, because there is one: IOFramebuffer::getConnectionCount() returns 1
+//  (IOFramebuffer.cpp:12927-12932), this class does not override it, and
+//  IOFramebuffer asks its own connection questions of index 0
+//  (IOFramebuffer.cpp:7682, :7779). getAttributeForConnection() compares against
+//  this rather than answering for whatever index it is handed. Plain 0, not 0u:
+//  IOIndex is SInt32 in Apple's header and UInt32 in the shim, and an unsigned
+//  literal against the signed one is a -Wsign-compare failure under -Werror.
+//
+#define IG_PRESENT_CONNECTION_INDEX 0
 
 class IntelFbPresentProbe : public IOFramebuffer
 {
@@ -188,6 +213,71 @@ public:
                                            IOIndex depth) APPLE_KEXT_OVERRIDE;
     virtual IOReturn        enableController(void) APPLE_KEXT_OVERRIDE;
     virtual bool            isConsoleDevice(void) APPLE_KEXT_OVERRIDE;
+
+    //
+    //  FB-2: what IOFramebuffer and IODisplay ask before they treat the panel as
+    //  an online built-in display, and which of those questions this class has
+    //  to answer itself.
+    //
+    //  Line numbers are of apple-oss-distributions/IOGraphics at main, fetched
+    //  2026-11-01: IOGraphicsFamily/IOFramebuffer.cpp, IOGraphicsFamily/
+    //  IODisplay.cpp, and IOFramebuffer.h and IOGraphicsTypes.h under
+    //  IOGraphicsFamily/IOKit/graphics/. main moves; a citation that no longer
+    //  lands is a refetch, not a guess.
+    //
+    //  OVERRIDDEN, because the base answer is wrong for this panel:
+    //
+    //    getAttributeForConnection()
+    //      kConnectionCheckEnable -- IOFramebuffer.cpp:7778-7788 decides
+    //        online-ness as (!dead && (err != success || connectEnabled)). The
+    //        base answers it by asking kConnectionEnable (:13325-13331), which the
+    //        base has no arm for (:13340-13342), so before FB-2 the panel was
+    //        online only by way of an ERROR. Answered here: success, enabled.
+    //      kConnectionEnable -- the same answer, for the same reason.
+    //      kConnectionFlags -- IODisplay.cpp:562-567 publishes the value as
+    //        kIODisplayConnectFlagsKey. Answered kIOConnectionBuiltIn
+    //        (IOGraphicsTypes.h:1094-1096): the panel is the laptop's own eDP.
+    //      kConnectionSupportsHLDDCSense -- REFUSED. IODisplay.cpp:862-867 stops
+    //        at this refusal, before hasDDCConnect() and getDDCBlock(). This
+    //        class has no DDC/EDID path (IOFramebuffer.h:786, :906).
+    //      kConnectionSupportsLLDDCSense -- REFUSED explicitly, because
+    //        IOFramebuffer.cpp:9290-9294 sets the base's lli2c from it, and lli2c
+    //        is both what the base hasDDCConnect() returns (:13504-13510) and
+    //        what turns the base's HLDDCSense into a success (:13333-13338).
+    //      every other attribute -- the base's answer, as before FB-2.
+    //
+    //    getTimingInfoForDisplayMode()
+    //      The base returns kIOReturnUnsupported (IOFramebuffer.cpp:12901-12908)
+    //      and IOFramebuffer.h:735 says a non-success return "will prevent the
+    //      system from using the device". Answered success with appleTimingID
+    //      kIOTimingIDInvalid and kIODetailedTimingValid CLEARED -- exactly what
+    //      IOFramebuffer.h:732-733 prescribes for a mode with no Apple timing
+    //      constant and no detailed timing. No detailed timing is reported until
+    //      DISP-1 decodes one from the captures.
+    //
+    //  NOT OVERRIDDEN, because the base answer is already right or unused:
+    //
+    //    getConnectionCount()    -- the base returns 1 (IOFramebuffer.cpp
+    //                               :12927-12932). There is one panel.
+    //    getStartupDisplayMode() -- no call site in IOFramebuffer.cpp or
+    //                               IODisplay.cpp. Its only hits are the
+    //                               declaration (IOFramebuffer.h:673) and the
+    //                               base body (IOFramebuffer.cpp:12861-12867).
+    //    hasDDCConnect()         -- the base returns lli2c, false because
+    //                               LLDDCSense is refused; and IODisplay.cpp
+    //                               :869-871 is never reached because HLDDCSense
+    //                               is refused.
+    //    getAttribute(kIOPowerAttribute) -- no call site in either file. The
+    //                               power path calls setAttribute(
+    //                               kIOPowerAttribute) instead
+    //                               (IOFramebuffer.cpp:11779-11781), which FB-2
+    //                               did not examine and leaves to the base.
+    //
+    virtual IOReturn        getAttributeForConnection(IOIndex connectIndex,
+                                                      IOSelect attribute,
+                                                      uintptr_t *value) APPLE_KEXT_OVERRIDE;
+    virtual IOReturn        getTimingInfoForDisplayMode(IODisplayModeID displayMode,
+                                                        IOTimingInformation *info) APPLE_KEXT_OVERRIDE;
 
 private:
     IOPCIDevice        *fPCIDevice;
@@ -253,6 +343,7 @@ private:
     bool     mapBar0(void);
     void     unmapBar0(void);
     bool     describeAperture(void);
+    bool     sliceScanout(void);
     UInt32   regRead32(UInt32 offset);
 
     bool     samplePlane(void);

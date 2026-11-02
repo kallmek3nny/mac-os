@@ -155,9 +155,12 @@ static inline IGFB32 igPlaneBuildLinear(IGFB32 baseCtl, IGFB32 format,
     if (!igFbSurfaceRangeOk(surf, strideBytes * height))
         return IG_PLANE_BAD_SURF_RANGE;
 
+    //  igFbFormatCtlBits() puts the 4-bit code at bit 24 with bit 23 clear.
+    //  The old (format << IG_FB_CTL_FORMAT_SHIFT) wrote XRGB_8888 as
+    //  XRGB_2101010 and RGB_565 as P016 (t-a7929c).
     out->ctl = (baseCtl & ~IG_PLANE_CTL_OWNED_MASK)
                | IG_FB_CTL_ENABLE
-               | (format << IG_FB_CTL_FORMAT_SHIFT)
+               | igFbFormatCtlBits(format)
                | (IG_FB_TILING_LINEAR << IG_FB_CTL_TILING_SHIFT);
     out->stride = stride;
     out->pos    = igPlaneEncodePos(0u, 0u);
