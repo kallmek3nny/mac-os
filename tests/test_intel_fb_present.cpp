@@ -74,7 +74,7 @@ static void checkInt(const char *label, int got, int want)
 }
 
 //
-//  ONE GOOD GROUP, spelled as bare literals and used by most sections below.
+//  ONE LINEAR GROUP, spelled as bare literals and used by most sections below.
 //
 //  THE CAPTURED WORD CANNOT BE THE ACCEPT-PATH INPUT, AND THAT IS A FACT ABOUT
 //  THE SILICON RATHER THAN A CONVENIENCE.
@@ -83,26 +83,21 @@ static void checkInt(const char *label, int got, int want)
 //  of that word is SET. Bit 15 is PLANE_CTL_RENDER_DECOMP, so igFbInheritable()
 //  returns COMPRESSED at its second arm and never reaches format, stride or
 //  geometry -- tests/test_intel_framebuffer.cpp says so in its own header, and
-//  this suite's first draft ignored it and composed a "good" group out of the
-//  captured word. Every accept-path check then reported verdict 2.
+//  this suite's first draft ignored it and composed an acceptable group out of
+//  the captured word. Every accept-path check then reported verdict 2.
 //
-//  So the accept group is COMPOSED, and it is composed by clearing exactly one
-//  bit of the observed word:
+//  The captured word is also Y-tiled (tiling field 12:10 = 4). The accept fixture
+//  is therefore COMPOSED by clearing the render-compression bit and the Y-tiling
+//  bit:
 //
-//      0x82009000 & ~0x00008000 = 0x82001000
+//      0x82009000 & ~0x00009000 = 0x82000000
 //
-//  Enabled (bit 31), tiling field (bits 12:10) = 4 = Y-tiled, unchanged from
-//  the capture; format field (bits 27:23) = 4, which is code 2 = XRGB_2101010;
-//  compression cleared.
+//  Enabled (bit 31), tiling field (bits 12:10) = 0 = linear, format field
+//  (bits 27:23) = 4, which is code 2 = XRGB_2101010; compression cleared.
 //
-//  CORRECTED 2026-11-01 (t-a7929c). This said tiling code 1 = X-tiled and
-//  format 4 = XRGB_8888. 0x9000 has bit 12 set and bits 11:10 clear, so the
-//  tiling field is 4, which test_intel_framebuffer.cpp pins as Y. The format
-//  codes are 4-bit at bit 24 (reference/i915/skl_universal_plane_regs.h:43-60),
-//  so 5-bit field 4 is code 2, and XRGB_8888 is field 8.
-//  Naming the derivation matters more than the value: this is the observed word
-//  MINUS one bit, not a number invented to make a line go green, and the one bit
-//  removed is named.
+//  The format codes are 4-bit at bit 24 (reference/i915/
+//  skl_universal_plane_regs.h:43-60), so 5-bit field 4 is code 2, and
+//  XRGB_8888 is field 8. The captured word remains separately pinned below.
 //
 //  The geometry is 1280x800 rather than the captured 1920x1080 on purpose, and it
 //  must not be "fixed": handoff16 SS4 records why. A test raster equal to the
@@ -123,7 +118,7 @@ static void checkInt(const char *label, int got, int want)
 //      64 * 128 = 8192 bytes, and 8192 >= 1280 * 4 = 5120, with padding left over
 //      so stride-vs-visible-width is a real distinction rather than an equality.
 //
-#define GOOD_CTL        0x82001000u   // observed 0x82009000 with bit 15 cleared
+#define GOOD_CTL        0x82000000u   // observed word with compression and Y tiling cleared
 #define GOOD_SIZE       0x031F04FFu   // height 799+1=800, width 1279+1=1280
 #define GOOD_STRIDE     0x00000040u   // 64 * 128 = 8192 bytes, >= 1280 * 4
 #define GOOD_SURF       0x00100000u   // 1 MiB in, 4 KiB aligned
@@ -131,8 +126,7 @@ static void checkInt(const char *label, int got, int want)
 
 //
 //  The observed word itself, kept as its own literal and asserted in section 4b
-//  to be exactly one bit away from GOOD_CTL and to refuse as COMPRESSED. Without
-//  that pair the derivation above is prose, and prose is what went wrong here.
+//  to differ from the linear fixture only by its compression and Y-tiling bits.
 //
 #define OBSERVED_CTL    0x82009000u
 
@@ -237,11 +231,11 @@ static void testSentinelsAgree(void)
 }
 
 //
-//  4. The accept path, over a PLANE_CTL word witnessed on silicon.
+//  4. The synthetic linear accept path, based on a PLANE_CTL word witnessed on silicon.
 //
 static void testAcceptPath(void)
 {
-    section("4. the accept path, over a captured PLANE_CTL word");
+    section("4. the synthetic linear accept path, based on a captured PLANE_CTL word");
 
     //  CORRECTED 2026-11-01 (t-a7929c). GOOD_CTL's 5-bit field (27:23) is 4, but
     //  the codes are 4-bit and sit at bit 24 (reference/i915/
@@ -303,29 +297,30 @@ static void testAcceptPath(void)
     checkU32("blue mask is 10-bit XRGB",  b, 0x000003FFu);
 
     //
-    //  4b. THE ACCEPT WORD IS THE OBSERVED WORD MINUS ONE NAMED BIT.
+    //  4b. THE ACCEPT FIXTURE CLEARS THE OBSERVED COMPRESSION AND Y-TILING BITS.
     //
-    //  Everything above runs over GOOD_CTL, which is COMPOSED. The fixture comment
-    //  says it is 0x82009000 with bit 15 cleared, and a comment saying that is
-    //  exactly what this suite's first draft had while being wrong -- it claimed
-    //  the captured word was uncompressed and composed an accept path that could
-    //  never accept.
+    //  Everything above runs over GOOD_CTL, which is COMPOSED from the observed
+    //  word by clearing bit 15 (render compression) and bit 12 (Y tiling). The
+    //  capture itself is not a valid linear accept-path input.
     //
-    //  So the relation is pinned rather than described. Three claims, and each one
-    //  fails separately:
+    //  Pin the relationship and each relevant field separately:
     //
-    //    - the two words differ in exactly one bit, and it is bit 15
+    //    - the two words differ in exactly bits 15 and 12
     //    - the observed word REFUSES, and specifically as NOT_INHERITABLE
     //    - the observed word is otherwise identical, i.e. it still decodes to the
     //      same format, so the clearing did not quietly change the subject
     //
-    //  Without the third, clearing an arbitrary bit that happened to yield an
-    //  inheritable word would satisfy the first two.
+    //  Without the field checks, clearing arbitrary bits could accidentally make
+    //  a fixture look acceptable without representing a linear surface.
     //
-    checkU32("observed word is the accept word plus bit 15",
-             OBSERVED_CTL, GOOD_CTL | 0x00008000u);
-    checkU32("the two words differ in exactly bit 15",
-             OBSERVED_CTL ^ GOOD_CTL, 0x00008000u);
+    checkU32("observed word is the linear fixture plus compression and Y tiling",
+             OBSERVED_CTL, GOOD_CTL | 0x00009000u);
+    checkU32("the words differ in render compression and Y tiling bits",
+             OBSERVED_CTL ^ GOOD_CTL, 0x00009000u);
+    checkU32("the linear fixture has linear tiling",
+             igFbTiling(GOOD_CTL), IG_FB_TILING_LINEAR);
+    checkU32("the observed word has Y tiling",
+             igFbTiling(OBSERVED_CTL), IG_FB_TILING_Y);
     checkU32("the observed word still decodes to XRGB_2101010",
              igFbFormat(OBSERVED_CTL), 2u);
     checkU32("the observed word is refused as NOT_INHERITABLE",
