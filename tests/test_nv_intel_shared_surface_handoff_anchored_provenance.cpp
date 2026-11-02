@@ -11,7 +11,7 @@ static constexpr NVIntelHandoffU64 kHandoffEpoch = 0x1111222233334444ull;
 static constexpr NVIntelHandoffU64 kCopyToken = 0x2222333344445555ull;
 static constexpr NVIntelHandoffU64 kIntelToken = 0x3333444455556666ull;
 
-static void check(bool cond, const char *what)
+static void checkTrue(bool cond, const char *what)
 {
     ++gChecks;
     if (!cond) {
@@ -64,7 +64,7 @@ static NvIntelSharedCopyLifetimePlan copyPlan(
     const NvIntelSharedCopyProgress &progress)
 {
     NvIntelSharedCopyLifetimePlan out = {};
-    check(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
+    checkTrue(nvIntelSharedCopyLifetimePlan(progress, &out) == NV_INTEL_COPY_OK,
           "copy helper builds valid lifetime plan");
     return out;
 }
@@ -73,7 +73,7 @@ static NvIntelSharedCopyTransactionAnchor copyAnchor()
 {
     const auto p = copyBeforeEvidence();
     NvIntelSharedCopyTransactionAnchor out = {};
-    check(nvIntelBuildSharedCopyTransactionAnchor(
+    checkTrue(nvIntelBuildSharedCopyTransactionAnchor(
               &p, kHandoffEpoch, kCopyToken, &out) ==
               NV_INTEL_ANCHORED_PROVENANCE_OK,
           "copy helper mints pre-evidence anchor");
@@ -121,7 +121,7 @@ static IgDisplayTransactionProvenanceAnchor intelAnchor(
 {
     const auto display = armedDisplay();
     IgDisplayTransactionProvenanceAnchor out = {};
-    check(nvIntelBuildDisplayTransactionProvenanceAnchor(
+    checkTrue(nvIntelBuildDisplayTransactionProvenanceAnchor(
               &display, epoch, kIntelToken, &out) ==
               NV_INTEL_ANCHORED_PROVENANCE_OK,
           "intel helper mints pre-evidence anchor");
@@ -163,14 +163,14 @@ static void testAnchorsOnlyMintBeforeEvidence()
 
     auto copy = retiredCopyProgress();
     NvIntelSharedCopyTransactionAnchor copyOut = {};
-    check(nvIntelBuildSharedCopyTransactionAnchor(
+    checkTrue(nvIntelBuildSharedCopyTransactionAnchor(
               &copy, kHandoffEpoch, kCopyToken, &copyOut) ==
               NV_INTEL_ANCHORED_PROVENANCE_ERR_COPY_ANCHOR,
           "copy anchor cannot be minted after completion observation starts");
 
     auto display = liveDisplay();
     IgDisplayTransactionProvenanceAnchor displayOut = {};
-    check(nvIntelBuildDisplayTransactionProvenanceAnchor(
+    checkTrue(nvIntelBuildDisplayTransactionProvenanceAnchor(
               &display, kHandoffEpoch, kIntelToken, &displayOut) ==
               NV_INTEL_ANCHORED_PROVENANCE_ERR_DISPLAY_ANCHOR,
           "display anchor cannot be minted from retirement evidence");
@@ -186,22 +186,22 @@ static void testExactCopyEvidenceUsesPreEvidenceAnchor()
     const auto anchored = exactCopyProvenance();
     NvIntelSharedSurfaceAnchoredProvenancePlan out = {};
 
-    check(nvIntelSharedSurfaceAnchoredProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceAnchoredProvenancePlan(
               &progress, &plan, &handoff, nullptr, &anchored, &out) ==
               NV_INTEL_ANCHORED_PROVENANCE_OK,
           "exact anchored copy evidence accepted");
-    check(out.valid && out.copyTransactionAnchorRequired &&
+    checkTrue(out.valid && out.copyTransactionAnchorRequired &&
               out.copyTransactionAnchorVerified,
           "copy transaction anchor is required and verified");
-    check(!out.intelDisplayAnchorRequired &&
+    checkTrue(!out.intelDisplayAnchorRequired &&
               !out.intelDisplayAnchorVerified,
           "intel anchor is not invented before display activity");
-    check(!out.provenance.provenanceUncertain,
+    checkTrue(!out.provenance.provenanceUncertain,
           "exact pre-evidence binding remains certain");
-    check(out.provenance.handoff.copyRetirementProven &&
+    checkTrue(out.provenance.handoff.copyRetirementProven &&
               out.provenance.handoff.intelHandoffAuthorized,
           "anchored nvidia retirement opens intel handoff");
-    check(!out.runtimeWriteAuthorized &&
+    checkTrue(!out.runtimeWriteAuthorized &&
               !out.provenance.runtimeWriteAuthorized &&
               !out.provenance.handoff.runtimeWriteAuthorized,
           "anchored planner never authorizes runtime writes");
@@ -220,11 +220,11 @@ static void testStaleCopyEvidenceRefusesAtomically()
     NvIntelSharedSurfaceAnchoredProvenancePlan out = {};
     poison(&out);
     const auto before = out;
-    check(nvIntelSharedSurfaceAnchoredProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceAnchoredProvenancePlan(
               &progress, &plan, &handoff, nullptr, &anchored, &out) ==
               NV_INTEL_ANCHORED_PROVENANCE_ERR_EVIDENCE,
           "stale copy token is refused against earlier anchor");
-    check(sameBytes(out, before),
+    checkTrue(sameBytes(out, before),
           "copy replay refusal leaves output untouched");
 }
 
@@ -243,11 +243,11 @@ static void testChangedCopyTransactionCannotReuseAnchor()
     NvIntelSharedSurfaceAnchoredProvenancePlan out = {};
     poison(&out);
     const auto before = out;
-    check(nvIntelSharedSurfaceAnchoredProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceAnchoredProvenancePlan(
               &progress, &plan, &handoff, nullptr, &anchored, &out) ==
               NV_INTEL_ANCHORED_PROVENANCE_ERR_COPY_ANCHOR,
           "changed tracking target is not the anchored copy transaction");
-    check(sameBytes(out, before),
+    checkTrue(sameBytes(out, before),
           "copy-anchor mismatch leaves output untouched");
 }
 
@@ -262,19 +262,19 @@ static void testMissingCopyEvidenceQuarantines()
     anchored.copyCompletionEvidence = {};
     NvIntelSharedSurfaceAnchoredProvenancePlan out = {};
 
-    check(nvIntelSharedSurfaceAnchoredProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceAnchoredProvenancePlan(
               &progress, &plan, &handoff, nullptr, &anchored, &out) ==
               NV_INTEL_ANCHORED_PROVENANCE_OK,
           "missing completion provenance is accepted only as quarantine");
-    check(out.provenance.provenanceUncertain &&
+    checkTrue(out.provenance.provenanceUncertain &&
               out.provenance.handoff.lifetimeUncertain &&
               out.provenance.handoff.phase ==
                   NV_INTEL_HANDOFF_PHASE_UNCERTAIN_QUARANTINE,
           "missing evidence cannot inherit certainty from the anchor");
-    check(!out.provenance.handoff.copyRetirementProven &&
+    checkTrue(!out.provenance.handoff.copyRetirementProven &&
               !out.provenance.handoff.intelHandoffAuthorized,
           "missing evidence cannot retire nvidia ownership");
-    check(out.provenance.handoff.sharedBackingMustRemainPinned &&
+    checkTrue(out.provenance.handoff.sharedBackingMustRemainPinned &&
               !out.provenance.handoff.sharedBackingReleaseAuthorized,
           "uncertainty retains shared backing");
 }
@@ -290,13 +290,13 @@ static void testExactIntelEvidenceUsesPreRetirementAnchor()
     const auto anchored = exactFullProvenance();
     NvIntelSharedSurfaceAnchoredProvenancePlan out = {};
 
-    check(nvIntelSharedSurfaceAnchoredProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceAnchoredProvenancePlan(
               &progress, &plan, &handoff, &display, &anchored, &out) ==
               NV_INTEL_ANCHORED_PROVENANCE_OK,
           "exact anchored display evidence accepted");
-    check(out.intelDisplayAnchorRequired && out.intelDisplayAnchorVerified,
+    checkTrue(out.intelDisplayAnchorRequired && out.intelDisplayAnchorVerified,
           "active display transaction requires its pre-evidence anchor");
-    check(!out.provenance.provenanceUncertain &&
+    checkTrue(!out.provenance.provenanceUncertain &&
               out.provenance.handoff.phase ==
                   NV_INTEL_HANDOFF_PHASE_INTEL_DISPLAY_LIVE &&
               out.provenance.handoff.intelSurfaceIsLiveScanout,
@@ -317,11 +317,11 @@ static void testStaleIntelEvidenceRefusesAtomically()
     NvIntelSharedSurfaceAnchoredProvenancePlan out = {};
     poison(&out);
     const auto before = out;
-    check(nvIntelSharedSurfaceAnchoredProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceAnchoredProvenancePlan(
               &progress, &plan, &handoff, &display, &anchored, &out) ==
               NV_INTEL_ANCHORED_PROVENANCE_ERR_EVIDENCE,
           "stale display token is refused against earlier anchor");
-    check(sameBytes(out, before),
+    checkTrue(sameBytes(out, before),
           "display replay refusal leaves output untouched");
 }
 
@@ -341,11 +341,11 @@ static void testCrossGpuRootEpochMustAgree()
     NvIntelSharedSurfaceAnchoredProvenancePlan out = {};
     poison(&out);
     const auto before = out;
-    check(nvIntelSharedSurfaceAnchoredProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceAnchoredProvenancePlan(
               &progress, &plan, &handoff, &display, &anchored, &out) ==
               NV_INTEL_ANCHORED_PROVENANCE_ERR_ROOT_IDENTITY,
           "different gpu anchor epochs cannot form one handoff");
-    check(sameBytes(out, before),
+    checkTrue(sameBytes(out, before),
           "root-identity refusal leaves output untouched");
 }
 
@@ -362,11 +362,11 @@ static void testCopyPlanMustMatchRecomputedProgress()
     NvIntelSharedSurfaceAnchoredProvenancePlan out = {};
     poison(&out);
     const auto before = out;
-    check(nvIntelSharedSurfaceAnchoredProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceAnchoredProvenancePlan(
               &progress, &plan, &handoff, nullptr, &anchored, &out) ==
               NV_INTEL_ANCHORED_PROVENANCE_ERR_COPY_PLAN,
           "forged copy lifetime output is refused");
-    check(sameBytes(out, before),
+    checkTrue(sameBytes(out, before),
           "copy-plan mismatch leaves output untouched");
 }
 
@@ -382,6 +382,6 @@ int main()
     testCrossGpuRootEpochMustAgree();
     testCopyPlanMustMatchRecomputedProgress();
 
-    std::printf("%u checks, %u failures\n", gChecks, gFailures);
-    return gFailures == 0u ? 0 : 1;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }

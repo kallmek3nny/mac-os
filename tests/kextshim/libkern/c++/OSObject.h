@@ -27,6 +27,22 @@ public:
     virtual bool init() { return true; }
     virtual void free() {}
     virtual const char *getMetaClassName() const { return "OSObject"; }
+
+    // Added for t-fccff1. IntelGtBringup.cpp, IntelGtSurfaceStageService.cpp
+    // and IntelSinkCandidateService.cpp ask a registry entry whether it is an
+    // accelerator by class-name string: entry->metaCast("IOAccelerator").
+    // Apple declares four overloads on OSMetaClassBase, in
+    // step7-results/apple-headers/libkern/c++/OSMetaClass.h:
+    //   704: OSMetaClassBase * metaCast(const OSMetaClass * toMeta) const;
+    //   724: OSMetaClassBase * metaCast(const OSSymbol * toMeta) const;
+    //   743: OSMetaClassBase * metaCast(const OSString * toMeta) const;
+    //   762: OSMetaClassBase * metaCast(const char * toMeta) const;
+    // NARROWER: only the const char * overload, the one those call sites use.
+    // FLATTER: declared on OSObject, because this shim's OSObject does not
+    // derive from OSMetaClassBase. The return type is Apple's, so a caller that
+    // uses the result as an OSObject * without a cast still fails here, as it
+    // would on macOS.
+    OSMetaClassBase *metaCast(const char *toMeta) const;
 };
 
 class OSString : public OSObject {

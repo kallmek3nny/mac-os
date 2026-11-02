@@ -153,6 +153,58 @@ static inline int igPresentSampleRefused(IGPR32 ctl,
 }
 
 //
+//  Is the plane plain linear pixels? (FB-5, t-9348aa)
+//
+//  igFbInheritable() refuses a disabled plane, render compression (bit 15), a
+//  format this tree does not name, a bad stride and a 1x1 page. It never reads
+//  the four PLANE_CTL fields below, and each of them puts pixel (x, y)
+//  somewhere a linear description does not point:
+//
+//      field                                 bits   non-zero means
+//      PLANE_CTL_TILED_MASK                  12:10  X, Y or Yf/Tile4 tiled
+//      PLANE_CTL_FLIP_HORIZONTAL             8      rows scan right to left
+//      PLANE_CTL_MEDIA_DECOMPRESSION_ENABLE  4      media-compressed (TGL+)
+//      PLANE_CTL_ROTATE_MASK                 1:0    rotated 90, 180 or 270
+//
+//  Source: reference/i915/skl_universal_plane_regs.h:83-100. Bit 4 means media
+//  decompression only on TGL and later; before GLK, bits 5:4 were the alpha
+//  mode. This file presents Gen12 planes, so bit 4 has its TGL meaning here.
+//
+//  The answer has to come from the live word. The 2026-08-16 Linux capture,
+//  0x82009000, is Tile Y (bits 12:10 = 4) with render compression on, and the
+//  plane macOS inherits need not match it. Before this check, a Tile-Y plane
+//  with bit 15 clear passed every test in this file, and GT-1's linear BCS0
+//  fill would then have written linear rows into a tiled surface.
+//
+//  Tiling is read through igFbTiling() and IG_FB_TILING_LINEAR, which
+//  IntelFramebuffer.hpp already owns. The other three fields have no decoder
+//  there yet, and that file is calm-seal-8e's uncommitted t-a7929c work, so
+//  their masks are spelled here for now. That is an exception to "WHAT THIS
+//  FILE DOES NOT DECIDE" above. They belong in IntelFramebuffer.hpp beside
+//  IG_FB_CTL_RENDER_DECOMP, and should move there once that file is free.
+//
+//  A plane refused here gets IG_PRESENT_ERR_NOT_INHERITABLE, the same verdict
+//  igFbInheritable() produces. Step 2 of THE JOIN gives "not a linear layout"
+//  to that verdict, so there is no new verdict number, name arm or limit.
+//
+#define IG_PRESENT_CTL_FLIP_HORIZONTAL  0x00000100u  // REG_BIT(8), :90
+#define IG_PRESENT_CTL_MEDIA_DECOMP     0x00000010u  // REG_BIT(4) TGL+, :91
+#define IG_PRESENT_CTL_ROTATE_MASK      0x00000003u  // REG_GENMASK(1, 0), :96
+
+static inline int igPresentLinearLayout(IGPR32 ctl)
+{
+    if (igFbTiling(ctl) != IG_FB_TILING_LINEAR)
+        return 0;
+    if ((ctl & IG_PRESENT_CTL_FLIP_HORIZONTAL) != 0u)
+        return 0;
+    if ((ctl & IG_PRESENT_CTL_MEDIA_DECOMP) != 0u)
+        return 0;
+    if ((ctl & IG_PRESENT_CTL_ROTATE_MASK) != 0u)
+        return 0;
+    return 1;
+}
+
+//
 //  THE JOIN
 //  --------
 //  One verdict over the whole description, not a flag per field, for
@@ -169,11 +221,15 @@ static inline int igPresentSampleRefused(IGPR32 ctl,
 //     has IG_FB_CTL_ENABLE set, so an inheritable-first order reports a plane
 //     nobody read as an ENABLED plane and then decodes a format out of it.
 //
-//  2. NOT_INHERITABLE before the scanout. igFbInheritable() is what decides the
-//     plane is a layout this driver understands at all -- linear, uncompressed,
-//     enabled, and a format this tree names. Every scanout number is a property OF
-//     such a plane; a tiled surface has a stride that means something else
-//     entirely, so describing its extent is arithmetic over a misread word.
+//  2. NOT_INHERITABLE before the scanout. igFbInheritable() and
+//     igPresentLinearLayout() together decide the plane is a layout this
+//     driver understands at all: enabled, uncompressed (render or media),
+//     linear, unflipped, unrotated, and a format this tree names. Until FB-5
+//     only igFbInheritable() ran here, and it never reads the tiling field, so
+//     this step promised "linear" without checking it. Every scanout number is
+//     a property OF such a plane; a tiled surface has a stride that means
+//     something else entirely, so describing its extent is arithmetic over a
+//     misread word.
 //
 //  3. SCANOUT before PIXEL, and this is the one ordering choice worth arguing
 //     about, because both orders "work". A scanout refusal is a bug in THIS
@@ -200,6 +256,9 @@ static inline IGPR32 igPresentVerdict(IGPR32 ctl,
         return IG_PRESENT_ERR_SAMPLE_REFUSED;
 
     if (igFbInheritable(ctl, stride, size) != IG_FB_INHERIT_OK)
+        return IG_PRESENT_ERR_NOT_INHERITABLE;
+
+    if (!igPresentLinearLayout(ctl))
         return IG_PRESENT_ERR_NOT_INHERITABLE;
 
     format = igFbFormat(ctl);

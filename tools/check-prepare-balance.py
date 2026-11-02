@@ -96,6 +96,63 @@ IDENT = r"[A-Za-z_]\w*"
 # unmapBar0() as an unreleased acquire. Listing the omission is the point: the
 # next person to wonder why it is missing should not have to re-derive it.
 #
+# What earns a row (t-d1480a)
+# ---------------------------
+# A pair belongs here when the acquire changes the state of an object that
+# ALREADY EXISTS, so the object's pointer is no evidence the acquire happened.
+# That is exactly what lets `if (theObject)` read as a guard without being one.
+# When the acquire PRODUCES the handle, the handle is non-null exactly when
+# there is something to give back: the existence check IS the right guard there,
+# and a row would report correct code. That is the general form of "never add a
+# pair whose release is OSSafeReleaseNULL".
+#
+# Every ``->method(`` and ``IO*``/``OS*`` call in phase0-kext was audited
+# against that rule. One pair joined the table (open/close, below). These did
+# not, and each is written down so the question is not re-asked:
+#
+#   retain/release, copyProperty, IORegistryIterator, withSpecification and
+#   the other creators -- reference counts. The pointer IS the reference, so
+#   `if (p) p->release()` and OSSafeReleaseNULL(p) are correct by construction.
+#
+#   IOMalloc/IOFree, IOLockAlloc/IOLockFree -- the pointer IS the allocation,
+#   same reason. They are also free functions, which the ``receiver->method(``
+#   pattern here cannot match at all. IntelGtBringup::free() guards
+#   IOLockFree() on the lock pointer, and that is the right predicate.
+#
+#   IOLockLock/IOLockUnlock -- a bracket inside one function body, never a
+#   resource that outlives its function and is given back by a shared
+#   teardown. Lock balance is a different property from the one checked here.
+#
+#   attach/detach -- only in newUserClient(), where detach() undoes an attach()
+#   one line above it, on a local, on a straight-line failure path. Once the
+#   client is handed out, IOKit termination detaches it, not this driver. No
+#   member flag exists or should; a row would report "nothing is set true after
+#   the attach() success check" over correct code.
+#
+#   setMemoryEnable, setBusMasterEnable, configWrite16 -- writes to the PCI
+#   COMMAND register, not counted resources. Both directions are the SAME
+#   method told apart by an argument, which a table keyed on method names
+#   cannot express, and repeating the "release" writes the same value again,
+#   so the double-release direction this checker exists for is not a failure
+#   there. Whether the old COMMAND value comes back is a separate property
+#   (IntelGtBringup saves the old value and restores it under its own flag).
+#
+#   enablePCIPowerManagement -- one-way; nothing in the tree reverses it, so
+#   there is no release to guard.
+#
+#   allocatePersistentSurface32/freePersistentSurface -- the acquire produces
+#   an opaque handle, owned by the surface table under the queue lock and freed
+#   by that handle; there is no member to carry a flag.
+#
+#   IOServiceOpen/IOServiceClose, IOServiceGetMatchingService/IOObjectRelease
+#   -- userspace only. Their caller, iggt-blit.cpp, moved out of phase0-kext/
+#   to tools/ in 20aafb2 (GATE GREEN 3, t-fd9746) and is no longer globbed
+#   with the kext sources. Free functions whose result IS the handle being
+#   released.
+#
+#   Everything else the audit listed (get*, configRead*, gen64IOVMSegments,
+#   synchronize, metaCast, the surface fill/copy calls, ...) acquires nothing.
+#
 ACQUIRE_RELEASE_PAIRS = (
     ("prepare", "complete",
      "the pages are wired -- IOMemoryDescriptor carries a wire count, and a "
@@ -106,6 +163,21 @@ ACQUIRE_RELEASE_PAIRS = (
      "whether a descriptor was ever set"),
     ("prepareForDMA", "completeDMA",
      "the DMA mapping is live"),
+    #
+    # open/close, added by the t-d1480a audit. Both callers retain the provider
+    # in start() BEFORE trying open(), and open() can refuse (both callers
+    # handle "provider already owned") -- so the provider pointer exists on
+    # exactly the path where nothing was opened. In the other direction, xnu's
+    # didTerminate() delivers kIOMessageServiceIsRequestingClose to a client
+    # still holding its provider open, and schedules that client's stop only
+    # once it has closed. Whether close() is a no-op for a client that never
+    # opened was not established from this tree; the flag makes the teardown
+    # correct without depending on that answer, as handoff10.md 10b argues.
+    #
+    ("open", "close",
+     "this driver holds its provider open -- `if (theProvider)` is true from "
+     "the moment start() retains the provider and says nothing about whether "
+     "open() succeeded"),
 )
 
 
@@ -125,6 +197,61 @@ RELEASE_RE = re.compile(r"(?:OSSafeReleaseNULL|OSSafeRelease)\s*\(\s*(" + IDENT 
 INIT_RE = re.compile(r"\b" + IDENT + r"::init\s*\(")
 BOOL_DECL_RE = re.compile(r"^\s*bool\s+(" + IDENT + r")\s*;")
 RETURN_RE = re.compile(r"\breturn\b")
+
+#
+# Field flags. Not every flag is a member of the driver class: a resource kept
+# in a separately allocated runtime struct carries its flag in that struct.
+# IntelGtBringupSurface.cpp keeps its IODMACommand in IntelGtSurfaceRuntimeState
+# and records the bind as ``state->dmaBound``. The bare-identifier patterns
+# above cannot match that left-hand side, so the flag derivation skipped
+# ``state->dmaBound=true;``, ran on to the next bare ``x = true;`` in the
+# function (``fQuarantined``) and reported three findings against a flag that
+# has nothing to do with the descriptor.
+#
+# A field flag is accepted ONLY on the object that holds the receiver:
+# ``base->field = true;`` counts for an acquire on ``base->receiver->...``, and
+# for nothing else. An acquire on a bare member (``fDma->...``) has no base, so
+# its flag derivation is exactly what it was before field flags existed.
+#
+LVALUE = r"(?:" + IDENT + r"\s*->\s*)*" + IDENT
+FIELD_SET_TRUE_RE = re.compile(
+    r"^\s*(" + LVALUE + r")\s*->\s*(" + IDENT + r")\s*=\s*true\s*;")
+FLAG_SET_FALSE_RE = re.compile(r"^\s*(" + LVALUE + r")\s*=\s*false\s*;")
+RELEASE_CHAIN_RE = re.compile(
+    r"(?:OSSafeReleaseNULL|OSSafeRelease)\s*\(\s*(" + LVALUE + r")\s*\)")
+
+
+def squash(text):
+    """Drop all whitespace, so ``state -> dmaBound`` equals ``state->dmaBound``."""
+    return re.sub(r"\s+", "", text)
+
+
+def receiver_base(line, method):
+    """The object path in front of ``method``'s receiver on ``line``, or None.
+
+    ``state->dma->setMemoryDescriptor(`` gives ``state``; ``fDma->prepare(``
+    and ``fQueues[i].dma->prepare(`` give None. ``method_call_re`` reports only
+    the receiver (``dma``), which is what pairs an acquire with its release;
+    this says which object that receiver's flag may live on.
+    """
+    match = re.search(r"\b((?:" + IDENT + r"\s*->\s*)*)" + IDENT
+                      + r"\s*->\s*" + re.escape(method) + r"\s*\(", line)
+    if not match or not match.group(1):
+        return None
+    return squash(match.group(1))[:-len("->")]
+
+
+def zeroed_re(holder):
+    """A line that zeroes ``holder``: bzero, memset to 0, or IOMallocZero.
+
+    The IOMallocZero form must be a single-line assignment; an allocation split
+    across lines is recognised by the bzero that has to follow it anyway.
+    """
+    path = r"\s*->\s*".join(re.escape(part) for part in holder.split("->"))
+    return re.compile("|".join((
+        r"\bbzero\s*\(\s*" + path + r"\s*,",
+        r"\bmemset\s*\(\s*" + path + r"\s*,\s*0\s*,",
+        r"^\s*(?:[\w:<>]+\s*\*\s*)?" + path + r"\s*=.*\bIOMallocZero\w*\s*\(")))
 
 
 def strip_comments(text):
@@ -356,12 +483,18 @@ class Checker(object):
                        % (rel, acquire_idx + 1, receiver, acquire, release))
             return
 
+        base = receiver_base(lines[acquire_idx], acquire)
         flag = None
         flag_idx = None
         for idx in range(close + 1, len(lines)):
             match = SET_TRUE_RE.match(lines[idx])
             if match:
                 flag = match.group(1)
+                flag_idx = idx
+                break
+            field = FIELD_SET_TRUE_RE.match(lines[idx])
+            if base and field and squash(field.group(1)) == base:
+                flag = base + "->" + field.group(2)
                 flag_idx = idx
                 break
             #
@@ -397,35 +530,57 @@ class Checker(object):
         # 2. Declared as a bool member in a header. A local would reset to
         #    garbage on the next call and never survive to the teardown.
         #
+        #    A field flag (``state->dmaBound``) is declared in the struct
+        #    that holds it, so the field name is what a header shows.
+        #
+        member = flag.split("->")[-1]
         declared = any(BOOL_DECL_RE.match(line)
-                       and BOOL_DECL_RE.match(line).group(1) == flag
+                       and BOOL_DECL_RE.match(line).group(1) == member
                        for line in strip_comments(header_text).split("\n"))
         self.check(declared,
                    "`bool %s;` is not declared in any of %s. A flag that is not "
                    "a member cannot survive from the function that acquires to "
                    "the teardown that reads it."
-                   % (flag, ", ".join(os.path.basename(h) for h in headers)))
+                   % (member, ", ".join(os.path.basename(h) for h in headers)))
 
         #
         # 3. Initialised false in init(). free() can run on an instance whose
         #    start() never reached this code, and an uninitialised member read as
         #    true there runs the release against something never acquired.
         #
-        span = function_body(lines, openers, INIT_RE)
-        if self.check(span is not None,
-                      "%s -- no ::init() body found, so this script cannot check "
-                      "that `%s` starts false." % (rel, flag)):
-            body = lines[span[0]:span[1] + 1]
-            initialised = any(SET_FALSE_RE.match(line)
-                              and SET_FALSE_RE.match(line).group(1) == flag
-                              for line in body)
-            self.check(initialised,
-                       "%s -- `%s = false;` does not appear in ::init() (lines "
-                       "%d-%d). free() may run on an instance whose start() "
-                       "never reached this code; an uninitialised member read as "
-                       "true there calls %s() against a resource that was never "
+        #    A field flag lives in an object this file allocates, which
+        #    init() never sees. The same property there is that the holder
+        #    is zeroed before the acquire: IOMalloc() returns uninitialised
+        #    memory, and the teardown runs on the failure path of every step
+        #    after the allocation.
+        #
+        if "->" in flag:
+            holder = flag.rsplit("->", 1)[0]
+            zeroed = zeroed_re(holder)
+            self.check(any(zeroed.search(line) for line in lines[:acquire_idx]),
+                       "%s:%d -- `%s` lives in `%s`, and nothing before the "
+                       "%s->%s() zeroes `%s` (bzero, memset 0 or IOMallocZero). "
+                       "IOMalloc() memory is uninitialised; a flag read as true "
+                       "there calls %s() against a resource that was never "
                        "acquired."
-                       % (rel, flag, span[0] + 1, span[1] + 1, release))
+                       % (rel, acquire_idx + 1, flag, holder, receiver, acquire,
+                          holder, release))
+        else:
+            span = function_body(lines, openers, INIT_RE)
+            if self.check(span is not None,
+                          "%s -- no ::init() body found, so this script cannot check "
+                          "that `%s` starts false." % (rel, flag)):
+                body = lines[span[0]:span[1] + 1]
+                initialised = any(SET_FALSE_RE.match(line)
+                                  and SET_FALSE_RE.match(line).group(1) == flag
+                                  for line in body)
+                self.check(initialised,
+                           "%s -- `%s = false;` does not appear in ::init() (lines "
+                           "%d-%d). free() may run on an instance whose start() "
+                           "never reached this code; an uninitialised member read as "
+                           "true there calls %s() against a resource that was never "
+                           "acquired."
+                           % (rel, flag, span[0] + 1, span[1] + 1, release))
 
         #
         # 4/5/6. Each release on this receiver: guarded by the flag, flag
@@ -438,7 +593,7 @@ class Checker(object):
             guard = None
             for opener in reversed(openers[idx]):
                 cond = IF_COND_RE.search(lines[opener])
-                if cond and cond.group(1).strip() == flag:
+                if cond and squash(cond.group(1)) == flag:
                     guard = opener
                     break
 
@@ -454,8 +609,9 @@ class Checker(object):
                 continue
 
             cleared = [j for j in range(guard, idx)
-                       if SET_FALSE_RE.match(lines[j])
-                       and SET_FALSE_RE.match(lines[j]).group(1) == flag]
+                       if FLAG_SET_FALSE_RE.match(lines[j])
+                       and squash(FLAG_SET_FALSE_RE.match(lines[j]).group(1))
+                       == flag]
             self.check(cleared,
                        "%s:%d -- `%s = false;` does not appear between the "
                        "`if (%s)` on line %d and the %s() call. Clearing AFTER "
@@ -464,15 +620,16 @@ class Checker(object):
                        "clearing first makes the second entry a no-op."
                        % (rel, idx + 1, flag, flag, guard + 1, release))
 
+            held = base + "->" + receiver if base else receiver
             dropped = [j for j, line in enumerate(lines)
-                       for m in [RELEASE_RE.search(line)]
-                       if m and m.group(1) == receiver]
+                       if any(squash(m.group(1)) == held
+                              for m in RELEASE_CHAIN_RE.finditer(line))]
             self.check(any(j > idx for j in dropped),
                        "%s:%d -- no release of %s appears after its %s(). "
                        "Either the object leaks, or it is released before the "
                        "%s(), which operates on something the driver has "
                        "already dropped its reference to."
-                       % (rel, idx + 1, receiver, release, release))
+                       % (rel, idx + 1, held, release, release))
 
 
 def main(argv):

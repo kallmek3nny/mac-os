@@ -4,26 +4,30 @@
 #include <cstring>
 #include "IntelGtSurfaceHandles.hpp"
 
+static int checks = 0;
 static int failures = 0;
 
-static void check(bool ok, const char *what)
+static void checkBool(bool ok, const char *what)
 {
+    ++checks;
     if (!ok) {
         std::printf("FAIL: %s\n", what);
         ++failures;
     }
 }
 
-static void check32(unsigned int got, unsigned int want, const char *what)
+static void checkU32(unsigned int got, unsigned int want, const char *what)
 {
+    ++checks;
     if (got != want) {
         std::printf("FAIL: %s got=%08x want=%08x\n", what, got, want);
         ++failures;
     }
 }
 
-static void check64(IGSurfaceU64 got, IGSurfaceU64 want, const char *what)
+static void checkU64(IGSurfaceU64 got, IGSurfaceU64 want, const char *what)
 {
+    ++checks;
     if (got != want) {
         std::printf("FAIL: %s got=%016llx want=%016llx\n", what,
                     (unsigned long long)got, (unsigned long long)want);
@@ -36,14 +40,14 @@ static IGSurfaceU64 allocatePages(IGGtSurfaceHandleArena &arena, unsigned pages)
     IGSurfaceU64 handle = 0ull;
     const unsigned verdict = igGtSurfaceHandleAllocate(
         &arena, 1u, pages, 4096u, &handle);
-    check32(verdict, IG_GTH_OK, "page-count allocation succeeds");
+    checkU32(verdict, IG_GTH_OK, "page-count allocation succeeds");
     return handle;
 }
 
 static IGGtSurfaceHandleView resolve(IGGtSurfaceHandleArena &arena, IGSurfaceU64 handle)
 {
     IGGtSurfaceHandleView view = {};
-    check32(igGtSurfaceHandleResolve(&arena, handle, &view), IG_GTH_OK,
+    checkU32(igGtSurfaceHandleResolve(&arena, handle, &view), IG_GTH_OK,
             "resolve succeeds");
     return view;
 }
@@ -56,33 +60,33 @@ static void testEncodingAndInit()
     igGtSurfaceHandleArenaInit(&arena);
 
     for (unsigned i = 0; i < IG_GTH_BITMAP_WORDS_14; ++i)
-        check32(arena.pageBitmap[i], 0u, "bitmap word starts clear");
+        checkU32(arena.pageBitmap[i], 0u, "bitmap word starts clear");
     for (unsigned i = 0; i < IG_GTH_MAX_SLOTS_16; ++i) {
-        check(!arena.slots[i].allocated, "slot starts free");
-        check(!arena.slots[i].retired, "slot starts reusable");
-        check64(arena.slots[i].generation, 1ull, "slot generation starts at one");
+        checkBool(!arena.slots[i].allocated, "slot starts free");
+        checkBool(!arena.slots[i].retired, "slot starts reusable");
+        checkU64(arena.slots[i].generation, 1ull, "slot generation starts at one");
     }
 
-    check64(igGtSurfaceHandleEncode(0u, 1ull), 0x0000000000000101ull,
+    checkU64(igGtSurfaceHandleEncode(0u, 1ull), 0x0000000000000101ull,
             "slot zero generation one encoding");
-    check64(igGtSurfaceHandleEncode(15u, 1ull), 0x0000000000000110ull,
+    checkU64(igGtSurfaceHandleEncode(15u, 1ull), 0x0000000000000110ull,
             "slot fifteen encoding");
-    check64(igGtSurfaceHandleEncode(3u, 0x123456789abcull),
+    checkU64(igGtSurfaceHandleEncode(3u, 0x123456789abcull),
             0x00123456789abc04ull,
             "wide generation survives opaque handle encoding");
-    check64(igGtSurfaceHandleEncode(16u, 1ull), 0ull, "slot overflow refused");
-    check64(igGtSurfaceHandleEncode(0u, 0ull), 0ull, "zero generation refused");
-    check64(igGtSurfaceHandleEncode(0u, IG_GTH_HANDLE_GENERATION_MAX_56 + 1ull),
+    checkU64(igGtSurfaceHandleEncode(16u, 1ull), 0ull, "slot overflow refused");
+    checkU64(igGtSurfaceHandleEncode(0u, 0ull), 0ull, "zero generation refused");
+    checkU64(igGtSurfaceHandleEncode(0u, IG_GTH_HANDLE_GENERATION_MAX_56 + 1ull),
             0ull, "generation overflow refused");
 
     unsigned slot = 99u;
     IGSurfaceU64 generation = 99ull;
-    check(igGtSurfaceHandleDecode(0x00123456789abc04ull, &slot, &generation),
+    checkBool(igGtSurfaceHandleDecode(0x00123456789abc04ull, &slot, &generation),
           "wide valid handle decodes");
-    check32(slot, 3u, "decoded slot");
-    check64(generation, 0x123456789abcull, "decoded wide generation");
-    check(!igGtSurfaceHandleDecode(0ull, &slot, &generation), "zero handle refused");
-    check(!igGtSurfaceHandleDecode(0x0000000000000111ull, &slot, &generation),
+    checkU32(slot, 3u, "decoded slot");
+    checkU64(generation, 0x123456789abcull, "decoded wide generation");
+    checkBool(!igGtSurfaceHandleDecode(0ull, &slot, &generation), "zero handle refused");
+    checkBool(!igGtSurfaceHandleDecode(0x0000000000000111ull, &slot, &generation),
           "slot field above fixed table refused");
 }
 
@@ -94,21 +98,21 @@ static void testFirstFitAndResolve()
 
     const IGSurfaceU64 a = allocatePages(arena, 100u);
     const IGSurfaceU64 b = allocatePages(arena, 50u);
-    check64(a, 0x0000000000000101ull, "first handle contains only generation and slot");
-    check64(b, 0x0000000000000102ull, "second handle contains only generation and slot");
+    checkU64(a, 0x0000000000000101ull, "first handle contains only generation and slot");
+    checkU64(b, 0x0000000000000102ull, "second handle contains only generation and slot");
 
     const IGGtSurfaceHandleView av = resolve(arena, a);
     const IGGtSurfaceHandleView bv = resolve(arena, b);
-    check32(av.firstArenaPage, 0u, "first allocation begins at arena page zero");
-    check32(av.pageCount, 100u, "first allocation page count");
-    check32(bv.firstArenaPage, 100u, "second allocation follows first");
-    check32(bv.pageCount, 50u, "second allocation page count");
-    check64(av.usedBytes, 99ull * 4096ull + 4ull, "first allocation used bytes");
-    check32(av.pitch, 4096u, "resolved pitch");
+    checkU32(av.firstArenaPage, 0u, "first allocation begins at arena page zero");
+    checkU32(av.pageCount, 100u, "first allocation page count");
+    checkU32(bv.firstArenaPage, 100u, "second allocation follows first");
+    checkU32(bv.pageCount, 50u, "second allocation page count");
+    checkU64(av.usedBytes, 99ull * 4096ull + 4ull, "first allocation used bytes");
+    checkU32(av.pitch, 4096u, "resolved pitch");
 
     for (unsigned i = 0; i < 150u; ++i)
-        check(igGtSurfaceHandlePageUsed(&arena, i), "allocated page marked used");
-    check(!igGtSurfaceHandlePageUsed(&arena, 150u), "next page remains free");
+        checkBool(igGtSurfaceHandlePageUsed(&arena, i), "allocated page marked used");
+    checkBool(!igGtSurfaceHandlePageUsed(&arena, 150u), "next page remains free");
 }
 
 static void testFreeReuseAndStaleHandles()
@@ -119,28 +123,28 @@ static void testFreeReuseAndStaleHandles()
 
     const IGSurfaceU64 a = allocatePages(arena, 100u);
     const IGSurfaceU64 b = allocatePages(arena, 50u);
-    check32(igGtSurfaceHandleFree(&arena, a), IG_GTH_OK, "first handle frees");
+    checkU32(igGtSurfaceHandleFree(&arena, a), IG_GTH_OK, "first handle frees");
 
     IGGtSurfaceHandleView poisoned;
     std::memset(&poisoned, 0x5a, sizeof(poisoned));
     const IGGtSurfaceHandleView before = poisoned;
-    check32(igGtSurfaceHandleResolve(&arena, a, &poisoned), IG_GTH_ERR_STALE_HANDLE,
+    checkU32(igGtSurfaceHandleResolve(&arena, a, &poisoned), IG_GTH_ERR_STALE_HANDLE,
             "freed handle is stale");
-    check(std::memcmp(&poisoned, &before, sizeof(poisoned)) == 0,
+    checkBool(std::memcmp(&poisoned, &before, sizeof(poisoned)) == 0,
           "stale resolve leaves output untouched");
-    check32(igGtSurfaceHandleFree(&arena, a), IG_GTH_ERR_STALE_HANDLE,
+    checkU32(igGtSurfaceHandleFree(&arena, a), IG_GTH_ERR_STALE_HANDLE,
             "double free refused as stale");
 
     const IGSurfaceU64 c = allocatePages(arena, 40u);
-    check64(c, 0x0000000000000201ull, "reused slot carries next generation");
+    checkU64(c, 0x0000000000000201ull, "reused slot carries next generation");
     const IGGtSurfaceHandleView cv = resolve(arena, c);
-    check32(cv.firstArenaPage, 0u, "freed first-fit range reused");
-    check32(cv.pageCount, 40u, "reused range size");
-    check32(igGtSurfaceHandleResolve(&arena, a, &poisoned), IG_GTH_ERR_STALE_HANDLE,
+    checkU32(cv.firstArenaPage, 0u, "freed first-fit range reused");
+    checkU32(cv.pageCount, 40u, "reused range size");
+    checkU32(igGtSurfaceHandleResolve(&arena, a, &poisoned), IG_GTH_ERR_STALE_HANDLE,
             "old generation stays stale after reuse");
 
     const IGGtSurfaceHandleView bv = resolve(arena, b);
-    check32(bv.firstArenaPage, 100u, "unrelated live handle unchanged");
+    checkU32(bv.firstArenaPage, 100u, "unrelated live handle unchanged");
 }
 
 static void testFragmentationAndCapacity()
@@ -155,18 +159,18 @@ static void testFragmentationAndCapacity()
     const IGSurfaceU64 d = allocatePages(arena, 100u);
     (void)a; (void)c;
 
-    check32(igGtSurfaceHandleFree(&arena, b), IG_GTH_OK, "middle block freed");
+    checkU32(igGtSurfaceHandleFree(&arena, b), IG_GTH_OK, "middle block freed");
     IGSurfaceU64 refused = 0xfeedbeefdeadbeefull;
-    check32(igGtSurfaceHandleAllocate(&arena, 1u, 120u, 4096u, &refused),
+    checkU32(igGtSurfaceHandleAllocate(&arena, 1u, 120u, 4096u, &refused),
             IG_GTH_ERR_NO_PAGES,
             "120 pages refused when only 100-page gap plus 48-page tail exist");
-    check64(refused, 0xfeedbeefdeadbeefull,
+    checkU64(refused, 0xfeedbeefdeadbeefull,
             "fragmentation refusal leaves handle output untouched");
 
-    check32(igGtSurfaceHandleFree(&arena, d), IG_GTH_OK, "last block freed");
+    checkU32(igGtSurfaceHandleFree(&arena, d), IG_GTH_OK, "last block freed");
     const IGSurfaceU64 e = allocatePages(arena, 120u);
     const IGGtSurfaceHandleView ev = resolve(arena, e);
-    check32(ev.firstArenaPage, 300u, "120 pages use newly contiguous 148-page tail");
+    checkU32(ev.firstArenaPage, 300u, "120 pages use newly contiguous 148-page tail");
 }
 
 static void testSlotExhaustion()
@@ -179,18 +183,18 @@ static void testSlotExhaustion()
         handles[i] = allocatePages(arena, 1u);
 
     IGSurfaceU64 out = 0x12345678abcdef00ull;
-    check32(igGtSurfaceHandleAllocate(&arena, 1u, 1u, 4096u, &out),
+    checkU32(igGtSurfaceHandleAllocate(&arena, 1u, 1u, 4096u, &out),
             IG_GTH_ERR_NO_SLOT, "seventeenth live surface refused");
-    check64(out, 0x12345678abcdef00ull, "slot refusal leaves output untouched");
+    checkU64(out, 0x12345678abcdef00ull, "slot refusal leaves output untouched");
 
-    check32(igGtSurfaceHandleFree(&arena, handles[7]), IG_GTH_OK,
+    checkU32(igGtSurfaceHandleFree(&arena, handles[7]), IG_GTH_OK,
             "one slot released");
     const IGSurfaceU64 reused = allocatePages(arena, 1u);
     unsigned slot = 99u;
     IGSurfaceU64 generation = 0ull;
-    check(igGtSurfaceHandleDecode(reused, &slot, &generation), "reused handle decodes");
-    check32(slot, 7u, "first free slot reused");
-    check64(generation, 2ull, "reused slot generation advanced");
+    checkBool(igGtSurfaceHandleDecode(reused, &slot, &generation), "reused handle decodes");
+    checkU32(slot, 7u, "first free slot reused");
+    checkU64(generation, 2ull, "reused slot generation advanced");
 }
 
 static void testAtomicRefusalsAndCorruption()
@@ -200,31 +204,31 @@ static void testAtomicRefusalsAndCorruption()
     igGtSurfaceHandleArenaInit(&arena);
 
     IGSurfaceU64 output = 0xabcdef0123456789ull;
-    check32(igGtSurfaceHandleAllocate(&arena, 0u, 1u, 4u, &output),
+    checkU32(igGtSurfaceHandleAllocate(&arena, 0u, 1u, 4u, &output),
             IG_GTH_ERR_PLAN, "zero-width geometry refused");
-    check64(output, 0xabcdef0123456789ull, "bad geometry leaves output untouched");
-    check32(arena.pageBitmap[0], 0u, "bad geometry reserves no page");
+    checkU64(output, 0xabcdef0123456789ull, "bad geometry leaves output untouched");
+    checkU32(arena.pageBitmap[0], 0u, "bad geometry reserves no page");
 
     IGGtSurfaceHandleView view = {};
-    check32(igGtSurfaceHandleResolve(&arena, 0ull, &view), IG_GTH_ERR_BAD_HANDLE,
+    checkU32(igGtSurfaceHandleResolve(&arena, 0ull, &view), IG_GTH_ERR_BAD_HANDLE,
             "zero handle refused");
-    check32(igGtSurfaceHandleFree(&arena, 0x0000000000000111ull),
+    checkU32(igGtSurfaceHandleFree(&arena, 0x0000000000000111ull),
             IG_GTH_ERR_BAD_HANDLE, "out-of-table slot handle refused");
 
     const IGSurfaceU64 live = allocatePages(arena, 3u);
     const IGGtSurfaceHandleSlot beforeSlot = arena.slots[0];
     igGtSurfaceHandleSetPage(&arena, 1u, false); // simulate corrupted ownership bitmap
-    check32(igGtSurfaceHandleResolve(&arena, live, &view), IG_GTH_ERR_CORRUPT,
+    checkU32(igGtSurfaceHandleResolve(&arena, live, &view), IG_GTH_ERR_CORRUPT,
             "resolve notices missing owned page");
-    check32(igGtSurfaceHandleFree(&arena, live), IG_GTH_ERR_CORRUPT,
+    checkU32(igGtSurfaceHandleFree(&arena, live), IG_GTH_ERR_CORRUPT,
             "free refuses corrupted ownership image");
-    check(arena.slots[0].allocated == beforeSlot.allocated,
+    checkBool(arena.slots[0].allocated == beforeSlot.allocated,
           "corrupt free keeps slot allocation state");
-    check64(arena.slots[0].generation, beforeSlot.generation,
+    checkU64(arena.slots[0].generation, beforeSlot.generation,
             "corrupt free does not advance generation");
-    check(igGtSurfaceHandlePageUsed(&arena, 0u), "corrupt free keeps page zero owned");
-    check(!igGtSurfaceHandlePageUsed(&arena, 1u), "corrupt marker remains for diagnosis");
-    check(igGtSurfaceHandlePageUsed(&arena, 2u), "corrupt free keeps page two owned");
+    checkBool(igGtSurfaceHandlePageUsed(&arena, 0u), "corrupt free keeps page zero owned");
+    checkBool(!igGtSurfaceHandlePageUsed(&arena, 1u), "corrupt marker remains for diagnosis");
+    checkBool(igGtSurfaceHandlePageUsed(&arena, 2u), "corrupt free keeps page two owned");
 }
 
 static void testGenerationRetirement()
@@ -237,28 +241,28 @@ static void testGenerationRetirement()
     const IGSurfaceU64 last = allocatePages(arena, 1u);
     unsigned slot = 0u;
     IGSurfaceU64 generation = 0ull;
-    check(igGtSurfaceHandleDecode(last, &slot, &generation), "max-generation handle decodes");
-    check32(slot, 0u, "max-generation allocation uses first slot");
-    check64(generation, IG_GTH_HANDLE_GENERATION_MAX_56, "max generation emitted");
-    check64(last, 0xffffffffffffff01ull, "max generation occupies upper 56 handle bits");
-    check32(igGtSurfaceHandleFree(&arena, last), IG_GTH_OK, "max generation frees");
-    check(!arena.slots[0].allocated, "exhausted slot is no longer allocated");
-    check(arena.slots[0].retired, "exhausted slot is permanently retired");
-    check64(arena.slots[0].generation, IG_GTH_HANDLE_GENERATION_MAX_56,
+    checkBool(igGtSurfaceHandleDecode(last, &slot, &generation), "max-generation handle decodes");
+    checkU32(slot, 0u, "max-generation allocation uses first slot");
+    checkU64(generation, IG_GTH_HANDLE_GENERATION_MAX_56, "max generation emitted");
+    checkU64(last, 0xffffffffffffff01ull, "max generation occupies upper 56 handle bits");
+    checkU32(igGtSurfaceHandleFree(&arena, last), IG_GTH_OK, "max generation frees");
+    checkBool(!arena.slots[0].allocated, "exhausted slot is no longer allocated");
+    checkBool(arena.slots[0].retired, "exhausted slot is permanently retired");
+    checkU64(arena.slots[0].generation, IG_GTH_HANDLE_GENERATION_MAX_56,
             "retired slot keeps terminal generation");
-    check(!igGtSurfaceHandlePageUsed(&arena, 0u), "retired slot releases its page range");
+    checkBool(!igGtSurfaceHandlePageUsed(&arena, 0u), "retired slot releases its page range");
 
     const IGSurfaceU64 next = allocatePages(arena, 1u);
-    check64(next, 0x0000000000000102ull,
+    checkU64(next, 0x0000000000000102ull,
             "allocator skips retired slot instead of resurrecting generation one");
-    check(igGtSurfaceHandleDecode(next, &slot, &generation), "next handle decodes");
-    check32(slot, 1u, "next allocation advances to second slot");
-    check64(generation, 1ull, "next slot starts at generation one");
+    checkBool(igGtSurfaceHandleDecode(next, &slot, &generation), "next handle decodes");
+    checkU32(slot, 1u, "next allocation advances to second slot");
+    checkU64(generation, 1ull, "next slot starts at generation one");
 
     IGGtSurfaceHandleView probe = {};
-    check32(igGtSurfaceHandleResolve(&arena, last, &probe),
+    checkU32(igGtSurfaceHandleResolve(&arena, last, &probe),
             IG_GTH_ERR_STALE_HANDLE, "terminal handle remains stale forever");
-    check32(igGtSurfaceHandleFree(&arena, last),
+    checkU32(igGtSurfaceHandleFree(&arena, last),
             IG_GTH_ERR_STALE_HANDLE, "terminal handle cannot free retired slot twice");
 }
 
@@ -272,10 +276,6 @@ int main()
     testAtomicRefusalsAndCorruption();
     testGenerationRetirement();
 
-    if (failures) {
-        std::printf("%d failure(s)\n", failures);
-        return 1;
-    }
-    std::puts("Tiger Lake persistent surface handle allocator tests passed");
-    return 0;
+    std::printf("\n%d checks, %d failures\n", checks, failures);
+    return failures ? 1 : 0;
 }

@@ -137,7 +137,12 @@ static inline NVGspWprU32 nvGspBuildColdBootWprMeta(
         in->crashQueueBytes > 0xffffffffull)
         return NV_GSP_WPR_IMAGE_BAD_CRASH_QUEUE;
 
-    if ((in->flags & (NVGspWprU8)~NV_GSP_WPR_FLAG_KNOWN_MASK) != 0u)
+    // flags is one byte, so widen it rather than narrow the complemented
+    // mask: casting ~mask down to a byte truncates a constant (MSVC C4310
+    // under /W4, first seen 2026-11-01 once test_nv_gsp_wpr_image was
+    // registered). Bits 8-31 of ~mask can never meet a byte, so the verdict
+    // is unchanged for every input.
+    if (((NVGspWprU32)in->flags & ~NV_GSP_WPR_FLAG_KNOWN_MASK) != 0u)
         return NV_GSP_WPR_IMAGE_BAD_FLAGS;
 
     NVGspWprMetaV1 staged = {};

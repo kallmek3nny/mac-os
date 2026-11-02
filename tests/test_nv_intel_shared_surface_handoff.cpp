@@ -7,7 +7,7 @@
 static unsigned gChecks = 0u;
 static unsigned gFailures = 0u;
 
-static void check(bool cond, const char *what)
+static void checkTrue(bool cond, const char *what)
 {
     ++gChecks;
     if (!cond) {
@@ -51,7 +51,7 @@ static NvIntelSharedCopyLifetimePlan pendingCopy()
     const auto progress = trackedCopyProgress();
     NvIntelSharedCopyLifetimePlan out = {};
     const auto verdict = nvIntelSharedCopyLifetimePlan(progress, &out);
-    check(verdict == NV_INTEL_COPY_OK, "pending copy helper builds valid plan");
+    checkTrue(verdict == NV_INTEL_COPY_OK, "pending copy helper builds valid plan");
     return out;
 }
 
@@ -63,7 +63,7 @@ static NvIntelSharedCopyLifetimePlan uncertainCopy()
     progress.completionWaitTimedOut = true;
     NvIntelSharedCopyLifetimePlan out = {};
     const auto verdict = nvIntelSharedCopyLifetimePlan(progress, &out);
-    check(verdict == NV_INTEL_COPY_OK, "uncertain copy helper builds valid plan");
+    checkTrue(verdict == NV_INTEL_COPY_OK, "uncertain copy helper builds valid plan");
     return out;
 }
 
@@ -76,7 +76,7 @@ static NvIntelSharedCopyLifetimePlan retiredCopy()
     progress.observedCompletionPayload = 41u;
     NvIntelSharedCopyLifetimePlan out = {};
     const auto verdict = nvIntelSharedCopyLifetimePlan(progress, &out);
-    check(verdict == NV_INTEL_COPY_OK, "retired copy helper builds valid plan");
+    checkTrue(verdict == NV_INTEL_COPY_OK, "retired copy helper builds valid plan");
     return out;
 }
 
@@ -166,23 +166,23 @@ static void expectRefusal(const NvIntelSharedCopyLifetimePlan *copy,
     poison(&out);
     const auto before = out;
     const auto verdict = nvIntelSharedSurfaceHandoffPlan(copy, progress, display, &out);
-    check(verdict == expected, what);
-    check(sameBytes(out, before), "refusal leaves handoff output untouched");
+    checkTrue(verdict == expected, what);
+    checkTrue(sameBytes(out, before), "refusal leaves handoff output untouched");
 }
 
 static void checkAlwaysSafe(const NvIntelSharedSurfaceHandoffPlan &p)
 {
-    check(p.valid, "accepted handoff plan marked valid");
-    check(!p.runtimeWriteAuthorized, "handoff planner never authorizes writes");
-    check(p.sharedBackingMustRemainPinned,
+    checkTrue(p.valid, "accepted handoff plan marked valid");
+    checkTrue(!p.runtimeWriteAuthorized, "handoff planner never authorizes writes");
+    checkTrue(p.sharedBackingMustRemainPinned,
           "shared backing remains pinned throughout cross-gpu handoff");
-    check(!p.sharedBackingReleaseAuthorized,
+    checkTrue(!p.sharedBackingReleaseAuthorized,
           "handoff never releases shared backing to allocator");
     if (p.intelHandoffAuthorized)
-        check(p.copyRetirementProven,
+        checkTrue(p.copyRetirementProven,
               "intel handoff always rests on nvidia retirement proof");
     if (p.peerMappingSlotReuseAuthorized)
-        check(p.peerMappingTeardownSucceeded,
+        checkTrue(p.peerMappingTeardownSucceeded,
               "peer mapping slot reuse requires successful teardown");
 }
 
@@ -194,17 +194,17 @@ static void testPendingCopyBlocksIntelActivity()
     const auto idle = idleDisplay();
     NvIntelSharedSurfaceHandoffPlan out = {};
 
-    check(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, &idle, &out) ==
+    checkTrue(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, &idle, &out) ==
               NV_INTEL_HANDOFF_OK,
           "idle intel side may observe pending copy conservatively");
-    check(out.phase == NV_INTEL_HANDOFF_PHASE_WAIT_NVIDIA,
+    checkTrue(out.phase == NV_INTEL_HANDOFF_PHASE_WAIT_NVIDIA,
           "pending copy classified as wait-nvidia");
-    check(out.nvidiaMayStillReferenceSurface &&
+    checkTrue(out.nvidiaMayStillReferenceSurface &&
               out.peerMappingMustRemainPinned,
           "pending copy retains nvidia surface and peer mapping lifetimes");
-    check(!out.intelHandoffAuthorized && !out.intelMappingMayBegin,
+    checkTrue(!out.intelHandoffAuthorized && !out.intelMappingMayBegin,
           "pending copy cannot hand surface to intel");
-    check(!out.peerMappingTeardownMayBeAttempted,
+    checkTrue(!out.peerMappingTeardownMayBeAttempted,
           "pending copy cannot tear down peer mapping");
     checkAlwaysSafe(out);
 
@@ -227,49 +227,49 @@ static void testRetirementOpensIndependentHandoffAndTeardown()
     auto progress = baseProgress();
     NvIntelSharedSurfaceHandoffPlan out = {};
 
-    check(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, nullptr, &out) ==
+    checkTrue(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, nullptr, &out) ==
               NV_INTEL_HANDOFF_OK,
           "retired copy accepted for handoff");
-    check(out.phase == NV_INTEL_HANDOFF_PHASE_NVIDIA_RETIRED,
+    checkTrue(out.phase == NV_INTEL_HANDOFF_PHASE_NVIDIA_RETIRED,
           "retired copy enters nvidia-retired handoff phase");
-    check(out.copyRetirementProven && out.intelHandoffAuthorized &&
+    checkTrue(out.copyRetirementProven && out.intelHandoffAuthorized &&
               out.intelMappingMayBegin,
           "retirement authorizes intel mapping boundary");
-    check(out.peerMappingTeardownMayBeAttempted,
+    checkTrue(out.peerMappingTeardownMayBeAttempted,
           "retirement independently authorizes peer teardown attempt");
-    check(out.peerMappingMustRemainPinned &&
+    checkTrue(out.peerMappingMustRemainPinned &&
               !out.peerMappingSlotReuseAuthorized,
           "peer mapping remains pinned until teardown actually succeeds");
     checkAlwaysSafe(out);
 
     const auto mapped = mappingCommittedDisplay();
-    check(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, &mapped, &out) ==
+    checkTrue(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, &mapped, &out) ==
               NV_INTEL_HANDOFF_OK,
           "intel mapping may commit while retired peer mapping is still pinned");
-    check(out.phase == NV_INTEL_HANDOFF_PHASE_INTEL_MAPPING_COMMITTED,
+    checkTrue(out.phase == NV_INTEL_HANDOFF_PHASE_INTEL_MAPPING_COMMITTED,
           "intel mapping-committed phase classified");
-    check(out.intelMappingCommitted && out.intelMappingMustRemainCommitted,
+    checkTrue(out.intelMappingCommitted && out.intelMappingMustRemainCommitted,
           "committed intel mapping inherits display lifetime pin");
-    check(out.peerMappingMustRemainPinned,
+    checkTrue(out.peerMappingMustRemainPinned,
           "coexisting retired peer mapping remains pinned until teardown proof");
     checkAlwaysSafe(out);
 
     progress.peerMappingTeardownAttempted = true;
-    check(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, nullptr, &out) ==
+    checkTrue(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, nullptr, &out) ==
               NV_INTEL_HANDOFF_OK,
           "peer teardown in progress accepted after retirement");
-    check(out.phase == NV_INTEL_HANDOFF_PHASE_PEER_TEARDOWN_ACTIVE,
+    checkTrue(out.phase == NV_INTEL_HANDOFF_PHASE_PEER_TEARDOWN_ACTIVE,
           "teardown-in-progress phase classified");
-    check(out.peerMappingMustRemainPinned &&
+    checkTrue(out.peerMappingMustRemainPinned &&
               !out.peerMappingSlotReuseAuthorized,
           "unfinished teardown retains peer mapping and forbids slot reuse");
 
     progress.peerMappingTeardownFinished = true;
     progress.peerMappingTeardownSucceeded = true;
-    check(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, nullptr, &out) ==
+    checkTrue(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, nullptr, &out) ==
               NV_INTEL_HANDOFF_OK,
           "successful peer teardown accepted");
-    check(!out.peerMappingMustRemainPinned &&
+    checkTrue(!out.peerMappingMustRemainPinned &&
               out.peerMappingSlotReuseAuthorized,
           "only successful teardown releases peer mapping slot lifetime");
     checkAlwaysSafe(out);
@@ -283,24 +283,24 @@ static void testDisplayArmAndLiveScanoutRetainSharedBacking()
     NvIntelSharedSurfaceHandoffPlan out = {};
 
     const auto armed = armedDisplay();
-    check(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, &armed, &out) ==
+    checkTrue(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, &armed, &out) ==
               NV_INTEL_HANDOFF_OK,
           "armed intel display lifetime accepted after nvidia retirement");
-    check(out.phase == NV_INTEL_HANDOFF_PHASE_INTEL_DISPLAY_ARMED,
+    checkTrue(out.phase == NV_INTEL_HANDOFF_PHASE_INTEL_DISPLAY_ARMED,
           "armed display phase classified");
-    check(out.intelDisplayArmObserved && !out.intelSurfaceIsLiveScanout,
+    checkTrue(out.intelDisplayArmObserved && !out.intelSurfaceIsLiveScanout,
           "surface arm does not pretend retirement already happened");
     checkAlwaysSafe(out);
 
     const auto live = liveDisplay();
-    check(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, &live, &out) ==
+    checkTrue(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, &live, &out) ==
               NV_INTEL_HANDOFF_OK,
           "retired live intel display accepted");
-    check(out.phase == NV_INTEL_HANDOFF_PHASE_INTEL_DISPLAY_LIVE,
+    checkTrue(out.phase == NV_INTEL_HANDOFF_PHASE_INTEL_DISPLAY_LIVE,
           "live scanout phase classified");
-    check(out.intelSurfaceIsLiveScanout && out.intelMappingMustRemainCommitted,
+    checkTrue(out.intelSurfaceIsLiveScanout && out.intelMappingMustRemainCommitted,
           "live target retains intel mapping lifetime");
-    check(out.sharedBackingMustRemainPinned &&
+    checkTrue(out.sharedBackingMustRemainPinned &&
               !out.sharedBackingReleaseAuthorized,
           "live scanout backing cannot be freed by cross-gpu transaction");
     checkAlwaysSafe(out);
@@ -313,26 +313,26 @@ static void testUncertaintyQuarantinesWithoutInventingOwnership()
     const auto progress = baseProgress();
     NvIntelSharedSurfaceHandoffPlan out = {};
 
-    check(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, nullptr, &out) ==
+    checkTrue(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, nullptr, &out) ==
               NV_INTEL_HANDOFF_OK,
           "uncertain nvidia completion accepted as quarantine state");
-    check(out.phase == NV_INTEL_HANDOFF_PHASE_UNCERTAIN_QUARANTINE,
+    checkTrue(out.phase == NV_INTEL_HANDOFF_PHASE_UNCERTAIN_QUARANTINE,
           "nvidia timeout classified as uncertain quarantine");
-    check(out.completionUncertain && out.quarantineSharedBacking &&
+    checkTrue(out.completionUncertain && out.quarantineSharedBacking &&
               out.quarantinePeerMapping,
           "nvidia completion uncertainty quarantines shared backing and peer map");
-    check(!out.intelHandoffAuthorized && !out.intelMappingMayBegin,
+    checkTrue(!out.intelHandoffAuthorized && !out.intelMappingMayBegin,
           "uncertain nvidia completion cannot invent intel ownership");
     checkAlwaysSafe(out);
 
     const auto retired = retiredCopy();
     const auto display = uncertainDisplay();
-    check(nvIntelSharedSurfaceHandoffPlan(&retired, &progress, &display, &out) ==
+    checkTrue(nvIntelSharedSurfaceHandoffPlan(&retired, &progress, &display, &out) ==
               NV_INTEL_HANDOFF_OK,
           "uncertain intel retirement accepted conservatively");
-    check(out.phase == NV_INTEL_HANDOFF_PHASE_UNCERTAIN_QUARANTINE,
+    checkTrue(out.phase == NV_INTEL_HANDOFF_PHASE_UNCERTAIN_QUARANTINE,
           "intel retirement uncertainty classified as quarantine");
-    check(out.completionUncertain && out.quarantineSharedBacking &&
+    checkTrue(out.completionUncertain && out.quarantineSharedBacking &&
               out.quarantineIntelMapping,
           "intel uncertainty quarantines target backing and mapping");
     checkAlwaysSafe(out);
@@ -341,10 +341,10 @@ static void testUncertaintyQuarantinesWithoutInventingOwnership()
     teardown.peerMappingTeardownAttempted = true;
     teardown.peerMappingTeardownFinished = true;
     teardown.peerMappingTeardownSucceeded = false;
-    check(nvIntelSharedSurfaceHandoffPlan(&retired, &teardown, nullptr, &out) ==
+    checkTrue(nvIntelSharedSurfaceHandoffPlan(&retired, &teardown, nullptr, &out) ==
               NV_INTEL_HANDOFF_OK,
           "failed peer teardown retains mapping conservatively");
-    check(out.quarantinePeerMapping && out.peerMappingMustRemainPinned &&
+    checkTrue(out.quarantinePeerMapping && out.peerMappingMustRemainPinned &&
               !out.peerMappingSlotReuseAuthorized,
           "failed teardown quarantines peer mapping and forbids slot reuse");
     checkAlwaysSafe(out);
@@ -410,7 +410,7 @@ static void testIdentityAndContractForgeryRefuseAtomically()
                   NV_INTEL_HANDOFF_ERR_DISPLAY_CONTRACT,
                   "forged live display plan releasing target mapping refused");
 
-    check(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, nullptr, nullptr) ==
+    checkTrue(nvIntelSharedSurfaceHandoffPlan(&copy, &progress, nullptr, nullptr) ==
               NV_INTEL_HANDOFF_ERR_NULL_OUTPUT,
           "null output refused");
     expectRefusal(nullptr, &progress, nullptr,
@@ -429,10 +429,6 @@ int main()
     testUncertaintyQuarantinesWithoutInventingOwnership();
     testIdentityAndContractForgeryRefuseAtomically();
 
-    if (gFailures) {
-        std::printf("%u/%u checks failed\n", gFailures, gChecks);
-        return 1;
-    }
-    std::printf("all %u cross-gpu shared-surface handoff checks passed\n", gChecks);
-    return 0;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }

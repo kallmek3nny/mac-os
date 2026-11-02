@@ -835,6 +835,15 @@ BUILD_DIR = os.path.join(HERE, "build")
 # Lake is icl+, so bit 23 is part of the format field, and (0x82009000 >> 24) &
 # 0x0F is 2, which is ALSO a format this header names. A narrowed mask therefore
 # yields a plausible wrong answer rather than an obvious one.
+#
+# CORRECTED 2026-11-01 (t-a7929c). Both decodes in this paragraph are wrong;
+# it is left as written because it records what section 7b was built on. The
+# five-bit field 27:23 of 0x82009000 is 4, but the format codes are four-bit
+# and sit at bit 24 (reference/i915/skl_universal_plane_regs.h:43-47), so raw
+# 4 is code 2, XRGB_2101010 (:52), not XRGB8888 (:54): the FOUR-bit reading is
+# the right one, not the plausible wrong one. 0x84000000 is likewise code 4,
+# XRGB_8888, not an unnamed format 8. igFbFormat() now returns the code. Both
+# are 32 bpp, but the component layouts differ (8 vs 10 bits per channel).
 # Measured 2026-08-20 by running tests/build/test_intel_fb_present.exe, the FIRST
 # reading of a suite that did not exist before this date:
 #   test_intel_fb_present 140 checks, 0 failures
@@ -1412,6 +1421,236 @@ MEASURED = {
     "test_intel_sink_alloc": 21,
     # Step (b) composed over a firmware plane read (IntelSinkRehearse.hpp).
     "test_intel_sink_rehearse": 60,
+    # Measured 2026-11-01: first readings of 35 suites that had no entry here,
+    # no tests/CMakeLists.txt registration and no count-gate listing. Each was
+    # built standalone with g++ 16.1.0 (WinLibs UCRT) -std=c++17 -Wall -Wextra
+    # -Wpedantic, zero warnings, and run once; every one exited 0 and its final
+    # line was the count below. These are NOT yet MSVC readings: tests/build held
+    # no binary for any of them when this was written, so tests\build-msvc.bat is
+    # what turns them into the gate's own numbers.
+    #   test_intel_gt_copy_plan 75 checks, 0 failures
+    #   test_intel_gt_csb 71 checks, 0 failures
+    #   test_intel_gt_dispatch 30 checks, 0 failures
+    #   test_intel_gt_lrc 74 checks, 0 failures
+    #   test_intel_gt_ppgtt 82 checks, 0 failures
+    #   test_intel_sink_candidate 48 checks, 0 failures
+    #   test_intel_sink_ggtt 62 checks, 0 failures
+    #   test_intel_sink_peer 34 checks, 0 failures
+    #   test_nv_ampere_channel 71 checks, 0 failures
+    #   test_nv_ampere_copy 66 checks, 0 failures
+    #   test_nv_ampere_fence 61 checks, 0 failures
+    #   test_nv_ampere_rm_plan 67 checks, 0 failures
+    #   test_nv_ampere_submit 85 checks, 0 failures
+    #   test_nv_gsp_bootargs_rehearsal 28 checks, 0 failures
+    #   test_nv_gsp_booter_fuse 62 checks, 0 failures
+    #   test_nv_gsp_cached_args 77 checks, 0 failures
+    #   test_nv_gsp_fw_container 81 checks, 0 failures
+    #   test_nv_gsp_libos_init 79 checks, 0 failures
+    #   test_nv_gsp_queue_dma 207 checks, 0 failures
+    #   test_nv_gsp_queue_init 84 checks, 0 failures
+    #   test_nv_gsp_queue_memory 217 checks, 0 failures
+    #   test_nv_gsp_queue_observe 102 checks, 0 failures
+    #   test_nv_gsp_queue_plan 59 checks, 0 failures
+    #   test_nv_gsp_queue_regs 69 checks, 0 failures
+    #   test_nv_gsp_queue_rx 75 checks, 0 failures
+    #   test_nv_gsp_queue_tx 73 checks, 0 failures
+    #   test_nv_gsp_radix3 84 checks, 0 failures
+    #   test_nv_gsp_rm_image 45 checks, 0 failures
+    #   test_nv_gsp_rpc_frame 59 checks, 0 failures
+    #   test_nv_gsp_rpc_response 108 checks, 0 failures
+    #   test_nv_gsp_rpc_transaction 73 checks, 0 failures
+    #   test_nv_gsp_wpr_boot_ucode 41 checks, 0 failures
+    #   test_nv_gsp_wpr_ga107 61 checks, 0 failures
+    #   test_nv_gsp_wpr_image 97 checks, 0 failures
+    #   test_nv_gsp_wpr_meta 78 checks, 0 failures
+    "test_intel_gt_copy_plan": 75,
+    "test_intel_gt_csb": 71,
+    "test_intel_gt_dispatch": 30,
+    "test_intel_gt_lrc": 74,
+    "test_intel_gt_ppgtt": 82,
+    "test_intel_sink_candidate": 48,
+    "test_intel_sink_ggtt": 62,
+    "test_intel_sink_peer": 34,
+    "test_nv_ampere_channel": 71,
+    "test_nv_ampere_copy": 66,
+    "test_nv_ampere_fence": 61,
+    "test_nv_ampere_rm_plan": 67,
+    "test_nv_ampere_submit": 85,
+    "test_nv_gsp_bootargs_rehearsal": 28,
+    "test_nv_gsp_booter_fuse": 62,
+    "test_nv_gsp_cached_args": 77,
+    "test_nv_gsp_fw_container": 81,
+    "test_nv_gsp_libos_init": 79,
+    "test_nv_gsp_queue_dma": 207,
+    "test_nv_gsp_queue_init": 84,
+    "test_nv_gsp_queue_memory": 217,
+    "test_nv_gsp_queue_observe": 102,
+    "test_nv_gsp_queue_plan": 59,
+    "test_nv_gsp_queue_regs": 69,
+    "test_nv_gsp_queue_rx": 75,
+    "test_nv_gsp_queue_tx": 73,
+    "test_nv_gsp_radix3": 84,
+    "test_nv_gsp_rm_image": 45,
+    "test_nv_gsp_rpc_frame": 59,
+    "test_nv_gsp_rpc_response": 108,
+    "test_nv_gsp_rpc_transaction": 73,
+    "test_nv_gsp_wpr_boot_ucode": 41,
+    "test_nv_gsp_wpr_ga107": 61,
+    "test_nv_gsp_wpr_image": 97,
+    "test_nv_gsp_wpr_meta": 78,
+    # Measured 2026-11-01, later the same day: first readings of the three WPR
+    # suites registered once their final printf was cut to the exact
+    # "\n%d checks, %d failures\n" format (it had carried a "GA107 WPR
+    # candidate:", "GA107 WPR facts:" or "WPR sysmem bridge:" label). Same g++
+    # 16.1.0 build as above, zero warnings, each exited 0. NOT yet MSVC
+    # readings; tests\build-msvc.bat turns them into the gate's own numbers.
+    #   test_nv_gsp_wpr_candidate 45 checks, 0 failures
+    #   test_nv_gsp_wpr_ga107_facts 38 checks, 0 failures
+    #   test_nv_gsp_wpr_sysmem 35 checks, 0 failures
+    "test_nv_gsp_wpr_candidate": 45,
+    "test_nv_gsp_wpr_ga107_facts": 38,
+    "test_nv_gsp_wpr_sysmem": 35,
+    # Measured 2026-11-01, later again: first readings of the three Ampere
+    # runtime and publication suites, registered once their final printf moved
+    # from '%u checks, %u failures\n' on unsigned counters to the exact
+    # "\n%d checks, %d failures\n" format with static_cast<int> arguments and
+    # their tail from 'gFailures == 0u ? 0 : 1' to 'gFailures == 0 ? 0 : 1'.
+    # Same g++ 16.1.0 build as above, zero warnings, each exited 0. NOT yet
+    # MSVC readings; tests\build-msvc.bat turns them into the gate's own
+    # numbers.
+    #   test_nv_ampere_channel_runtime 164 checks, 0 failures
+    #   test_nv_ampere_copy_publication_bridge 30 checks, 0 failures
+    #   test_nv_ampere_copy_publication_runtime 182 checks, 0 failures
+    "test_nv_ampere_channel_runtime": 164,
+    "test_nv_ampere_copy_publication_bridge": 30,
+    "test_nv_ampere_copy_publication_runtime": 182,
+    # Measured 2026-11-01, later again: first readings of the GA107 PCI
+    # identity and GSP RPC receive-tracker suites, registered once their final
+    # printf moved from '%u checks, %u failures\n' on unsigned counters to the
+    # exact "\n%d checks, %d failures\n" format with static_cast<int>
+    # arguments. Their 'failures?1:0' tail is unchanged. Same g++ 16.1.0 build
+    # as above, zero warnings, each exited 0. NOT yet MSVC readings;
+    # tests\build-msvc.bat turns them into the gate's own numbers. Neither
+    # calls a check[A-Z]* helper, so SourcesStillCallChecks counts 0 for both;
+    # that test was already red at c066cf7.
+    #   test_nv_ga107_pci_identity 24 checks, 0 failures
+    #   test_nv_gsp_rpc_receive_tracker 325 checks, 0 failures
+    "test_nv_ga107_pci_identity": 24,
+    "test_nv_gsp_rpc_receive_tracker": 325,
+    # Measured 2026-11-01, later still: first readings of the GSP booter
+    # success-retirement plan and the two shared-surface handoff provenance
+    # suites, registered once their final printf moved from
+    # 'checks=%u failures=%u\n' or '%u checks, %u failures\n' on unsigned
+    # counters to the exact "\n%d checks, %d failures\n" format with
+    # static_cast<int> arguments, and their tail from gFailures == 0u to
+    # gFailures == 0. Same g++ 16.1.0 build as above, zero warnings, each
+    # exited 0. NOT yet MSVC readings; tests\build-msvc.bat turns them into
+    # the gate's own numbers. SourcesStillCallChecks counts 0, 0 and 5
+    # check[A-Z]* helper calls for them; that test was already red at c066cf7.
+    #   test_nv_gsp_booter_success_retirement_plan 59 checks, 0 failures
+    #   test_nv_intel_shared_surface_handoff_anchored_provenance 44 checks, 0 failures
+    #   test_nv_intel_shared_surface_handoff_provenance 67 checks, 0 failures
+    "test_nv_gsp_booter_success_retirement_plan": 59,
+    "test_nv_intel_shared_surface_handoff_anchored_provenance": 44,
+    "test_nv_intel_shared_surface_handoff_provenance": 67,
+    # Measured 2026-11-01, later still: first readings of the Intel display
+    # transaction-lifetime, plane program-plan, plane retirement-evidence and
+    # plane transition-plan suites and the GSP booter exec-sequence and
+    # recovery plan suites, registered once their final printf moved from a
+    # labelled 'all %u ... checks passed' or '... %u checks passed' line on
+    # unsigned counters (after a '%u/%u ... checks failed' early return) to the
+    # exact "\n%d checks, %d failures\n" format with static_cast<int>
+    # arguments and a gFailures == 0 ? 0 : 1 tail. The two booter suites also
+    # open their firmware fixtures through NV_FIRMWARE_DIR now. Same g++ 16.1.0
+    # build as above, zero warnings, each exited 0. NOT yet MSVC readings;
+    # tests\build-msvc.bat turns them into the gate's own numbers.
+    #   test_intel_display_transaction_lifetime 119 checks, 0 failures
+    #   test_intel_plane_program_plan 127 checks, 0 failures
+    #   test_intel_plane_retirement_evidence 116 checks, 0 failures
+    #   test_intel_plane_transition_plan 77 checks, 0 failures
+    #   test_nv_gsp_booter_exec_sequence_plan 67 checks, 0 failures
+    #   test_nv_gsp_booter_recovery_plan 141 checks, 0 failures
+    "test_intel_display_transaction_lifetime": 119,
+    "test_intel_plane_program_plan": 127,
+    "test_intel_plane_retirement_evidence": 116,
+    "test_intel_plane_transition_plan": 77,
+    "test_nv_gsp_booter_exec_sequence_plan": 67,
+    "test_nv_gsp_booter_recovery_plan": 141,
+    # Measured 2026-11-01, after the six above: first readings of the GSP
+    # booter transaction-lifetime and transaction recovery-contract suites and
+    # the cross-GPU shared copy-lifetime and shared surface-handoff suites,
+    # registered once their final printf moved from a labelled 'all %u ...
+    # checks passed' line on unsigned counters (after a '%u/%u ... checks
+    # failed' early return) to the exact "\n%d checks, %d failures\n" format
+    # with static_cast<int> arguments and a gFailures == 0 ? 0 : 1 tail. The
+    # transaction-lifetime suite also opens its firmware fixture through
+    # NV_FIRMWARE_DIR now. g++ -Wall -Wextra -Wpedantic build, zero warnings,
+    # each exited 0. NOT yet MSVC readings; tests\build-msvc.bat turns them
+    # into the gate's own numbers.
+    #   test_nv_gsp_booter_transaction_lifetime 208 checks, 0 failures
+    #   test_nv_gsp_booter_transaction_recovery_contract 35 checks, 0 failures
+    #   test_nv_intel_shared_copy_lifetime 82 checks, 0 failures
+    #   test_nv_intel_shared_surface_handoff 114 checks, 0 failures
+    "test_nv_gsp_booter_transaction_lifetime": 208,
+    "test_nv_gsp_booter_transaction_recovery_contract": 35,
+    "test_nv_intel_shared_copy_lifetime": 82,
+    "test_nv_intel_shared_surface_handoff": 114,
+    # Measured 2026-11-01, after the four above: first readings of the Intel
+    # GT fill-encoder, persistent-surface handle ABI and sink GGTT transaction
+    # suites, registered once main() stopped ending on an early-return
+    # '%d failure(s)' line and a 'tests passed' puts with no check counter.
+    # Each check helper now counts its calls, and main() prints the exact
+    # "\n%d checks, %d failures\n" line with a failures ? 1 : 0 tail.
+    # test_intel_gt_fill links phase0-kext/IntelGtBlitter.cpp for
+    # gtEncodeFill32. g++ -Wall -Wextra -Wpedantic build, zero warnings, each
+    # exited 0. NOT yet MSVC readings; tests\build-msvc.bat turns them into
+    # the gate's own numbers. SourcesStillCallChecks counts fewer than 20
+    # check-helper calls in each; that test was already red at 2687e72.
+    #   test_intel_gt_fill 34 checks, 0 failures
+    #   test_intel_gt_surface_handle_abi 14 checks, 0 failures
+    #   test_intel_sink_ggtt_txn 32 checks, 0 failures
+    # t-ecdc2b added gt_fill's untested refusal paths (zero and oversized
+    # extents, unaligned address and pitch, pitch over 32767, a surface past
+    # 4 GiB, a fence overlapping from below, a null batch) and the abutting-
+    # fence boundary; static calls 4 -> 27. MSVC gate reading, exited 0:
+    #   test_intel_gt_fill 55 checks, 0 failures
+    "test_intel_gt_fill": 55,
+    # t-ecdc2b added handle_abi's field-offset checks: both sides copy these
+    # structs byte for byte, so a field reorder breaks the ABI even when
+    # every size still matches; static calls 0 -> 14 (bare check renamed to
+    # checkTrue) -> 31. MSVC gate reading, exited 0:
+    #   test_intel_gt_surface_handle_abi 31 checks, 0 failures
+    "test_intel_gt_surface_handle_abi": 31,
+    "test_intel_sink_ggtt_txn": 32,
+    # Measured 2026-11-01, after the three above: first readings of the last
+    # 10 unregistered suites (t-3abea7), registered once main() ended on the
+    # exact "\n%d checks, %d failures\n" line with a gate-accepted return
+    # tail. The four GSP booter suites read firmware through NV_FIRMWARE_DIR.
+    # test_intel_gt_surface_handles and the two shared surface-handoff
+    # teardown suites were brought over STATIC_CALL_FLOOR with named check
+    # helpers. g++ 16.1.0 -Wall -Wextra -Wpedantic build, each exited 0. NOT
+    # yet MSVC readings; tests\build-msvc.bat turns them into the gate's own
+    # numbers.
+    #   test_intel_gt_surface 64 checks, 0 failures
+    #   test_intel_gt_surface_handles 314 checks, 0 failures
+    #   test_intel_gt_surface_txn 44 checks, 0 failures
+    #   test_intel_plane_live_observe 70 checks, 0 failures
+    #   test_nv_gsp_booter_fuse_patch_policy 61 checks, 0 failures
+    #   test_nv_gsp_booter_hs 60 checks, 0 failures
+    #   test_nv_gsp_booter_patch 77 checks, 0 failures
+    #   test_nv_gsp_booter_run_plan 95 checks, 0 failures
+    #   test_nv_intel_shared_surface_handoff_provenance_teardown_success 40 checks, 0 failures
+    #   test_nv_intel_shared_surface_handoff_teardown_failure 29 checks, 0 failures
+    "test_intel_gt_surface": 64,
+    "test_intel_gt_surface_handles": 314,
+    "test_intel_gt_surface_txn": 44,
+    "test_intel_plane_live_observe": 70,
+    "test_nv_gsp_booter_fuse_patch_policy": 61,
+    "test_nv_gsp_booter_hs": 60,
+    "test_nv_gsp_booter_patch": 77,
+    "test_nv_gsp_booter_run_plan": 95,
+    "test_nv_intel_shared_surface_handoff_provenance_teardown_success": 40,
+    "test_nv_intel_shared_surface_handoff_teardown_failure": 29,
 }
 
 # A suite must call check helpers many times over. Uniform across suites on

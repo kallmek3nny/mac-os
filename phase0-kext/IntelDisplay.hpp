@@ -26,12 +26,20 @@
 //  constants will be used to READ, so deriving them from it would make the
 //  decode unfalsifiable. See reference/i915/PROVENANCE.md.
 //
-//  Exactly ONE constant here is a value witnessed on silicon rather than an
-//  offset, mask or encoding transcribed from a header:
-//  IG_PLANE_SIZE_OBSERVED_2026_08_16. It carries its timestamp in its name, per
-//  the project rule. It is a datum the decoders are CHECKED AGAINST, never an
-//  input any of them is derived from, so the paragraph above still holds.
-//  Anything else settled from a live dump goes in under the same naming.
+//  Two groups of constants here are values witnessed on silicon rather than
+//  offsets, masks or encodings transcribed from a header:
+//
+//    IG_PLANE_SIZE_OBSERVED_2026_08_16 -- one word from the first capture,
+//    igpu-results/tgl-capture-2026-08-16-022556.txt.
+//
+//    The IG_OBSERVED_*_2026_08_18 block under VALUES WITNESSED ON SILICON
+//    further down -- values from the second and final capture,
+//    igpu-results/tgl-final-capture-2026-08-18-201412.txt.
+//
+//  Each carries its timestamp in its name, per the project rule. They are
+//  data the decoders are CHECKED AGAINST, never inputs any of them is derived
+//  from, so the paragraph above still holds. Anything else settled from a
+//  live dump goes in under the same naming.
 //
 //  THE THREE HAZARDS THIS FILE IS SHAPED AROUND
 //
@@ -1134,8 +1142,15 @@ static inline IGU32 igPlanePosY(IGU32 word)
 // half) are all excluded by this single word because the two halves disagree
 // with each other in the same direction as the mode's two axes. It does NOT
 // establish behaviour for scaled or rotated planes, for a plane narrower than
-// its pipe, or for any format other than the observed 4 (XRGB8888) -- one
-// unscaled full-screen desktop plane is the only configuration witnessed.
+// its pipe, or for any format other than the observed one -- raw 5-bit field 4,
+// which is code 2, XRGB_2101010 -- one unscaled full-screen desktop plane is
+// the only configuration witnessed.
+//
+// CORRECTED 2026-11-01 (t-a7929c). The line above said "the observed 4
+// (XRGB8888)". igPlaneFormat() returns the raw field, and 4 is right as a raw
+// field, but the codes are 4-bit at bit 24
+// (reference/i915/skl_universal_plane_regs.h:43-60), so field 4 is code 2 and
+// XRGB_8888 is field 8. igFbFormat() is the decode that returns codes.
 //
 // The field ORDER is inverted between the two registers, and this is the pair
 // most likely to produce a silently valid wrong answer:
@@ -1151,7 +1166,9 @@ static inline IGU32 igPlanePosY(IGU32 word)
 // The observed word itself, so that every paragraph above cites a name this
 // file actually SPELLS rather than a label that exists only in prose. A cited
 // name with no definition reads as provenance and is not; that is the one
-// asset this project has. It is also the only _OBSERVED_ constant here.
+// asset this project has. It is the only _OBSERVED_ constant from the
+// 2026-08-16 capture; the IG_OBSERVED_*_2026_08_18 block further down holds
+// the values from the second and final capture.
 //
 #define IG_PLANE_SIZE_OBSERVED_2026_08_16   0x0437077Fu
 

@@ -8,3 +8,10 @@ __pycache__/
 *.ilk
 *.pdb
 *.obj
+
+# Apple binaries extracted from the macOS guest (dyld shared cache, dylibs,
+# Metal driver bundles, metallibs). Local reverse-engineering reference only;
+# never commit or push them.
+reference/apple-extracted/
+dyld_shared_cache*
+*.metallib

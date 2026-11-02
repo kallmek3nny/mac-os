@@ -2,6 +2,7 @@
 #include "IntelGtBlitUserClient.hpp"
 #include "IntelGtBringup.hpp"
 #include "IntelGtBlitABI.h"
+#include "IntelGtScanoutRect.hpp"
 OSDefineMetaClassAndStructors(IntelGtBlitUserClient, IOUserClient);
 bool IntelGtBlitUserClient::initWithTask(task_t task, void *securityID,
                                       UInt32 type, OSDictionary *properties) {
@@ -109,6 +110,28 @@ IOReturn IntelGtBlitUserClient::externalMethod(UInt32 selector,
         bzero(response,sizeof(*response));
         const IOReturn result=fOwner->copyPersistentSurface32(
             req->sourceHandle,req->destinationHandle);
+        if (result==kIOReturnSuccess) response->completed=1u;
+        return result;
+    }
+
+    if (selector==IGGT_SCANOUT_FILL32_SELECTOR) {
+        // GT-1k (t-619d61): fill one rectangle of the inherited pipe A plane 1
+        // scanout. Refused unless iggt-bringup=4 mapped an IG_PRESENT_OK sample
+        // (scanoutPlaneSize32) and the rectangle lies inside it; never clipped.
+        if (args->structureInputSize!=sizeof(IgGtScanoutFill32Request) ||
+            args->structureOutputSize!=sizeof(IgGtScanoutFill32Response)) return kIOReturnBadArgument;
+        const auto *req=static_cast<const IgGtScanoutFill32Request *>(args->structureInput);
+        auto *response=static_cast<IgGtScanoutFill32Response *>(args->structureOutput);
+        if (req->reserved) return kIOReturnBadArgument;
+        bzero(response,sizeof(*response));
+        UInt32 planeWidth=0u, planeHeight=0u;
+        const IOReturn ready=fOwner->scanoutPlaneSize32(&planeWidth,&planeHeight);
+        if (ready!=kIOReturnSuccess) return ready;
+        if (!igScanoutRectInside(igScanoutRectVerdict(planeWidth,planeHeight,
+                                                      req->x,req->y,req->width,req->height)))
+            return kIOReturnBadArgument;
+        const IOReturn result=fOwner->fillScanoutRect32(req->x,req->y,req->width,req->height,
+                                                        req->color);
         if (result==kIOReturnSuccess) response->completed=1u;
         return result;
     }

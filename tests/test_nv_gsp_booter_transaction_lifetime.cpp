@@ -7,10 +7,20 @@
 #include <iterator>
 #include <vector>
 
+// ctest runs each suite from tests/build, where a cwd-relative
+// reference/ga107-firmware path resolves to nothing (the same 'fixture open'
+// failure fixed for test_nv_gsp_booter_success_retirement_plan in f5110c1).
+// CMake injects the source-tree path as NV_FIRMWARE_DIR (tests/CMakeLists.txt);
+// the fallback keeps a hand-built binary run from the repo root working.
+// A wrong path still FAILS, never skips.
+#ifndef NV_FIRMWARE_DIR
+#define NV_FIRMWARE_DIR "reference/ga107-firmware"
+#endif
+
 static unsigned gChecks = 0u;
 static unsigned gFailures = 0u;
 
-static void check(bool cond, const char *what)
+static void checkThat(bool cond, const char *what)
 {
     ++gChecks;
     if (!cond) {
@@ -23,7 +33,7 @@ static std::vector<unsigned char> load(const char *path)
 {
     std::ifstream f(path, std::ios::binary);
     if (!f) {
-        check(false, "fixture open");
+        checkThat(false, "fixture open");
         return {};
     }
     return std::vector<unsigned char>(std::istreambuf_iterator<char>(f), {});
@@ -47,15 +57,15 @@ static std::vector<unsigned char> privateImage(
     const NVGspBooterFuseObservation &observed)
 {
     NVGspBooterHsPlan hs = {};
-    check(nvGspPlanBooterHs(blob.data(), blob.size(), &hs) == NV_GSP_BOOTER_HS_OK,
+    checkThat(nvGspPlanBooterHs(blob.data(), blob.size(), &hs) == NV_GSP_BOOTER_HS_OK,
           "fixture hs parse");
     std::vector<unsigned char> image(hs.firmwareBytes, 0x5au);
     NVGspBooterFusePatchPlan built = {};
-    check(nvGspBuildObservedBooterPrivateImage(
+    checkThat(nvGspBuildObservedBooterPrivateImage(
               blob.data(), blob.size(), &observed,
               image.data(), image.size(), &built) == NV_GSP_BOOTER_FUSE_PATCH_OK,
           "fixture private image");
-    check(built.valid, "fixture private image valid");
+    checkThat(built.valid, "fixture private image valid");
     return image;
 }
 
@@ -64,13 +74,13 @@ static NVGspBooterExecSequencePlan sequencePlan(const std::vector<unsigned char>
     const auto observed = fuseObservation(0u);
     const auto image = privateImage(blob, observed);
     NVGspBooterExecSequencePlan out = {};
-    check(nvGspPlanGa107BooterExecSequence(
+    checkThat(nvGspPlanGa107BooterExecSequence(
               blob.data(), blob.size(), &observed,
               image.data(), image.size(), 0x12345678abcdef01ull, &out) ==
               NV_GSP_BOOTER_EXEC_OK,
           "fixture exec sequence accepted");
-    check(out.valid, "fixture exec sequence valid");
-    check(!out.runtimeWriteAuthorized, "fixture sequence remains no-write");
+    checkThat(out.valid, "fixture exec sequence valid");
+    checkThat(!out.runtimeWriteAuthorized, "fixture sequence remains no-write");
     return out;
 }
 
@@ -112,10 +122,10 @@ static NVGspBooterSuccessRetirementPlan successPlan(
     observed.mailbox0BeforeMailbox1Readback = true;
 
     NVGspBooterSuccessRetirementPlan out = {};
-    check(nvGspPlanGa107BooterSuccessRetirement(&sequence, &observed, &out) ==
+    checkThat(nvGspPlanGa107BooterSuccessRetirement(&sequence, &observed, &out) ==
               NV_GSP_BOOTER_SUCCESS_RETIREMENT_OK,
           "fixture success retirement accepted");
-    check(out.valid, "fixture success retirement valid");
+    checkThat(out.valid, "fixture success retirement valid");
     return out;
 }
 
@@ -146,15 +156,15 @@ static NVGspBooterRecoveryPlan recoveryPlan(
         observed.mailbox0Value = sequence.mailbox0SuccessValue + 1u;
         break;
     default:
-        check(false, "unsupported recovery fixture event");
+        checkThat(false, "unsupported recovery fixture event");
         break;
     }
 
     NVGspBooterRecoveryPlan out = {};
-    check(nvGspPlanGa107BooterRecovery(&sequence, &observed, &out) ==
+    checkThat(nvGspPlanGa107BooterRecovery(&sequence, &observed, &out) ==
               NV_GSP_BOOTER_RECOVERY_OK,
           "fixture recovery plan accepted");
-    check(out.valid, "fixture recovery plan valid");
+    checkThat(out.valid, "fixture recovery plan valid");
     return out;
 }
 
@@ -166,14 +176,14 @@ static bool sameBytes(const NVGspBooterTransactionLifetimePlan &a,
 
 static void checkPure(const NVGspBooterTransactionLifetimePlan &plan)
 {
-    check(!plan.retryAuthorized, "transaction never authorizes retry");
-    check(!plan.runtimeRecoveryAuthorized,
+    checkThat(!plan.retryAuthorized, "transaction never authorizes retry");
+    checkThat(!plan.runtimeRecoveryAuthorized,
           "transaction never authorizes runtime recovery");
-    check(!plan.runtimeWriteAuthorized,
+    checkThat(!plan.runtimeWriteAuthorized,
           "transaction never authorizes runtime writes");
-    check(!plan.resetAloneProvesRetirement,
+    checkThat(!plan.resetAloneProvesRetirement,
           "reset alone never proves retirement");
-    check(!plan.mailboxReadAfterTimeoutProvesCompletion,
+    checkThat(!plan.mailboxReadAfterTimeoutProvesCompletion,
           "mailbox read after timeout never proves completion");
 }
 
@@ -183,11 +193,11 @@ static NVGspBooterTransactionLifetimePlan planNonterminal(
     const char *what)
 {
     NVGspBooterTransactionLifetimePlan out = {};
-    check(nvGspPlanGa107BooterTransactionLifetime(
+    checkThat(nvGspPlanGa107BooterTransactionLifetime(
               &sequence, &progress, nullptr, nullptr, &out) == NV_GSP_BOOTER_TXN_OK,
           what);
-    check(out.valid, "nonterminal transaction plan valid");
-    check(!out.terminalOutcomePresent && !out.terminalSuccess && !out.terminalFailure,
+    checkThat(out.valid, "nonterminal transaction plan valid");
+    checkThat(!out.terminalOutcomePresent && !out.terminalSuccess && !out.terminalFailure,
           "nonterminal phase carries no invented terminal result");
     checkPure(out);
     return out;
@@ -199,59 +209,59 @@ static void testNonterminalPhases(const NVGspBooterExecSequencePlan &sequence)
 
     NVGspBooterTransactionProgress p = {};
     auto out = planNonterminal(sequence, p, "pre-execution accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_PRE_EXECUTION,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_PRE_EXECUTION,
           "pre-execution classified");
-    check(out.firmwareStagingReleaseAuthorized && out.wprMetaReleaseAuthorized,
+    checkThat(out.firmwareStagingReleaseAuthorized && out.wprMetaReleaseAuthorized,
           "nothing submitted/published is hardware-owned");
-    check(!out.firmwareStagingMustRemainPinned && !out.wprMetaMustRemainPinned,
+    checkThat(!out.firmwareStagingMustRemainPinned && !out.wprMetaMustRemainPinned,
           "pre-exec temporary backing has no hardware retention");
 
     p.resetSequenceCompleted = true;
     out = planNonterminal(sequence, p, "reset-ready accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_RESET_READY,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_RESET_READY,
           "reset-ready classified");
-    check(out.firmwareStagingReleaseAuthorized && out.wprMetaReleaseAuthorized,
+    checkThat(out.firmwareStagingReleaseAuthorized && out.wprMetaReleaseAuthorized,
           "reset alone acquires no temporary backing reference");
 
     p.firmwareDmaSubmitted = true;
     out = planNonterminal(sequence, p, "dma in-flight accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_FIRMWARE_DMA_IN_FLIGHT,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_FIRMWARE_DMA_IN_FLIGHT,
           "dma in-flight classified");
-    check(out.firmwareStagingMayStillBeReferenced &&
+    checkThat(out.firmwareStagingMayStillBeReferenced &&
               out.firmwareStagingMustRemainPinned &&
               !out.firmwareStagingReleaseAuthorized,
           "in-flight dma pins firmware source");
-    check(!out.wprMetaMayStillBeReferenced && out.wprMetaReleaseAuthorized,
+    checkThat(!out.wprMetaMayStillBeReferenced && out.wprMetaReleaseAuthorized,
           "wpr metadata is not hardware-owned before publication");
 
     p.allFirmwareDmaIdleObserved = true;
     out = planNonterminal(sequence, p, "dma retired accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_FIRMWARE_DMA_RETIRED,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_FIRMWARE_DMA_RETIRED,
           "dma-retired classified");
-    check(out.firmwareDmaRetired && !out.firmwareStagingMayStillBeReferenced &&
+    checkThat(out.firmwareDmaRetired && !out.firmwareStagingMayStillBeReferenced &&
               out.firmwareStagingReleaseAuthorized,
           "per-transfer idle retires firmware staging");
 
     p.wprMetaAddressPublished = true;
     out = planNonterminal(sequence, p, "wpr publication accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_WPR_META_PUBLISHED,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_WPR_META_PUBLISHED,
           "wpr-published classified");
-    check(out.wprMetaMayStillBeReferenced && out.wprMetaMustRemainPinned &&
+    checkThat(out.wprMetaMayStillBeReferenced && out.wprMetaMustRemainPinned &&
               !out.wprMetaReleaseAuthorized,
           "published wpr metadata becomes retained");
 
     p.bootStarted = true;
     out = planNonterminal(sequence, p, "boot-running accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_BOOT_RUNNING,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_BOOT_RUNNING,
           "boot-running classified");
-    check(out.wprMetaMustRemainPinned && !out.wprMetaReleaseAuthorized,
+    checkThat(out.wprMetaMustRemainPinned && !out.wprMetaReleaseAuthorized,
           "started booter keeps published wpr metadata pinned");
 
     p.haltObservedWithinBudget = true;
     out = planNonterminal(sequence, p, "halt-observed accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_HALT_OBSERVED,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_HALT_OBSERVED,
           "halt-observed classified");
-    check(out.wprMetaMustRemainPinned && !out.wprMetaReleaseAuthorized,
+    checkThat(out.wprMetaMustRemainPinned && !out.wprMetaReleaseAuthorized,
           "halt without terminal mailbox interpretation does not release wpr metadata");
 }
 
@@ -261,23 +271,23 @@ static void testSuccess(const NVGspBooterExecSequencePlan &sequence)
     const auto p = progressForSuccess();
     const auto success = successPlan(sequence);
     NVGspBooterTransactionLifetimePlan out = {};
-    check(nvGspPlanGa107BooterTransactionLifetime(
+    checkThat(nvGspPlanGa107BooterTransactionLifetime(
               &sequence, &p, nullptr, &success, &out) == NV_GSP_BOOTER_TXN_OK,
           "terminal success transaction accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_SUCCESS_RETIRED,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_SUCCESS_RETIRED,
           "success-retired phase classified");
-    check(out.terminalOutcomePresent && out.terminalSuccess && !out.terminalFailure,
+    checkThat(out.terminalOutcomePresent && out.terminalSuccess && !out.terminalFailure,
           "terminal success recorded exclusively");
-    check(!out.completionUncertain && out.haltProven && out.mailboxPairObserved,
+    checkThat(!out.completionUncertain && out.haltProven && out.mailboxPairObserved,
           "bounded halt and mailbox pair proof preserved");
-    check(!out.firmwareStagingMayStillBeReferenced &&
+    checkThat(!out.firmwareStagingMayStillBeReferenced &&
               !out.wprMetaMayStillBeReferenced &&
               out.firmwareStagingReleaseAuthorized &&
               out.wprMetaReleaseAuthorized,
           "successful retirement releases temporary staging and wpr metadata");
-    check(out.recoveryGuardMayBeDismissed,
+    checkThat(out.recoveryGuardMayBeDismissed,
           "only exact success can dismiss recovery guard");
-    check(!out.quarantineFirmwareStaging && !out.quarantineWprMeta &&
+    checkThat(!out.quarantineFirmwareStaging && !out.quarantineWprMeta &&
               !out.quarantineSec2State,
           "clean success carries no failure quarantine");
     checkPure(out);
@@ -290,19 +300,19 @@ static void testPreDmaFailure(const NVGspBooterExecSequencePlan &sequence)
         sequence, NV_GSP_BOOTER_RECOVERY_EVENT_CORE_SELECT_TIMEOUT);
     NVGspBooterTransactionProgress p = {};
     NVGspBooterTransactionLifetimePlan out = {};
-    check(nvGspPlanGa107BooterTransactionLifetime(
+    checkThat(nvGspPlanGa107BooterTransactionLifetime(
               &sequence, &p, &recovery, nullptr, &out) == NV_GSP_BOOTER_TXN_OK,
           "pre-dma failure accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_FAILURE_PRE_DMA,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_FAILURE_PRE_DMA,
           "pre-dma failure phase classified");
-    check(out.terminalFailure && !out.terminalSuccess,
+    checkThat(out.terminalFailure && !out.terminalSuccess,
           "failure recorded exclusively");
-    check(out.firmwareStagingReleaseAuthorized && out.wprMetaReleaseAuthorized,
+    checkThat(out.firmwareStagingReleaseAuthorized && out.wprMetaReleaseAuthorized,
           "never-submitted backing may be released");
-    check(!out.quarantineFirmwareStaging && !out.quarantineWprMeta &&
+    checkThat(!out.quarantineFirmwareStaging && !out.quarantineWprMeta &&
               out.quarantineSec2State,
           "only sec2 state is quarantined before dma submission");
-    check(out.requiresFreshExactTargetOwnership &&
+    checkThat(out.requiresFreshExactTargetOwnership &&
               out.requiresFreshSequenceRevalidation,
           "future attempt requires fresh ownership and sequence proof");
     checkPure(out);
@@ -317,33 +327,33 @@ static void testDmaFailure(const NVGspBooterExecSequencePlan &sequence)
     p.resetSequenceCompleted = true;
     p.firmwareDmaSubmitted = true;
     NVGspBooterTransactionLifetimePlan out = {};
-    check(nvGspPlanGa107BooterTransactionLifetime(
+    checkThat(nvGspPlanGa107BooterTransactionLifetime(
               &sequence, &p, &recovery, nullptr, &out) == NV_GSP_BOOTER_TXN_OK,
           "uncertain dma timeout accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_FAILURE_DMA_QUARANTINE,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_FAILURE_DMA_QUARANTINE,
           "dma quarantine phase classified");
-    check(out.completionUncertain && out.firmwareStagingMustRemainPinned &&
+    checkThat(out.completionUncertain && out.firmwareStagingMustRemainPinned &&
               !out.firmwareStagingReleaseAuthorized &&
               out.quarantineFirmwareStaging,
           "uncertain dma source remains pinned/quarantined");
-    check(out.wprMetaReleaseAuthorized && !out.quarantineWprMeta,
+    checkThat(out.wprMetaReleaseAuthorized && !out.quarantineWprMeta,
           "unpublished wpr metadata is not captured by dma failure");
-    check(out.quarantineSec2State, "dma failure quarantines sec2 state");
+    checkThat(out.quarantineSec2State, "dma failure quarantines sec2 state");
     checkPure(out);
 
     recovery = recoveryPlan(
         sequence, NV_GSP_BOOTER_RECOVERY_EVENT_FIRMWARE_DMA_TIMEOUT, true);
     p.allFirmwareDmaIdleObserved = true;
-    check(nvGspPlanGa107BooterTransactionLifetime(
+    checkThat(nvGspPlanGa107BooterTransactionLifetime(
               &sequence, &p, &recovery, nullptr, &out) == NV_GSP_BOOTER_TXN_OK,
           "later-idle dma timeout accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_FAILURE_DMA_RETIRED,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_FAILURE_DMA_RETIRED,
           "later idle moves failed dma to retired phase");
-    check(!out.completionUncertain && !out.firmwareStagingMustRemainPinned &&
+    checkThat(!out.completionUncertain && !out.firmwareStagingMustRemainPinned &&
               out.firmwareStagingReleaseAuthorized &&
               !out.quarantineFirmwareStaging,
           "later exact idle retires firmware staging only");
-    check(out.quarantineSec2State,
+    checkThat(out.quarantineSec2State,
           "later dma idle does not magically recover sec2 state");
     checkPure(out);
 }
@@ -362,33 +372,33 @@ static void testBootFailures(const NVGspBooterExecSequencePlan &sequence)
     // Model OpenRM reading mailbox0 after the failed halt wait. No halt proof.
     p.mailbox0Observed = true;
     NVGspBooterTransactionLifetimePlan out = {};
-    check(nvGspPlanGa107BooterTransactionLifetime(
+    checkThat(nvGspPlanGa107BooterTransactionLifetime(
               &sequence, &p, &recovery, nullptr, &out) == NV_GSP_BOOTER_TXN_OK,
           "halt-timeout transaction accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_FAILURE_BOOT_QUARANTINE,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_FAILURE_BOOT_QUARANTINE,
           "halt timeout enters boot quarantine");
-    check(out.completionUncertain && out.firmwareStagingReleaseAuthorized,
+    checkThat(out.completionUncertain && out.firmwareStagingReleaseAuthorized,
           "firmware staging already retired before boot timeout");
-    check(out.wprMetaMayStillBeReferenced && out.wprMetaMustRemainPinned &&
+    checkThat(out.wprMetaMayStillBeReferenced && out.wprMetaMustRemainPinned &&
               !out.wprMetaReleaseAuthorized && out.quarantineWprMeta,
           "published wpr metadata remains pinned after halt timeout");
-    check(!out.mailboxReadAfterTimeoutProvesCompletion,
+    checkThat(!out.mailboxReadAfterTimeoutProvesCompletion,
           "zero-looking mailbox after timeout remains non-authoritative");
-    check(out.quarantineSec2State, "boot timeout quarantines sec2 state");
+    checkThat(out.quarantineSec2State, "boot timeout quarantines sec2 state");
     checkPure(out);
 
     recovery = recoveryPlan(
         sequence, NV_GSP_BOOTER_RECOVERY_EVENT_MAILBOX0_FAILURE);
     p.haltObservedWithinBudget = true;
     p.mailboxReadbackAfterHalt = true;
-    check(nvGspPlanGa107BooterTransactionLifetime(
+    checkThat(nvGspPlanGa107BooterTransactionLifetime(
               &sequence, &p, &recovery, nullptr, &out) == NV_GSP_BOOTER_TXN_OK,
           "mailbox0 failure transaction accepted");
-    check(out.phase == NV_GSP_BOOTER_TXN_PHASE_FAILURE_BOOT_QUARANTINE,
+    checkThat(out.phase == NV_GSP_BOOTER_TXN_PHASE_FAILURE_BOOT_QUARANTINE,
           "mailbox failure stays in boot quarantine");
-    check(!out.completionUncertain && out.haltProven,
+    checkThat(!out.completionUncertain && out.haltProven,
           "halt completion is preserved without claiming booter success");
-    check(out.wprMetaMustRemainPinned && !out.wprMetaReleaseAuthorized &&
+    checkThat(out.wprMetaMustRemainPinned && !out.wprMetaReleaseAuthorized &&
               out.quarantineWprMeta,
           "failed booter retains wpr metadata despite proven halt");
     checkPure(out);
@@ -407,8 +417,8 @@ static void expectRefusal(
     const auto before = out;
     const auto verdict = nvGspPlanGa107BooterTransactionLifetime(
         sequence, progress, recovery, success, &out);
-    check(verdict == expected, what);
-    check(sameBytes(out, before), "refusal leaves output untouched");
+    checkThat(verdict == expected, what);
+    checkThat(sameBytes(out, before), "refusal leaves output untouched");
 }
 
 static void testContradictions(const NVGspBooterExecSequencePlan &sequence)
@@ -491,40 +501,40 @@ static void testNullsAndNames(const NVGspBooterExecSequencePlan &sequence)
     NVGspBooterTransactionProgress p = {};
     NVGspBooterTransactionLifetimePlan out = {};
 
-    check(nvGspPlanGa107BooterTransactionLifetime(
+    checkThat(nvGspPlanGa107BooterTransactionLifetime(
               nullptr, &p, nullptr, nullptr, &out) ==
               NV_GSP_BOOTER_TXN_ERR_NULL_SEQUENCE,
           "null sequence refused");
-    check(nvGspPlanGa107BooterTransactionLifetime(
+    checkThat(nvGspPlanGa107BooterTransactionLifetime(
               &sequence, nullptr, nullptr, nullptr, &out) ==
               NV_GSP_BOOTER_TXN_ERR_NULL_PROGRESS,
           "null progress refused");
-    check(nvGspPlanGa107BooterTransactionLifetime(
+    checkThat(nvGspPlanGa107BooterTransactionLifetime(
               &sequence, &p, nullptr, nullptr, nullptr) ==
               NV_GSP_BOOTER_TXN_ERR_NULL_OUTPUT,
           "null output refused");
 
     for (NVGspBooterHsU32 v = 0u; v <= NV_GSP_BOOTER_TXN_VERDICT_LIMIT; ++v) {
-        check(std::strcmp(nvGspBooterTransactionLifetimeVerdictName(v), "unknown") != 0,
+        checkThat(std::strcmp(nvGspBooterTransactionLifetimeVerdictName(v), "unknown") != 0,
               "in-range verdict named");
     }
-    check(std::strcmp(nvGspBooterTransactionLifetimeVerdictName(
+    checkThat(std::strcmp(nvGspBooterTransactionLifetimeVerdictName(
                           NV_GSP_BOOTER_TXN_VERDICT_LIMIT + 1u),
                       "unknown") == 0,
           "out-of-range verdict unknown");
 
     for (NVGspBooterHsU32 phase = NV_GSP_BOOTER_TXN_PHASE_PRE_EXECUTION;
          phase <= NV_GSP_BOOTER_TXN_PHASE_LIMIT; ++phase) {
-        check(std::strcmp(nvGspBooterTransactionLifetimePhaseName(phase), "unknown") != 0,
+        checkThat(std::strcmp(nvGspBooterTransactionLifetimePhaseName(phase), "unknown") != 0,
               "in-range phase named");
     }
-    check(std::strcmp(nvGspBooterTransactionLifetimePhaseName(0u), "unknown") == 0,
+    checkThat(std::strcmp(nvGspBooterTransactionLifetimePhaseName(0u), "unknown") == 0,
           "out-of-range phase unknown");
 }
 
 int main()
 {
-    const auto blob = load("reference/ga107-firmware/booter_load-570.144.bin");
+    const auto blob = load(NV_FIRMWARE_DIR "/booter_load-570.144.bin");
     if (blob.empty())
         return 1;
 
@@ -537,12 +547,6 @@ int main()
     testContradictions(sequence);
     testNullsAndNames(sequence);
 
-    if (gFailures != 0u) {
-        std::printf("%u/%u GA107 SEC2 transaction lifetime checks failed\n",
-                    gFailures, gChecks);
-        return 1;
-    }
-
-    std::printf("all %u GA107 SEC2 transaction lifetime checks passed\n", gChecks);
-    return 0;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }

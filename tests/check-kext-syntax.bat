@@ -244,6 +244,168 @@ REM is what reads that, and check-registers.py re-derives its constants and its
 REM 43-row range table from reference/i915/.
 "!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtForcewake.hpp
 if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtForcewake.hpp) else (echo   ok   IntelGtForcewake.hpp)
+REM IntelDisplayTransactionLifetime.hpp carries ONE quoted sibling,
+REM IntelPlaneRetirementEvidence.hpp, which in turn quotes IntelPlaneTransitionPlan.hpp,
+REM so -I phase0-kext parses it standalone and check-header-coverage.py, which derives
+REM the exemption from the presence of an ANGLE-BRACKET include, expects it HERE
+REM rather than exempted. What a clean parse here does NOT establish is the phase
+REM ordering the header exists for: that direct GGTT restore stays blocked once
+REM non-arming display state is programmed, that an armed flip keeps both surfaces
+REM and the target mapping pinned until exact retirement evidence resolves it, and
+REM that uncertainty quarantines rather than frees.
+REM tests/test_intel_display_transaction_lifetime.cpp is what reads those.
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelDisplayTransactionLifetime.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelDisplayTransactionLifetime.hpp) else (echo   ok   IntelDisplayTransactionLifetime.hpp)
+REM t-1b120d (GATE GREEN 8): the 66 headers below are the dependency-free
+REM ones tools/check-header-coverage.py listed as never parsed standalone here.
+REM Each has no angle-bracket include, so -I phase0-kext alone must parse it.
+REM A clean parse proves only that the header is valid C++ on its own; its
+REM behaviour is checked by the matching suite under tests/, not by this line.
+REM Intel GT family (10), dependency-free, added under t-1b120d (IntelGtRegSemantics.hpp: t-4f24b2).
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtBlitter.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtBlitter.hpp) else (echo   ok   IntelGtBlitter.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtCopyPlan.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtCopyPlan.hpp) else (echo   ok   IntelGtCopyPlan.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtCsb.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtCsb.hpp) else (echo   ok   IntelGtCsb.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtDispatch.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtDispatch.hpp) else (echo   ok   IntelGtDispatch.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtLrc.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtLrc.hpp) else (echo   ok   IntelGtLrc.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtPpgtt.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtPpgtt.hpp) else (echo   ok   IntelGtPpgtt.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtScanoutMap.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtScanoutMap.hpp) else (echo   ok   IntelGtScanoutMap.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtSurface.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtSurface.hpp) else (echo   ok   IntelGtSurface.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtSurfaceHandles.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtSurfaceHandles.hpp) else (echo   ok   IntelGtSurfaceHandles.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtRegSemantics.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtRegSemantics.hpp) else (echo   ok   IntelGtRegSemantics.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtSurfaceTxn.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtSurfaceTxn.hpp) else (echo   ok   IntelGtSurfaceTxn.hpp)
+REM Scanout fill rect bounds check, dependency-free, added under t-619d61.
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelGtScanoutRect.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelGtScanoutRect.hpp) else (echo   ok   IntelGtScanoutRect.hpp)
+REM Intel plane family (4), dependency-free, added under t-1b120d.
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelPlaneLiveObserve.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelPlaneLiveObserve.hpp) else (echo   ok   IntelPlaneLiveObserve.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelPlaneProgramPlan.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelPlaneProgramPlan.hpp) else (echo   ok   IntelPlaneProgramPlan.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelPlaneRetirementEvidence.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelPlaneRetirementEvidence.hpp) else (echo   ok   IntelPlaneRetirementEvidence.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelPlaneTransitionPlan.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelPlaneTransitionPlan.hpp) else (echo   ok   IntelPlaneTransitionPlan.hpp)
+REM Intel sink family (4), dependency-free, added under t-1b120d.
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelSinkCandidate.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelSinkCandidate.hpp) else (echo   ok   IntelSinkCandidate.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelSinkGgtt.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelSinkGgtt.hpp) else (echo   ok   IntelSinkGgtt.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelSinkGgttTxn.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelSinkGgttTxn.hpp) else (echo   ok   IntelSinkGgttTxn.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/IntelSinkPeer.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL IntelSinkPeer.hpp) else (echo   ok   IntelSinkPeer.hpp)
+REM NVIDIA Ampere family (8), dependency-free, added under t-1b120d.
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVAmpereChannel.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVAmpereChannel.hpp) else (echo   ok   NVAmpereChannel.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVAmpereChannelRuntime.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVAmpereChannelRuntime.hpp) else (echo   ok   NVAmpereChannelRuntime.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVAmpereCopy.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVAmpereCopy.hpp) else (echo   ok   NVAmpereCopy.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVAmpereCopyPublicationBridge.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVAmpereCopyPublicationBridge.hpp) else (echo   ok   NVAmpereCopyPublicationBridge.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVAmpereCopyPublicationRuntime.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVAmpereCopyPublicationRuntime.hpp) else (echo   ok   NVAmpereCopyPublicationRuntime.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVAmpereFence.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVAmpereFence.hpp) else (echo   ok   NVAmpereFence.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVAmpereRmPlan.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVAmpereRmPlan.hpp) else (echo   ok   NVAmpereRmPlan.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVAmpereSubmit.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVAmpereSubmit.hpp) else (echo   ok   NVAmpereSubmit.hpp)
+REM NVIDIA GA107 PCI identity family (1), dependency-free, added under t-1b120d.
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGa107PciIdentity.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGa107PciIdentity.hpp) else (echo   ok   NVGa107PciIdentity.hpp)
+REM NVIDIA GSP booter family (9), dependency-free, added under t-1b120d.
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspBooterExecSequencePlan.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspBooterExecSequencePlan.hpp) else (echo   ok   NVGspBooterExecSequencePlan.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspBooterFuse.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspBooterFuse.hpp) else (echo   ok   NVGspBooterFuse.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspBooterFusePatchPolicy.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspBooterFusePatchPolicy.hpp) else (echo   ok   NVGspBooterFusePatchPolicy.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspBooterHs.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspBooterHs.hpp) else (echo   ok   NVGspBooterHs.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspBooterPatch.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspBooterPatch.hpp) else (echo   ok   NVGspBooterPatch.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspBooterRecoveryPlan.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspBooterRecoveryPlan.hpp) else (echo   ok   NVGspBooterRecoveryPlan.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspBooterRunPlan.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspBooterRunPlan.hpp) else (echo   ok   NVGspBooterRunPlan.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspBooterSuccessRetirementPlan.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspBooterSuccessRetirementPlan.hpp) else (echo   ok   NVGspBooterSuccessRetirementPlan.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspBooterTransactionLifetime.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspBooterTransactionLifetime.hpp) else (echo   ok   NVGspBooterTransactionLifetime.hpp)
+REM NVIDIA GSP family (26), dependency-free, added under t-1b120d.
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspCachedArgs.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspCachedArgs.hpp) else (echo   ok   NVGspCachedArgs.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspFwContainer.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspFwContainer.hpp) else (echo   ok   NVGspFwContainer.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspLibosInit.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspLibosInit.hpp) else (echo   ok   NVGspLibosInit.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspQueueDma.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspQueueDma.hpp) else (echo   ok   NVGspQueueDma.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspQueueInit.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspQueueInit.hpp) else (echo   ok   NVGspQueueInit.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspQueueLiveEvidence.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspQueueLiveEvidence.hpp) else (echo   ok   NVGspQueueLiveEvidence.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspQueueMemory.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspQueueMemory.hpp) else (echo   ok   NVGspQueueMemory.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspQueueObserve.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspQueueObserve.hpp) else (echo   ok   NVGspQueueObserve.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspQueuePlan.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspQueuePlan.hpp) else (echo   ok   NVGspQueuePlan.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspQueueRegs.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspQueueRegs.hpp) else (echo   ok   NVGspQueueRegs.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspQueueRx.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspQueueRx.hpp) else (echo   ok   NVGspQueueRx.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspQueueTx.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspQueueTx.hpp) else (echo   ok   NVGspQueueTx.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspRadix3.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspRadix3.hpp) else (echo   ok   NVGspRadix3.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspRmImage.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspRmImage.hpp) else (echo   ok   NVGspRmImage.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspRpcFrame.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspRpcFrame.hpp) else (echo   ok   NVGspRpcFrame.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspRpcReceiveTracker.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspRpcReceiveTracker.hpp) else (echo   ok   NVGspRpcReceiveTracker.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspRpcResponse.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspRpcResponse.hpp) else (echo   ok   NVGspRpcResponse.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspRpcTransaction.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspRpcTransaction.hpp) else (echo   ok   NVGspRpcTransaction.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspWprBootDma.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspWprBootDma.hpp) else (echo   ok   NVGspWprBootDma.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspWprBootUcode.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspWprBootUcode.hpp) else (echo   ok   NVGspWprBootUcode.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspWprCandidate.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspWprCandidate.hpp) else (echo   ok   NVGspWprCandidate.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspWprGa107.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspWprGa107.hpp) else (echo   ok   NVGspWprGa107.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspWprGa107Facts.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspWprGa107Facts.hpp) else (echo   ok   NVGspWprGa107Facts.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspWprImage.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspWprImage.hpp) else (echo   ok   NVGspWprImage.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspWprMeta.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspWprMeta.hpp) else (echo   ok   NVGspWprMeta.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NVGspWprSysmem.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NVGspWprSysmem.hpp) else (echo   ok   NVGspWprSysmem.hpp)
+REM NVIDIA/Intel shared family (4), dependency-free, added under t-1b120d.
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NvIntelSharedCopyLifetime.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NvIntelSharedCopyLifetime.hpp) else (echo   ok   NvIntelSharedCopyLifetime.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NvIntelSharedSurfaceHandoff.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NvIntelSharedSurfaceHandoff.hpp) else (echo   ok   NvIntelSharedSurfaceHandoff.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NvIntelSharedSurfaceHandoffAnchoredProvenance.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NvIntelSharedSurfaceHandoffAnchoredProvenance.hpp) else (echo   ok   NvIntelSharedSurfaceHandoffAnchoredProvenance.hpp)
+"!CLANG!" %HDRFLAGS% -x c++ phase0-kext/NvIntelSharedSurfaceHandoffProvenance.hpp
+if errorlevel 1 (set FAILED=1 & echo   FAIL NvIntelSharedSurfaceHandoffProvenance.hpp) else (echo   ok   NvIntelSharedSurfaceHandoffProvenance.hpp)
 echo.
 
 echo === 2. section 1 covers every header ===

@@ -99,6 +99,64 @@ enum {
 #define IO32BitDirectPixels  "--------RRRRRRRRGGGGGGGGBBBBBBBB"
 #define IO30BitDirectPixels  "--RRRRRRRRRRGGGGGGGGGGBBBBBBBBBB"
 
+//
+//  FB-2: connection attributes, connection flags and timing information.
+//
+//  Still IOGraphicsTypes.h in Apple's SDK, folded in here for the reason given
+//  above. Every value was transcribed from apple-oss-distributions/IOGraphics,
+//  IOGraphicsFamily/IOKit/graphics/IOGraphicsTypes.h, and each line cited below
+//  is a line of that file.
+//
+//  Apple spells the connection attributes as four-character constants ('flgs').
+//  They are spelled here as the identical value in hex, with the characters in
+//  a comment, because this shim is reached through -I rather than as a system
+//  header: clang reports a multi-character constant as -Wmultichar outside a
+//  system header, and -Werror would turn that into a failed gate. The VALUE is
+//  the same; only the spelling differs.
+//
+enum {
+    kConnectionFlags                = 0x666C6773,   // 'flgs'  IOGraphicsTypes.h:1048
+    kConnectionSupportsLLDDCSense   = 0x6C646463,   // 'lddc'  IOGraphicsTypes.h:1052
+    kConnectionSupportsHLDDCSense   = 0x68646463,   // 'hddc'  IOGraphicsTypes.h:1053
+    kConnectionEnable               = 0x656E6162,   // 'enab'  IOGraphicsTypes.h:1054
+    kConnectionCheckEnable          = 0x63656E61    // 'cena'  IOGraphicsTypes.h:1055
+};
+
+// kConnectionFlags values. IOGraphicsTypes.h:1094-1096.
+enum {
+    kIOConnectionBuiltIn            = 0x00000800
+};
+
+//
+//  IOTimingInformation, DELIBERATELY WITHOUT its detailedInfo union.
+//
+//  Apple's struct (IOGraphicsTypes.h:523-530) is appleTimingID, flags, and a
+//  union of IODetailedTimingInformationV1/V2. The union is left out on purpose,
+//  and this is the one place the shim is knowingly STRICTER than Apple's. The
+//  FB-2 rule is that no detailed timing is reported until DISP-1 has decoded the
+//  transcoder timing words and the pixel clock from the captures; an absent
+//  member turns any write to detailedInfo into a failed syntax probe instead of
+//  a plausible-looking number. Whoever lands measured timings adds the union
+//  here, in the same commit that fills it.
+//
+typedef UInt32 IOAppleTimingID;
+
+struct IOTimingInformation {
+    IOAppleTimingID     appleTimingID;
+    UInt32              flags;
+};
+
+// IOTimingInformation flags. IOGraphicsTypes.h:533-537.
+enum {
+    kIODetailedTimingValid          = 0x80000000,
+    kIOScalingInfoValid             = 0x40000000
+};
+
+// IOAppleTimingID: only "not a standard timing". IOGraphicsTypes.h:1383.
+enum {
+    kIOTimingIDInvalid              = 0
+};
+
 class IOFramebuffer : public IOService {
     OSDeclareDefaultStructors(IOFramebuffer)
 
@@ -138,6 +196,17 @@ public:
     virtual bool            isConsoleDevice(void);
     virtual IOReturn        setAttribute(IOSelect attribute, uintptr_t value);
     virtual IOReturn        getAttribute(IOSelect attribute, uintptr_t *value);
+
+    //
+    //  FB-2. Concrete in Apple's header (IOFramebuffer.h:738-739 and :792-793).
+    //  The base bodies are IOFramebuffer.cpp:12901-12908, which returns
+    //  kIOReturnUnsupported, and :13246-13347.
+    //
+    virtual IOReturn        getTimingInfoForDisplayMode(IODisplayModeID displayMode,
+                                                        IOTimingInformation *info);
+    virtual IOReturn        getAttributeForConnection(IOIndex connectIndex,
+                                                      IOSelect attribute,
+                                                      uintptr_t *value);
 };
 
 #endif // NVSHIM_IOKIT_GRAPHICS_IOFRAMEBUFFER_H

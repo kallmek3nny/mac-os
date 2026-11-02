@@ -687,11 +687,46 @@ void IntelDisplayProbe::publishPlaneLiveObservation(UInt32 pipe)
                                                IG_PLANE_LIVE_PRIMARY_PLANE,
                                                IG_PLANE_SURFLIVE));
 
+    //
+    // The ten reads above, judged as ONE group before any of them is decoded
+    // or published -- the rule publishTranscoder() and publishPlane() already
+    // follow, and the one tests/test_intel_publisher_sample_shape.py derives
+    // over every method here that both reads the BAR and publishes.
+    // 3050-handoff44 recorded this method as the publisher that skipped it.
+    //
+    // igPlaneLiveObserve() refuses an unreadable word too, but only as one arm
+    // of a larger verdict, reached after its device and pipe gates. When an
+    // earlier gate fires, that answer cannot say whether the reads themselves
+    // landed. This verdict answers exactly that, on its own key, FIRST and on
+    // every path, so its absence can never be read as an older kext.
+    //
+    // The words live in the bracketed snapshot struct, so the array names them
+    // through it; the verdict local is readSample because sample already names
+    // the snapshot. Nothing here writes: the array copies values already read,
+    // and igSampleVerdict() is a pure header function.
+    //
+    const UInt32 sampled[] = {
+        sample.surfLiveBefore,
+        sample.transConf,
+        sample.pipeSrc,
+        sample.ctl,
+        sample.stride,
+        sample.pos,
+        sample.size,
+        sample.surf,
+        sample.offset,
+        sample.surfLiveAfter,
+    };
+    UInt32 readSample = igSampleVerdict(sampled,
+                                        (UInt32) (sizeof(sampled) / sizeof(sampled[0])));
+
     IgPlaneLiveObservation observed = {};
     UInt32 verdict = igPlaneLiveObserve(&sample, &observed);
 
-    IGLOG("plane %s.1 live: verdict=%s before=0x%08x after=0x%08x surf=0x%08x",
+    IGLOG("plane %s.1 live: sample=%s verdict=%s before=0x%08x after=0x%08x "
+          "surf=0x%08x",
           igTransName(pipe),
+          igSampleVerdictName(readSample),
           igPlaneLiveVerdictName(verdict),
           sample.surfLiveBefore,
           sample.surfLiveAfter,
@@ -699,9 +734,14 @@ void IntelDisplayProbe::publishPlaneLiveObservation(UInt32 pipe)
 
     char key[IG_KEY_BUFFER_BYTES];
 
-    // The verdict, zero-write fact and raw words are published on every path.
-    // That makes every refusal inspectable without decoding data the pure helper
-    // explicitly declined to trust.
+    // The read-group verdict sorts first and qualifies every key below it, the
+    // way 1-Sample qualifies publishPlane()'s keys. The observer verdict, the
+    // zero-write fact and the raw words follow on every path. That makes every
+    // refusal inspectable without decoding data the pure helper explicitly
+    // declined to trust.
+    if (igPlaneKey(key, sizeof(key), pipe, "1-LiveSample"))
+        setProperty(key, igSampleVerdictName(readSample));
+
     if (igPlaneKey(key, sizeof(key), pipe, "1-LiveObserve"))
         setProperty(key, igPlaneLiveVerdictName(verdict));
 

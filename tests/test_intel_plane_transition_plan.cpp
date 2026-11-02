@@ -7,7 +7,7 @@
 static unsigned gChecks = 0u;
 static unsigned gFailures = 0u;
 
-static void check(bool cond, const char *what)
+static void checkTrue(bool cond, const char *what)
 {
     ++gChecks;
     if (!cond) {
@@ -38,7 +38,7 @@ static IgPlaneLiveObservation goldenObservation()
 {
     const IgPlaneLiveSample sample = observedSample();
     IgPlaneLiveObservation out = {};
-    check(igPlaneLiveObserve(&sample, &out) == IG_PLANE_LIVE_OK,
+    checkTrue(igPlaneLiveObserve(&sample, &out) == IG_PLANE_LIVE_OK,
           "golden live observation accepted");
     return out;
 }
@@ -57,7 +57,7 @@ static IGSinkGgttPlan goldenMapping()
         0x01000000ull,
         0x00100000u,
         &out);
-    check(verdict == IG_SINK_GGTT_PLAN_OK, "golden GGTT mapping plan accepted");
+    checkTrue(verdict == IG_SINK_GGTT_PLAN_OK, "golden GGTT mapping plan accepted");
     return out;
 }
 
@@ -89,7 +89,7 @@ static IgPlaneProgramPlan goldenTarget()
     const auto mapping = goldenMapping();
     const auto request = goldenRequest();
     IgPlaneProgramPlan out = {};
-    check(igPlaneProgramPlan(&prior, &mapping, &request, &out) ==
+    checkTrue(igPlaneProgramPlan(&prior, &mapping, &request, &out) ==
               IG_PLANE_PROGRAM_PLAN_OK,
           "golden target program plan accepted");
     return out;
@@ -115,8 +115,8 @@ static void expectRefusal(const IgPlaneLiveObservation &prior,
     poison(&out);
     const IgPlaneTransitionPlan before = out;
     const IGU32 verdict = igPlaneTransitionPlan(&prior, &target, &out);
-    check(verdict == expected, what);
-    check(sameBytes(out, before), "refusal leaves output untouched");
+    checkTrue(verdict == expected, what);
+    checkTrue(sameBytes(out, before), "refusal leaves output untouched");
 }
 
 static void testGoldenStateChange()
@@ -127,40 +127,40 @@ static void testGoldenStateChange()
     IgPlaneTransitionPlan out = {};
 
     const IGU32 verdict = igPlaneTransitionPlan(&prior, &target, &out);
-    check(verdict == IG_PLANE_TRANSITION_OK, "golden transition accepted");
-    check(out.valid, "transition plan valid");
-    check(out.deviceId == 0x9A68u && out.pipe == IG_TRANSCODER_A && out.plane == 0u,
+    checkTrue(verdict == IG_PLANE_TRANSITION_OK, "golden transition accepted");
+    checkTrue(out.valid, "transition plan valid");
+    checkTrue(out.deviceId == 0x9A68u && out.pipe == IG_TRANSCODER_A && out.plane == 0u,
           "exact device/pipe/primary-plane relationship retained");
-    check(out.operationKind == IG_PLANE_TRANSITION_KIND_STATE_CHANGE_ENABLED,
+    checkTrue(out.operationKind == IG_PLANE_TRANSITION_KIND_STATE_CHANGE_ENABLED,
           "operation classified as state change while enabled");
-    check(out.currentPlaneEnabled && out.targetPlaneEnabled &&
+    checkTrue(out.currentPlaneEnabled && out.targetPlaneEnabled &&
               out.stateChangeWhileEnabled,
           "enabled-to-enabled state transition retained");
-    check(!out.surfaceOnlyFlip && !out.enableFromDisabled,
+    checkTrue(!out.surfaceOnlyFlip && !out.enableFromDisabled,
           "unsupported operation classes are not claimed");
-    check(out.requiresNoArmProgramming && out.requiresArmControlWrite &&
+    checkTrue(out.requiresNoArmProgramming && out.requiresArmControlWrite &&
               out.requiresSurfaceArmWrite,
           "noarm/control/surface responsibilities retained");
-    check(out.armControlImmediatelyBeforeSurface,
+    checkTrue(out.armControlImmediatelyBeforeSurface,
           "control must immediately precede surface arm");
-    check(!out.planeDisableRequired,
+    checkTrue(!out.planeDisableRequired,
           "narrow enabled-to-enabled i915 path does not require plane disable");
-    check(out.oldSurfaceMustRemainPinned && out.newSurfaceMustRemainPinned &&
+    checkTrue(out.oldSurfaceMustRemainPinned && out.newSurfaceMustRemainPinned &&
               out.targetMappingMustRemainCommitted,
           "both surfaces and target mapping remain live through retirement");
-    check(out.flipCompletionRequired && out.retirementProofRequired &&
+    checkTrue(out.flipCompletionRequired && out.retirementProofRequired &&
               out.flipDoneOrEquivalentProofRequired,
           "completion and retirement proof are mandatory");
-    check(out.ggttRestoreForbiddenUntilRetirement,
+    checkTrue(out.ggttRestoreForbiddenUntilRetirement,
           "GGTT restore is forbidden before retirement proof");
-    check(out.noWriteAbortSafe && out.postNoArmRollbackProofRequired,
+    checkTrue(out.noWriteAbortSafe && out.postNoArmRollbackProofRequired,
           "rollback boundary is explicit before and after noarm state");
-    check(!out.postArmRollbackSafe && out.timeoutMayHaveLatched,
+    checkTrue(!out.postArmRollbackSafe && out.timeoutMayHaveLatched,
           "post-arm timeout never claims safe rollback");
-    check(out.quarantineOnUncertainCompletion &&
+    checkTrue(out.quarantineOnUncertainCompletion &&
               out.retainBothSurfacesOnUncertainCompletion,
           "uncertain completion retains/quarantines both surface lifetimes");
-    check(!out.runtimeWriteAuthorized,
+    checkTrue(!out.runtimeWriteAuthorized,
           "pure transition planner never authorizes display writes");
 }
 
@@ -171,13 +171,13 @@ static void testNullsIdentityAndPrior()
     const auto target = goldenTarget();
     IgPlaneTransitionPlan out = {};
 
-    check(igPlaneTransitionPlan(&prior, &target, nullptr) ==
+    checkTrue(igPlaneTransitionPlan(&prior, &target, nullptr) ==
               IG_PLANE_TRANSITION_ERR_NULL_OUTPUT,
           "null output refused");
-    check(igPlaneTransitionPlan(nullptr, &target, &out) ==
+    checkTrue(igPlaneTransitionPlan(nullptr, &target, &out) ==
               IG_PLANE_TRANSITION_ERR_NULL_PRIOR,
           "null prior refused");
-    check(igPlaneTransitionPlan(&prior, nullptr, &out) ==
+    checkTrue(igPlaneTransitionPlan(&prior, nullptr, &out) ==
               IG_PLANE_TRANSITION_ERR_NULL_TARGET,
           "null target refused");
 
@@ -251,7 +251,7 @@ static void testSurfaceOnlyRefusal()
     prior.ctlWord &= ~(formatMask | tilingMask |
                        IG_FB_CTL_RENDER_DECOMP | IG_FB_CTL_ASYNC_FLIP);
     prior.ctlWord |= IG_FB_CTL_ENABLE |
-        (IG_FB_FORMAT_XRGB_8888 << IG_FB_CTL_FORMAT_SHIFT) |
+        igFbFormatCtlBits(IG_FB_FORMAT_XRGB_8888) |  // bit 26 (t-a7929c)
         (IG_FB_TILING_LINEAR << IG_FB_CTL_TILING_SHIFT);
     prior.strideWord = target.linearStrideUnits;
     prior.strideBytes = target.strideBytes;
@@ -267,10 +267,10 @@ static void testVerdictsAndAtomicity()
     std::puts("5. verdict names are stable and all refusals are atomic");
     for (IGU32 v = 0u; v <= IG_PLANE_TRANSITION_VERDICT_LIMIT; ++v) {
         const char *name = igPlaneTransitionVerdictName(v);
-        check(name != nullptr && std::strcmp(name, "unknown") != 0,
+        checkTrue(name != nullptr && std::strcmp(name, "unknown") != 0,
               "in-range verdict named");
     }
-    check(std::strcmp(igPlaneTransitionVerdictName(
+    checkTrue(std::strcmp(igPlaneTransitionVerdictName(
                           IG_PLANE_TRANSITION_VERDICT_LIMIT + 1u),
                       "unknown") == 0,
           "out-of-range verdict unknown");
@@ -281,10 +281,10 @@ static void testVerdictsAndAtomicity()
     IgPlaneTransitionPlan out = {};
     poison(&out);
     const IgPlaneTransitionPlan before = out;
-    check(igPlaneTransitionPlan(&prior, &target, &out) ==
+    checkTrue(igPlaneTransitionPlan(&prior, &target, &out) ==
               IG_PLANE_TRANSITION_ERR_TARGET_INVALID,
           "atomic refusal trigger");
-    check(sameBytes(out, before), "atomic refusal preserves entire output");
+    checkTrue(sameBytes(out, before), "atomic refusal preserves entire output");
 }
 
 int main()
@@ -295,12 +295,6 @@ int main()
     testSurfaceOnlyRefusal();
     testVerdictsAndAtomicity();
 
-    if (gFailures != 0u) {
-        std::printf("%u/%u Intel plane transition checks failed\n",
-                    gFailures, gChecks);
-        return 1;
-    }
-
-    std::printf("all %u Intel plane transition checks passed\n", gChecks);
-    return 0;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }

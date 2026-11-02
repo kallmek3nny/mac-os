@@ -61,9 +61,11 @@ INTEL_ID_HEADER = ROOT / "phase0-kext" / "IntelGpuId.hpp"
 # answers "what do the VALUES in those registers mean", and until this arm
 # existed not one of its ~30 constants was read by this gate. That is worse
 # here than it was for the addressing layer, because a wrong FIELD mask does
-# not fault: PLANE_CTL_FORMAT_MASK_SKL and _ICL differ by one bit, and the
-# observed CTL 0x82009000 decodes to a DIFFERENT VALID FORMAT under each
-# (4 = XRGB_8888 vs 2 = XRGB_2101010). A plane decoded at the wrong bpp
+# not fault: PLANE_CTL_FORMAT_MASK_SKL and _ICL differ by one bit, and
+# matching the four-bit codes against the raw five-bit field reads the
+# observed CTL 0x82009000 as a DIFFERENT VALID FORMAT: 4 = XRGB_8888, where
+# its bits 27:24 spell 2 = XRGB_2101010 (corrected 2026-11-01, t-a7929c; this
+# line used to call 4 the right answer). A plane decoded at the wrong bpp
 # produces a stride wrong by an integer factor, which lands the scanout
 # INSIDE the framebuffer and shears the picture rather than faulting.
 #
@@ -653,6 +655,14 @@ INTEL_FB_CHECKS = [
     #
     ("shift", "IG_FB_CTL_FORMAT_SHIFT", "PLANE_CTL_FORMAT_MASK_ICL"),
     ("mask", "IG_FB_CTL_FORMAT_MASK", "PLANE_CTL_FORMAT_MASK_ICL"),
+
+    #
+    # Where a decoded code lives (t-a7929c). Every RGB FORMAT_* value is
+    # REG_FIELD_PREP'd against the SKL mask, so igFbFormatCtlBits() must put
+    # the code at the SKL mask's shift and width, not the five-bit field's.
+    #
+    ("shift", "IG_FB_CTL_FORMAT_CODE_SHIFT", "PLANE_CTL_FORMAT_MASK_SKL"),
+    ("mask", "IG_FB_CTL_FORMAT_CODE_MASK", "PLANE_CTL_FORMAT_MASK_SKL"),
 
     ("shift", "IG_FB_CTL_TILING_SHIFT", "PLANE_CTL_TILED_MASK"),
     ("mask", "IG_FB_CTL_TILING_MASK", "PLANE_CTL_TILED_MASK"),
@@ -1845,49 +1855,117 @@ def intel_fb_sanity_checks(rep, kext, src):
                    f"icl {icl} differs from skl {skl} as the header claims")
 
     #
-    # 2. The observed CTL must decode DIFFERENTLY under the two masks.
+    # 2. The observed CTL must decode to the format its bits spell.
     #
-    # 0x82009000 is not an arbitrary example -- it is the one live capture, and
-    # it is precisely the case where a wrong mask yields a plausible answer
-    # rather than garbage: 4 (XRGB_8888) under the correct five-bit reading,
-    # 2 (XRGB_2101010) under the four-bit one. Both are formats the vendored
-    # header names. A driver that picked the wrong one would compute 4 bytes
-    # per pixel either way here, but the two codes diverge on other planes.
+    # 0x82009000 is the one live capture. Its five-bit field (27:23) is 4: bit
+    # 23 clear and bits 27:24 == 2, which the vendored header spells
+    # PLANE_CTL_FORMAT_XRGB_2101010 (skl_universal_plane_regs.h:52). Every RGB
+    # code there is REG_FIELD_PREP'd against the four-bit SKL mask, so code n
+    # is field value 2n, and :43-47 states the rule: "the shift-24 based values
+    # correctly map to the same formats in ICL, as long as bit 23 is set to 0".
+    # This mirrors igFbFormat() (IntelFramebuffer.hpp): bits 27:24 as the code,
+    # plus IG_FB_CTL_FORMAT_ICL_FLAG when bit 23 is set.
+    #
+    # CORRECTED 2026-11-01 (t-a7929c). This check used to match the RAW field
+    # against the four-bit codes and expect XRGB_8888 (4), because "the eDP
+    # panel was a 32-bpp desktop". XRGB_2101010 is 32 bpp too, so that premise
+    # could not separate them. It also claimed the capture separated the icl
+    # and skl masks. It cannot: bit 23 is clear, which is exactly the case
+    # where :43-47 says the two agree. What the capture DOES separate is the
+    # decode from the raw-field misreading (2 vs 4), the bug t-a7929c fixed,
+    # so that is the arm pinned now.
     #
     ctl = resolve("IG_FB_CTL_OBSERVED_2026_08_16", kext)
     shift = resolve("IG_FB_CTL_FORMAT_SHIFT", kext)
     mask = resolve("IG_FB_CTL_FORMAT_MASK", kext)
+    code_shift = resolve("IG_FB_CTL_FORMAT_CODE_SHIFT", kext)
+    code_mask = resolve("IG_FB_CTL_FORMAT_CODE_MASK", kext)
+    icl_flag = resolve("IG_FB_CTL_FORMAT_ICL_FLAG", kext)
 
-    if ctl is None or shift is None or mask is None:
+    if None in (ctl, shift, mask, code_shift, code_mask, icl_flag):
         rep.failed("IG_FB_CTL_OBSERVED_2026_08_16",
                    "the observed CTL or its format field constants do not "
                    "resolve, so the capture is checked against nothing")
     else:
-        got = (ctl >> shift) & mask
-        xrgb8888 = resolve("IG_FB_FORMAT_XRGB_8888", kext)
-        if xrgb8888 is None:
-            rep.failed("IG_FB_FORMAT_XRGB_8888", "does not resolve")
-        elif got != xrgb8888:
+        field = (ctl >> shift) & mask
+        got = ((field >> 1) & code_mask) | (icl_flag if field & 1 else 0)
+        xrgb2101010 = resolve("IG_FB_FORMAT_XRGB_2101010", kext)
+        if xrgb2101010 is None:
+            rep.failed("IG_FB_FORMAT_XRGB_2101010", "does not resolve")
+        elif got != xrgb2101010:
             rep.failed("IG_FB_CTL_OBSERVED_2026_08_16",
-                       f"decodes to format {got} under this header's field, "
-                       f"but the eDP panel was a 32-bpp desktop, which is "
-                       f"XRGB_8888 = {xrgb8888}")
+                       f"decodes to format 0x{got:X} under this header's "
+                       f"field, but the captured word spells "
+                       f"XRGB_2101010 = {xrgb2101010}")
         else:
             rep.passed("IG_FB_CTL_OBSERVED_2026_08_16",
-                       f"decodes to XRGB_8888 ({got}) on the observed capture")
+                       f"decodes to XRGB_2101010 ({got}) on the observed "
+                       f"capture")
 
+        #
+        # The capture must separate the decode from the raw-field reading, or
+        # the row above would pass for a decoder that never shifts the field.
+        #
+        if field == got:
+            rep.failed("IG_FB_CTL_OBSERVED_2026_08_16",
+                       f"the raw field and the decoded code are both "
+                       f"0x{got:X}, so this capture cannot tell igFbFormat() "
+                       f"from the raw-field misreading t-a7929c fixed")
+        else:
+            rep.passed("IG_FB_CTL_OBSERVED_2026_08_16",
+                       f"observed CTL separates the readings: decoded {got} "
+                       f"vs raw field {field}")
+
+        #
+        # Bit 23 is clear, so :43-47 says the four-bit SKL reading must agree.
+        #
         if skl is not None:
             skl_shift, skl_mask = skl
-            wrong = (ctl >> skl_shift) & skl_mask
-            if wrong == got:
+            skl_code = (ctl >> skl_shift) & skl_mask
+            if field & 1:
                 rep.failed("IG_FB_CTL_FORMAT_SHIFT",
-                           "the observed CTL decodes identically under the "
-                           "four-bit SKL mask, so this capture cannot "
-                           "separate the correct reading from the wrong one")
+                           "bit 23 is set in the observed CTL, so the "
+                           ":43-47 agreement with the SKL reading is untested")
+            elif skl_code != got:
+                rep.failed("IG_FB_CTL_FORMAT_SHIFT",
+                           f"bit 23 is clear but the decode (0x{got:X}) "
+                           f"differs from the four-bit SKL reading "
+                           f"({skl_code}), against :43-47")
             else:
                 rep.passed("IG_FB_CTL_FORMAT_SHIFT",
-                           f"observed CTL separates the readings: {got} "
-                           f"icl vs {wrong} skl")
+                           f"bit 23 clear: decode agrees with the four-bit "
+                           f"SKL reading ({got}), as :43-47 requires")
+
+        #
+        # igFbFormatCtlBits() is the inverse igPlaneBuildLinear() writes with.
+        # Re-encoding the decoded code must reproduce the captured 27:23 bits.
+        #
+        want = ctl & (mask << shift)
+        back = (((got & code_mask) << code_shift)
+                | ((1 << shift) if got & icl_flag else 0))
+        if back != want:
+            rep.failed("IG_FB_CTL_FORMAT_CODE_SHIFT",
+                       f"re-encoding code 0x{got:X} gives 0x{back:08X}, not "
+                       f"the captured format bits 0x{want:08X}")
+        else:
+            rep.passed("IG_FB_CTL_FORMAT_CODE_SHIFT",
+                       f"code {got} re-encodes to the captured format bits "
+                       f"0x{back:08X}")
+
+        #
+        # The flag must sit just above every four-bit code and complete the
+        # field, or the decode is not the bijection on 0..mask the header
+        # claims and an icl-only format could alias a named one.
+        #
+        if icl_flag != code_mask + 1 or (icl_flag | code_mask) != mask:
+            rep.failed("IG_FB_CTL_FORMAT_ICL_FLAG",
+                       f"0x{icl_flag:X} is not the one bit above the "
+                       f"0x{code_mask:X} codes that completes the 0x{mask:X} "
+                       f"field")
+        else:
+            rep.passed("IG_FB_CTL_FORMAT_ICL_FLAG",
+                       f"0x{icl_flag:X} above 0x{code_mask:X} completes the "
+                       f"0x{mask:X} field")
 
     #
     # 3. The derived stride unit must reproduce the panel that was LIT.

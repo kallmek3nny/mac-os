@@ -7,7 +7,7 @@
 static unsigned gChecks = 0u;
 static unsigned gFailures = 0u;
 
-static void check(bool cond, const char *what)
+static void checkTrue(bool cond, const char *what)
 {
     ++gChecks;
     if (!cond) {
@@ -76,7 +76,7 @@ static IgPlaneRetirementEvidencePlan goldenRetirement(bool proven)
     const auto transition = goldenTransition();
     const auto observation = retirementObservation(proven);
     IgPlaneRetirementEvidencePlan out = {};
-    check(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
+    checkTrue(igPlaneRetirementEvidencePlan(&transition, &observation, &out) ==
               IG_PLANE_RETIREMENT_OK,
           proven ? "proven retirement fixture accepted"
                  : "uncertain retirement fixture accepted");
@@ -114,19 +114,19 @@ static void expectRefusal(const IgPlaneTransitionPlan &transition,
     const auto before = out;
     const IGU32 verdict = igDisplayTransactionLifetimePlan(
         &transition, &progress, retirement, &out);
-    check(verdict == expected, what);
-    check(sameBytes(out, before), "refusal leaves output untouched");
+    checkTrue(verdict == expected, what);
+    checkTrue(sameBytes(out, before), "refusal leaves output untouched");
 }
 
 static void checkAlwaysPure(const IgDisplayTransactionLifetimePlan &p)
 {
-    check(!p.displayRollbackAuthorized,
+    checkTrue(!p.displayRollbackAuthorized,
           "transaction planner never invents display rollback authority");
-    check(!p.newSurfaceBackingReleaseAuthorized,
+    checkTrue(!p.newSurfaceBackingReleaseAuthorized,
           "new display backing is never released by this transaction");
-    check(!p.targetMappingReleaseAuthorized,
+    checkTrue(!p.targetMappingReleaseAuthorized,
           "active/possibly-active target mapping is never directly released");
-    check(!p.runtimeWriteAuthorized,
+    checkTrue(!p.runtimeWriteAuthorized,
           "transaction lifetime planner never authorizes writes");
 }
 
@@ -137,38 +137,38 @@ static void testPreMappingAndCommitted()
 
     IgDisplayTransactionProgress progress = {};
     IgDisplayTransactionLifetimePlan out = {};
-    check(igDisplayTransactionLifetimePlan(&transition, &progress, nullptr, &out) ==
+    checkTrue(igDisplayTransactionLifetimePlan(&transition, &progress, nullptr, &out) ==
               IG_DISPLAY_TXN_OK,
           "pre-mapping phase accepted");
-    check(out.valid && out.phase == IG_DISPLAY_TXN_PHASE_PRE_MAPPING,
+    checkTrue(out.valid && out.phase == IG_DISPLAY_TXN_PHASE_PRE_MAPPING,
           "pre-mapping phase classified");
-    check(out.oldSurfaceMustRemainPinned,
+    checkTrue(out.oldSurfaceMustRemainPinned,
           "currently scanned old surface remains pinned");
-    check(!out.newSurfaceMustRemainPinned &&
+    checkTrue(!out.newSurfaceMustRemainPinned &&
               !out.targetMappingMustRemainCommitted,
           "uncommitted target has no display lifetime yet");
-    check(!out.ggttRestoreMayBeAttempted,
+    checkTrue(!out.ggttRestoreMayBeAttempted,
           "no mapping means no restore transaction to attempt");
-    check(!out.quarantineOnAbortOrUncertainCompletion,
+    checkTrue(!out.quarantineOnAbortOrUncertainCompletion,
           "no-write pre-mapping abort is trivially safe");
     checkAlwaysPure(out);
 
     progress = committedProgress();
-    check(igDisplayTransactionLifetimePlan(&transition, &progress, nullptr, &out) ==
+    checkTrue(igDisplayTransactionLifetimePlan(&transition, &progress, nullptr, &out) ==
               IG_DISPLAY_TXN_OK,
           "mapping-committed phase accepted");
-    check(out.phase == IG_DISPLAY_TXN_PHASE_MAPPING_COMMITTED,
+    checkTrue(out.phase == IG_DISPLAY_TXN_PHASE_MAPPING_COMMITTED,
           "mapping-committed phase classified");
-    check(out.targetMappingPrepared && out.targetMappingCommitted &&
+    checkTrue(out.targetMappingPrepared && out.targetMappingCommitted &&
               out.targetMappingReadbackExact,
           "exact prepared/committed/readback mapping proof retained");
-    check(out.oldSurfaceMustRemainPinned && out.newSurfaceMustRemainPinned &&
+    checkTrue(out.oldSurfaceMustRemainPinned && out.newSurfaceMustRemainPinned &&
               out.targetMappingMustRemainCommitted,
           "mapping commit pins both transaction surfaces and mapping");
-    check(out.ggttRestoreMayBeAttempted &&
+    checkTrue(out.ggttRestoreMayBeAttempted &&
               out.ggttRestoreSuccessRequiredBeforeTargetBackingRelease,
           "pre-display-write exact restore path remains available");
-    check(!out.noArmRollbackProofRequiredForRestore &&
+    checkTrue(!out.noArmRollbackProofRequiredForRestore &&
               !out.ggttRestoreBlockedByDisplayState,
           "no display shadow state blocks restore yet");
     checkAlwaysPure(out);
@@ -182,31 +182,31 @@ static void testNoArmAndArmControlBoundaries()
     progress.noArmProgrammingIssued = true;
     IgDisplayTransactionLifetimePlan out = {};
 
-    check(igDisplayTransactionLifetimePlan(&transition, &progress, nullptr, &out) ==
+    checkTrue(igDisplayTransactionLifetimePlan(&transition, &progress, nullptr, &out) ==
               IG_DISPLAY_TXN_OK,
           "noarm-staged phase accepted");
-    check(out.phase == IG_DISPLAY_TXN_PHASE_NOARM_STAGED,
+    checkTrue(out.phase == IG_DISPLAY_TXN_PHASE_NOARM_STAGED,
           "noarm phase classified");
-    check(!out.ggttRestoreMayBeAttempted &&
+    checkTrue(!out.ggttRestoreMayBeAttempted &&
               out.noArmRollbackProofRequiredForRestore &&
               out.ggttRestoreBlockedByDisplayState,
           "noarm state blocks direct mapping restore without rollback proof");
-    check(out.quarantineOnAbortOrUncertainCompletion,
+    checkTrue(out.quarantineOnAbortOrUncertainCompletion,
           "aborting after noarm requires conservative quarantine");
-    check(out.oldSurfaceMustRemainPinned && out.newSurfaceMustRemainPinned &&
+    checkTrue(out.oldSurfaceMustRemainPinned && out.newSurfaceMustRemainPinned &&
               out.targetMappingMustRemainCommitted,
           "all display lifetimes remain held after noarm");
     checkAlwaysPure(out);
 
     progress.armControlWriteIssued = true;
-    check(igDisplayTransactionLifetimePlan(&transition, &progress, nullptr, &out) ==
+    checkTrue(igDisplayTransactionLifetimePlan(&transition, &progress, nullptr, &out) ==
               IG_DISPLAY_TXN_OK,
           "arm-control-staged phase accepted");
-    check(out.phase == IG_DISPLAY_TXN_PHASE_ARM_CONTROL_STAGED,
+    checkTrue(out.phase == IG_DISPLAY_TXN_PHASE_ARM_CONTROL_STAGED,
           "arm-control phase classified");
-    check(!out.armPointCrossed && !out.surfaceArmWriteIssued,
+    checkTrue(!out.armPointCrossed && !out.surfaceArmWriteIssued,
           "control staging alone is not surface arm completion");
-    check(out.noArmRollbackProofRequiredForRestore &&
+    checkTrue(out.noArmRollbackProofRequiredForRestore &&
               out.ggttRestoreBlockedByDisplayState,
           "failure between control and surface still needs rollback proof");
     checkAlwaysPure(out);
@@ -222,22 +222,22 @@ static void testArmedAwaitingRetirement()
     progress.surfaceArmWriteIssued = true;
     IgDisplayTransactionLifetimePlan out = {};
 
-    check(igDisplayTransactionLifetimePlan(&transition, &progress, nullptr, &out) ==
+    checkTrue(igDisplayTransactionLifetimePlan(&transition, &progress, nullptr, &out) ==
               IG_DISPLAY_TXN_OK,
           "armed waiting phase accepted");
-    check(out.phase == IG_DISPLAY_TXN_PHASE_ARMED_AWAIT_RETIREMENT,
+    checkTrue(out.phase == IG_DISPLAY_TXN_PHASE_ARMED_AWAIT_RETIREMENT,
           "armed-await-retirement phase classified");
-    check(out.armPointCrossed && !out.retirementEvidencePresent &&
+    checkTrue(out.armPointCrossed && !out.retirementEvidencePresent &&
               !out.retirementProven,
           "arm point recorded without invented completion");
-    check(out.oldSurfaceMustRemainPinned && out.newSurfaceMustRemainPinned &&
+    checkTrue(out.oldSurfaceMustRemainPinned && out.newSurfaceMustRemainPinned &&
               out.targetMappingMustRemainCommitted,
           "armed transition retains both surfaces and target mapping");
-    check(!out.oldSurfaceBackingReleaseAuthorized &&
+    checkTrue(!out.oldSurfaceBackingReleaseAuthorized &&
               !out.ggttRestoreMayBeAttempted &&
               out.ggttRestoreBlockedByDisplayState,
           "post-arm state authorizes neither release nor restore");
-    check(out.quarantineOnAbortOrUncertainCompletion,
+    checkTrue(out.quarantineOnAbortOrUncertainCompletion,
           "abort/timeout after arm is a quarantine boundary");
     checkAlwaysPure(out);
 }
@@ -253,21 +253,21 @@ static void testUncertainCompletionQuarantines()
     progress.surfaceArmWriteIssued = true;
     IgDisplayTransactionLifetimePlan out = {};
 
-    check(igDisplayTransactionLifetimePlan(
+    checkTrue(igDisplayTransactionLifetimePlan(
               &transition, &progress, &retirement, &out) == IG_DISPLAY_TXN_OK,
           "uncertain retirement policy accepted");
-    check(out.phase == IG_DISPLAY_TXN_PHASE_UNCERTAIN_QUARANTINE,
+    checkTrue(out.phase == IG_DISPLAY_TXN_PHASE_UNCERTAIN_QUARANTINE,
           "uncertain completion enters quarantine phase");
-    check(out.retirementEvidencePresent && !out.retirementProven &&
+    checkTrue(out.retirementEvidencePresent && !out.retirementProven &&
               out.completionUncertain,
           "uncertainty propagated from retirement evidence");
-    check(out.oldSurfaceMustRemainPinned && out.newSurfaceMustRemainPinned &&
+    checkTrue(out.oldSurfaceMustRemainPinned && out.newSurfaceMustRemainPinned &&
               out.targetMappingMustRemainCommitted,
           "uncertain completion retains every possibly referenced object");
-    check(out.quarantineOldSurface && out.quarantineNewSurface &&
+    checkTrue(out.quarantineOldSurface && out.quarantineNewSurface &&
               out.quarantineTargetMapping,
           "old/new/mapping all quarantined");
-    check(!out.oldSurfaceBackingReleaseAuthorized &&
+    checkTrue(!out.oldSurfaceBackingReleaseAuthorized &&
               !out.ggttRestoreMayBeAttempted,
           "uncertain completion cannot release or restore");
     checkAlwaysPure(out);
@@ -284,26 +284,26 @@ static void testProvenRetirementMakesTargetLive()
     progress.surfaceArmWriteIssued = true;
     IgDisplayTransactionLifetimePlan out = {};
 
-    check(igDisplayTransactionLifetimePlan(
+    checkTrue(igDisplayTransactionLifetimePlan(
               &transition, &progress, &retirement, &out) == IG_DISPLAY_TXN_OK,
           "proven retirement accepted");
-    check(out.phase == IG_DISPLAY_TXN_PHASE_RETIRED_LIVE,
+    checkTrue(out.phase == IG_DISPLAY_TXN_PHASE_RETIRED_LIVE,
           "retired-live phase classified");
-    check(out.retirementEvidencePresent && out.retirementProven &&
+    checkTrue(out.retirementEvidencePresent && out.retirementProven &&
               !out.completionUncertain,
           "exact retirement proof propagated");
-    check(out.newSurfaceIsLiveScanout,
+    checkTrue(out.newSurfaceIsLiveScanout,
           "new surface becomes live scanout state only after retirement proof");
-    check(!out.oldSurfaceMustRemainPinned &&
+    checkTrue(!out.oldSurfaceMustRemainPinned &&
               out.oldSurfaceBackingReleaseAuthorized,
           "only old backing becomes releaseable");
-    check(out.newSurfaceMustRemainPinned &&
+    checkTrue(out.newSurfaceMustRemainPinned &&
               out.targetMappingMustRemainCommitted,
           "new surface and mapping remain live/pinned");
-    check(!out.ggttRestoreMayBeAttempted &&
+    checkTrue(!out.ggttRestoreMayBeAttempted &&
               out.ggttRestoreBlockedByDisplayState,
           "live target mapping is not rollback material");
-    check(!out.quarantineOnAbortOrUncertainCompletion &&
+    checkTrue(!out.quarantineOnAbortOrUncertainCompletion &&
               !out.quarantineOldSurface && !out.quarantineNewSurface &&
               !out.quarantineTargetMapping,
           "proven retirement clears uncertainty quarantine policy");
@@ -394,32 +394,32 @@ static void testNullsNamesAndPhases()
     const auto progress = committedProgress();
     IgDisplayTransactionLifetimePlan out = {};
 
-    check(igDisplayTransactionLifetimePlan(nullptr, &progress, nullptr, &out) ==
+    checkTrue(igDisplayTransactionLifetimePlan(nullptr, &progress, nullptr, &out) ==
               IG_DISPLAY_TXN_ERR_NULL_TRANSITION,
           "null transition refused");
-    check(igDisplayTransactionLifetimePlan(&transition, nullptr, nullptr, &out) ==
+    checkTrue(igDisplayTransactionLifetimePlan(&transition, nullptr, nullptr, &out) ==
               IG_DISPLAY_TXN_ERR_NULL_PROGRESS,
           "null progress refused");
-    check(igDisplayTransactionLifetimePlan(
+    checkTrue(igDisplayTransactionLifetimePlan(
               &transition, &progress, nullptr, nullptr) ==
               IG_DISPLAY_TXN_ERR_NULL_OUTPUT,
           "null output refused");
 
     for (IGU32 v = 0u; v <= IG_DISPLAY_TXN_VERDICT_LIMIT; ++v) {
-        check(std::strcmp(igDisplayTransactionLifetimeVerdictName(v), "unknown") != 0,
+        checkTrue(std::strcmp(igDisplayTransactionLifetimeVerdictName(v), "unknown") != 0,
               "in-range verdict named");
     }
-    check(std::strcmp(igDisplayTransactionLifetimeVerdictName(
+    checkTrue(std::strcmp(igDisplayTransactionLifetimeVerdictName(
                           IG_DISPLAY_TXN_VERDICT_LIMIT + 1u),
                       "unknown") == 0,
           "out-of-range verdict unknown");
 
     for (IGU32 p = IG_DISPLAY_TXN_PHASE_PRE_MAPPING;
          p <= IG_DISPLAY_TXN_PHASE_UNCERTAIN_QUARANTINE; ++p) {
-        check(std::strcmp(igDisplayTransactionLifetimePhaseName(p), "unknown") != 0,
+        checkTrue(std::strcmp(igDisplayTransactionLifetimePhaseName(p), "unknown") != 0,
               "in-range phase named");
     }
-    check(std::strcmp(igDisplayTransactionLifetimePhaseName(0u), "unknown") == 0,
+    checkTrue(std::strcmp(igDisplayTransactionLifetimePhaseName(0u), "unknown") == 0,
           "out-of-range phase unknown");
 }
 
@@ -433,12 +433,6 @@ int main()
     testContradictionsAndAtomicity();
     testNullsNamesAndPhases();
 
-    if (gFailures != 0u) {
-        std::printf("%u/%u Intel display transaction lifetime checks failed\n",
-                    gFailures, gChecks);
-        return 1;
-    }
-
-    std::printf("all %u Intel display transaction lifetime checks passed\n", gChecks);
-    return 0;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }

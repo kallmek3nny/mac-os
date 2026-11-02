@@ -126,6 +126,36 @@ project keeps hitting. `NVNEG_BAD_FORMAT` pins it.
 stand-ins rather than signature stubs; they cannot be "looser" in the sense this
 audit is about. Section 5 of the gate checks the pairing separately.
 
+Added 2026-11-01 for t-fccff1. Both symbols reach their callers only through
+`IOLib.h`, because Apple's `IOLib.h` includes `<libkern/OSAtomic.h>` (which in turn
+includes `<string.h>`). They are declared in `IOLib.h` here to keep that
+include-graph shape, as with `bzero`:
+
+| Symbol | Real signature | Shim | Verdict |
+|---|---|---|---|
+| `bcopy` | `extern void bcopy(const void *src __sized_by(n), void *dst __sized_by(n), size_t n)` (`osfmk/libsa/string.h`) | `extern "C" void bcopy(const void *src, void *dst, unsigned long long len)` | MATCHES |
+| `OSSynchronizeIO` | `libkern/OSAtomic.h`, `extern "C"`, split only by architecture: arm/arm64 `extern void OSSynchronizeIO(void)`; otherwise `static __inline__ void OSSynchronizeIO(void) { }` | same architecture split | MATCHES |
+
+`bcopy` takes the source first and the destination second, the reverse of
+`memcpy`. The shim keeps `const` on `src`, so passing a const buffer in the
+destination slot fails here just as it would against Apple's header. The length
+is `size_t` on the probe target, for the same reason as `memset`'s. Apple's
+`__sized_by` annotations and its `always_inline` overload that forwards to
+`memmove` are left out. They change bounds checking, not the signature.
+
+`OSSynchronizeIO` compiles to an empty inline on x86_64, so it is **not** a
+barrier on this target. The shim copies that behavior and does not add a fence.
+Any ordering the Intel MMIO path in `IntelSinkCandidateService.cpp` (lines
+97, 99, and 120) needs has to come from somewhere else, and this stub will not
+hide that gap.
+
+Verification: after the edit, the clang `-fsyntax-only` probe shows no `bcopy`
+or `OSSynchronizeIO` diagnostics in `IntelSinkCandidateService.cpp`,
+`NVGspWprBootUcodeStageService.cpp` (line 183), or
+`NVGspWprMetaStageService.cpp` (line 270). The errors still left in those
+translation units are memory-descriptor members (t-4bfda4) and IOService members
+(t-54e66a).
+
 ## The one live defect this audit found
 
 `NV3050Probe.cpp` passed a bare `0` for `mappingOptions`. C++ performs **no**

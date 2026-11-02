@@ -27,6 +27,15 @@ upstream path below.
 | `intel_lrc.c` | `drivers/gpu/drm/i915/gt/intel_lrc.c` | 46,383 |
 | `intel_engine_cs.c` | `drivers/gpu/drm/i915/gt/intel_engine_cs.c` | 71,125 |
 | `intel_lrc.h` | `drivers/gpu/drm/i915/gt/intel_lrc.h` | 4,046 |
+| `intel_gt_irq.c` | `drivers/gpu/drm/i915/gt/intel_gt_irq.c` | 16,983 |
+| `intel_gt_irq.h` | `drivers/gpu/drm/i915/gt/intel_gt_irq.h` | 1,821 |
+| `i915_irq.c` | `drivers/gpu/drm/i915/i915_irq.c` | 42,446 |
+| `display/intel_pps_regs.h` | `drivers/gpu/drm/i915/display/intel_pps_regs.h` | 3,433 |
+| `display/intel_backlight_regs.h` | `drivers/gpu/drm/i915/display/intel_backlight_regs.h` | 4,628 |
+| `display/intel_pps.c` | `drivers/gpu/drm/i915/display/intel_pps.c` | 53,524 |
+| `display/intel_backlight.c` | `drivers/gpu/drm/i915/display/intel_backlight.c` | 58,561 |
+| `soc/intel_pch.h` | `drivers/gpu/drm/i915/soc/intel_pch.h` | 3,636 |
+| `soc/intel_pch.c` | `drivers/gpu/drm/i915/soc/intel_pch.c` | 9,614 |
 
 ## The three `gt/` headers, vendored 2026-08-26, and what they retire
 
@@ -156,6 +165,84 @@ found two wrong values, both fixed the same day and both now pinned by
 Still NOT implemented and recorded as open (intel-handoff44): `lrc_descriptor`
 also sets `GEN8_CTX_PRIVILEGE` (bit 8) and an addressing mode at bit 3; our
 descriptor sets neither.
+
+## The three interrupt files, vendored 2026-11-01, for GT-2
+
+Until now this directory held the Gen11 interrupt register and bit definitions
+but none of the code that programs them: `intel_gt_regs.h:1562-1615`
+(`GEN11_GT_INTR_DW`, `GEN11_RENDER_COPY_INTR_ENABLE`, `GEN11_INTR_IDENTITY_REG`,
+`GEN11_IIR_REG_SELECTOR`, `GEN11_BCS_RSVD_INTR_MASK`), `i915_reg.h:2599`
+(`GEN11_GFX_MSTR_IRQ`), `intel_execlists_submission.c:3512-3513`
+(`irq_enable_mask`, `irq_keep_mask`) and `intel_gpu_commands.h:45`
+(`MI_USER_INTERRUPT`). A glob of this directory for `*irq*` matched nothing.
+GT-2 needs the order and the values i915 uses, not only the offsets, so these
+three are here for the PROTOCOL, like the `.c` files of 2026-10-12:
+`intel_gt_irq.c` holds the Gen11 GT identity and bank handlers and
+`gen11_gt_irq_reset` / `gen11_gt_irq_postinstall`, `intel_gt_irq.h` declares
+them, and `i915_irq.c` is the device-level code that calls them.
+
+Same fetch as the rest: HTTPS from `raw.githubusercontent.com`, tag `v6.12`,
+byte-identical, unmodified. md5 at vendor time:
+
+- `intel_gt_irq.c` `c12cc4e45cfbda1adfe38748a404a071`
+- `intel_gt_irq.h` `59dcb3eb91495abf43b50de576e43b3c`
+- `i915_irq.c` `dffffeda9e11de4252031b2c30b255e3`
+
+These md5s are of the bytes as fetched, with LF line endings. This checkout has
+`core.autocrlf=true` and no `.gitattributes`, so a working copy that git has
+rewritten to CRLF will not match them; compare against the committed blob.
+
+`intel_gt_irq.[ch]` carry SPDX `MIT`. `i915_irq.c` has no SPDX line at the top
+and carries the 2003 Tungsten Graphics notice instead. All notices are left
+intact.
+
+Nothing in `phase0-kext/` cites these files yet. Take any line number from these
+copies, not from a fetch summary.
+
+## The six panel files, vendored 2026-11-01, for DISP-2
+
+DISP-2 (t-57f258) decodes panel power sequencing and the eDP backlight into
+`phase0-kext/IntelPanel.hpp`. This directory had no `PP_STATUS`, `PP_CONTROL`
+or backlight PWM definitions, so the lead approved these six as q-f120d6. They
+are the first files here kept in subdirectories, `display/` and `soc/` as
+upstream has them; the File column above gives the path from this directory.
+
+- `display/intel_pps_regs.h`: `PCH_PPS_BASE` and the `PP_STATUS`,
+  `PP_CONTROL`, `PP_ON_DELAYS` and `PP_OFF_DELAYS` fields.
+- `display/intel_backlight_regs.h`: `_BXT_BLC_PWM_CTL1`, `_BXT_BLC_PWM_FREQ1`,
+  `_BXT_BLC_PWM_DUTY1`, the `BXT_BLC_PWM_*(controller)` macros and the enable
+  and polarity bits.
+- `display/intel_pps.c`: code, for the PPS base i915 uses (`PCH_PPS_BASE` when
+  `HAS_PCH_SPLIT`) and the sequencer count (`intel_num_pps`).
+- `display/intel_backlight.c`: code, for the backlight register set i915 picks.
+  It selects `cnp_pwm_funcs` when `INTEL_PCH_TYPE >= PCH_CNP`, and the `cnp_*`
+  paths use `BXT_BLC_PWM_*(controller)`.
+- `soc/intel_pch.h`: `enum intel_pch`, where `PCH_TGP` comes after `PCH_CNP`,
+  and the TGP device ID types.
+- `soc/intel_pch.c`: the device ID table that maps TGP, TGP2 and MCC to
+  `PCH_TGP`.
+
+The observed words these decode are only in the final capture,
+`igpu-results/tgl-final-capture-2026-08-18-201412.txt` lines 1126 and 1129
+(`0xC7200`-`0xC720C` and `0xC8250`-`0xC8258`); the 2026-08-16 capture has none
+of them. What these files do not settle: the laptop's PCH device ID is in
+neither `HARDWARE.md` nor `igpu-results/`, so `PCH_TGP` on this machine is
+inferred from i915's TGP mapping, not measured.
+
+Same fetch as the rest: HTTPS from `raw.githubusercontent.com`, tag `v6.12`,
+byte-identical, unmodified. md5 at vendor time, checked on the fetch and again
+on each copy:
+
+- `display/intel_pps_regs.h` `b0eaea0c509c33ef9bbd7cb8fd8d4cd5`
+- `display/intel_backlight_regs.h` `fb236c95cde044b26d44586dd0cc5ffa`
+- `display/intel_pps.c` `64c0d9b466f7a2eb5c83555bfebb8e69`
+- `display/intel_backlight.c` `2cf024d39561520b6c9916b37550f501`
+- `soc/intel_pch.h` `81ec09b30a53af0e46cb5df7e90df3d6`
+- `soc/intel_pch.c` `3a7b1fef68cb3d64fdbb7fa2afc443dc`
+
+The interrupt files' line-ending caveat applies: these md5s are of LF bytes,
+so compare against the committed blob. Licence notices are left intact. Take
+any line number from these copies, not from a fetch summary.
 
 ## Why this directory exists
 

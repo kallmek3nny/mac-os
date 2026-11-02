@@ -7,7 +7,7 @@
 static unsigned gChecks = 0u;
 static unsigned gFailures = 0u;
 
-static void check(bool cond, const char *what)
+static void checkTrue(bool cond, const char *what)
 {
     ++gChecks;
     if (!cond) {
@@ -49,7 +49,7 @@ static NvIntelSharedCopyLifetimePlan retiredCopy()
     p.maxCredibleCompletionJump = 8ull;
 
     NvIntelSharedCopyLifetimePlan out = {};
-    check(nvIntelSharedCopyLifetimePlan(p, &out) == NV_INTEL_COPY_OK,
+    checkTrue(nvIntelSharedCopyLifetimePlan(p, &out) == NV_INTEL_COPY_OK,
           "retired copy helper builds valid plan");
     return out;
 }
@@ -126,20 +126,20 @@ static void expectReplayRefusal(
     const auto before = out;
     const auto verdict = nvIntelSharedSurfaceHandoffProvenancePlan(
         &copy, &progress, display, &provenance, &out);
-    check(verdict == NV_INTEL_HANDOFF_PROVENANCE_ERR_REPLAY, what);
-    check(sameBytes(out, before), "replay refusal leaves output untouched");
+    checkTrue(verdict == NV_INTEL_HANDOFF_PROVENANCE_ERR_REPLAY, what);
+    checkTrue(sameBytes(out, before), "replay refusal leaves output untouched");
 }
 
 static void checkAlwaysSafe(const NvIntelSharedSurfaceHandoffProvenancePlan &p)
 {
-    check(p.valid, "accepted provenance plan marked valid");
-    check(!p.runtimeWriteAuthorized,
+    checkTrue(p.valid, "accepted provenance plan marked valid");
+    checkTrue(!p.runtimeWriteAuthorized,
           "provenance wrapper never authorizes runtime writes");
-    check(!p.handoff.runtimeWriteAuthorized,
+    checkTrue(!p.handoff.runtimeWriteAuthorized,
           "wrapped handoff planner never authorizes runtime writes");
-    check(p.handoff.sharedBackingMustRemainPinned,
+    checkTrue(p.handoff.sharedBackingMustRemainPinned,
           "shared backing remains pinned across provenance boundary");
-    check(!p.handoff.sharedBackingReleaseAuthorized,
+    checkTrue(!p.handoff.sharedBackingReleaseAuthorized,
           "provenance wrapper never releases shared backing");
 }
 
@@ -151,23 +151,23 @@ static void testExactNvidiaEvidenceBinds()
     const auto provenance = exactProvenance();
     NvIntelSharedSurfaceHandoffProvenancePlan out = {};
 
-    check(nvIntelSharedSurfaceHandoffProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceHandoffProvenancePlan(
               &copy, &progress, nullptr, &provenance, &out) ==
               NV_INTEL_HANDOFF_PROVENANCE_OK,
           "exact nvidia provenance accepted");
-    check(!out.provenanceUncertain,
+    checkTrue(!out.provenanceUncertain,
           "exact nvidia provenance is not uncertain");
-    check(out.copySubmissionProvenanceRequired &&
+    checkTrue(out.copySubmissionProvenanceRequired &&
               out.copySubmissionProvenanceBound,
           "copy submission token is bound");
-    check(out.copyCompletionProvenanceRequired &&
+    checkTrue(out.copyCompletionProvenanceRequired &&
               out.copyCompletionProvenanceBound,
           "copy retirement evidence is bound to exact submission");
-    check(out.handoff.copyRetirementProven &&
+    checkTrue(out.handoff.copyRetirementProven &&
               out.handoff.intelHandoffAuthorized &&
               out.handoff.intelMappingMayBegin,
           "trusted retirement opens the intel ownership boundary");
-    check(out.handoff.phase == NV_INTEL_HANDOFF_PHASE_NVIDIA_RETIRED,
+    checkTrue(out.handoff.phase == NV_INTEL_HANDOFF_PHASE_NVIDIA_RETIRED,
           "trusted retirement retains normal handoff phase");
     checkAlwaysSafe(out);
 }
@@ -198,23 +198,23 @@ static void testAmbiguousNvidiaEvidenceQuarantines()
     provenance.copyCompletionEvidence = {};
 
     NvIntelSharedSurfaceHandoffProvenancePlan out = {};
-    check(nvIntelSharedSurfaceHandoffProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceHandoffProvenancePlan(
               &copy, &progress, nullptr, &provenance, &out) ==
               NV_INTEL_HANDOFF_PROVENANCE_OK,
           "ambiguous nvidia provenance accepted only as conservative state");
-    check(out.provenanceUncertain,
+    checkTrue(out.provenanceUncertain,
           "missing nvidia evidence provenance is marked uncertain");
-    check(out.handoff.phase == NV_INTEL_HANDOFF_PHASE_UNCERTAIN_QUARANTINE,
+    checkTrue(out.handoff.phase == NV_INTEL_HANDOFF_PHASE_UNCERTAIN_QUARANTINE,
           "ambiguous nvidia provenance enters uncertain quarantine");
-    check(!out.handoff.copyRetirementProven &&
+    checkTrue(!out.handoff.copyRetirementProven &&
               !out.handoff.intelHandoffAuthorized &&
               !out.handoff.intelMappingMayBegin,
           "ambiguous evidence cannot establish nvidia retirement or intel ownership");
-    check(out.handoff.nvidiaMayStillReferenceSurface &&
+    checkTrue(out.handoff.nvidiaMayStillReferenceSurface &&
               out.handoff.peerMappingMustRemainPinned &&
               !out.handoff.peerMappingSlotReuseAuthorized,
           "ambiguous retirement retains nvidia and peer-map lifetimes");
-    check(out.handoff.quarantineSharedBacking &&
+    checkTrue(out.handoff.quarantineSharedBacking &&
               out.handoff.quarantinePeerMapping,
           "ambiguous nvidia provenance quarantines shared backing and peer map");
     checkAlwaysSafe(out);
@@ -229,19 +229,19 @@ static void testExactIntelEvidenceBinds()
     const auto provenance = exactProvenance();
     NvIntelSharedSurfaceHandoffProvenancePlan out = {};
 
-    check(nvIntelSharedSurfaceHandoffProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceHandoffProvenancePlan(
               &copy, &progress, &display, &provenance, &out) ==
               NV_INTEL_HANDOFF_PROVENANCE_OK,
           "exact intel provenance accepted");
-    check(!out.provenanceUncertain,
+    checkTrue(!out.provenanceUncertain,
           "exact intel provenance is not uncertain");
-    check(out.intelDisplayTransactionProvenanceRequired &&
+    checkTrue(out.intelDisplayTransactionProvenanceRequired &&
               out.intelDisplayTransactionProvenanceBound,
           "intel display transaction token is bound");
-    check(out.intelDisplayEvidenceProvenanceRequired &&
+    checkTrue(out.intelDisplayEvidenceProvenanceRequired &&
               out.intelDisplayEvidenceProvenanceBound,
           "intel retirement evidence is bound to exact display transaction");
-    check(out.handoff.phase == NV_INTEL_HANDOFF_PHASE_INTEL_DISPLAY_LIVE &&
+    checkTrue(out.handoff.phase == NV_INTEL_HANDOFF_PHASE_INTEL_DISPLAY_LIVE &&
               out.handoff.intelSurfaceIsLiveScanout,
           "only exact display evidence retains live-scanout classification");
     checkAlwaysSafe(out);
@@ -275,20 +275,20 @@ static void testAmbiguousIntelEvidenceRetainsMapping()
     provenance.intelDisplayEvidence = {};
 
     NvIntelSharedSurfaceHandoffProvenancePlan out = {};
-    check(nvIntelSharedSurfaceHandoffProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceHandoffProvenancePlan(
               &copy, &progress, &display, &provenance, &out) ==
               NV_INTEL_HANDOFF_PROVENANCE_OK,
           "ambiguous intel evidence accepted only as conservative state");
-    check(out.provenanceUncertain,
+    checkTrue(out.provenanceUncertain,
           "missing intel evidence provenance is marked uncertain");
-    check(out.handoff.phase == NV_INTEL_HANDOFF_PHASE_UNCERTAIN_QUARANTINE,
+    checkTrue(out.handoff.phase == NV_INTEL_HANDOFF_PHASE_UNCERTAIN_QUARANTINE,
           "ambiguous intel evidence enters uncertain quarantine");
-    check(out.handoff.copyRetirementProven && out.handoff.intelHandoffAuthorized,
+    checkTrue(out.handoff.copyRetirementProven && out.handoff.intelHandoffAuthorized,
           "exact nvidia ownership proof remains valid");
-    check(out.handoff.intelMappingCommitted &&
+    checkTrue(out.handoff.intelMappingCommitted &&
               out.handoff.intelMappingMustRemainCommitted,
           "already committed intel mapping remains retained");
-    check(!out.handoff.intelSurfaceIsLiveScanout &&
+    checkTrue(!out.handoff.intelSurfaceIsLiveScanout &&
               out.handoff.quarantineIntelMapping &&
               out.handoff.quarantineSharedBacking,
           "ambiguous display retirement cannot claim live scanout and quarantines mapping");
@@ -305,17 +305,17 @@ static void testMissingRootEpochQuarantinesAllActiveDomains()
     provenance.handoffEpoch = 0ull;
 
     NvIntelSharedSurfaceHandoffProvenancePlan out = {};
-    check(nvIntelSharedSurfaceHandoffProvenancePlan(
+    checkTrue(nvIntelSharedSurfaceHandoffProvenancePlan(
               &copy, &progress, &display, &provenance, &out) ==
               NV_INTEL_HANDOFF_PROVENANCE_OK,
           "missing root epoch becomes conservative quarantine");
-    check(out.provenanceUncertain &&
+    checkTrue(out.provenanceUncertain &&
               out.handoff.phase == NV_INTEL_HANDOFF_PHASE_UNCERTAIN_QUARANTINE,
           "missing root epoch marks lifetime uncertain");
-    check(!out.handoff.copyRetirementProven &&
+    checkTrue(!out.handoff.copyRetirementProven &&
               !out.handoff.intelHandoffAuthorized,
           "unbound handoff epoch cannot establish cross-gpu ownership");
-    check(out.handoff.quarantinePeerMapping &&
+    checkTrue(out.handoff.quarantinePeerMapping &&
               out.handoff.quarantineIntelMapping &&
               out.handoff.quarantineSharedBacking,
           "unbound handoff epoch quarantines every active lifetime domain");
@@ -332,6 +332,6 @@ int main()
     testAmbiguousIntelEvidenceRetainsMapping();
     testMissingRootEpochQuarantinesAllActiveDomains();
 
-    std::printf("%u checks, %u failures\n", gChecks, gFailures);
-    return gFailures == 0u ? 0 : 1;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }

@@ -65,7 +65,7 @@ SOURCES      := NV3050Probe.cpp NVPeerMapperProbe.cpp NVGspQueueObserver.cpp \
 	NVGspWprFactsObserver.cpp NVGspQueueBackingService.cpp NVGspBootArgsRehearsalService.cpp \
 	NVGspRmImageStageService.cpp NVGspWprBootUcodeStageService.cpp NVGspWprMetaStageService.cpp \
 	IntelDisplayProbe.cpp IntelFbPresentProbe.cpp IntelSinkCandidateService.cpp \
-	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtBringupSurface.cpp IntelGtPersistentSurfaces.cpp IntelGtSurfaceStageService.cpp IntelGtBlitter.cpp IntelGtFill.cpp IntelGtBlitUserClient.cpp
+	IntelGtProbe.cpp IntelGtBringup.cpp IntelGtBringupSurface.cpp IntelGtPersistentSurfaces.cpp IntelGtSurfaceStageService.cpp IntelGtBlitter.cpp IntelGtFill.cpp IntelGtBlitUserClient.cpp IntelGtScanout.cpp
 OBJECTS      := $(SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 
 SDK          := $(shell xcrun --sdk macosx --show-sdk-path)
@@ -229,9 +229,11 @@ check:
 	@echo -n "NVIDIA PCI  : "; ioreg -p IOService -n pci10de,* -w0 2>/dev/null | head -1 || echo "none found"
 
 # Optional macOS userspace client; distinct flags from the kernel build.
+# Its source lives in ../tools/ because it is a host tool, not kext code;
+# -I . lets it find IntelGtBlitABI.h, which stays shared with the kext.
 .PHONY: gt-blit-tool
 gt-blit-tool: $(BUILD_DIR)/iggt-blit
-$(BUILD_DIR)/iggt-blit: iggt-blit.cpp IntelGtBlitABI.h
+$(BUILD_DIR)/iggt-blit: ../tools/iggt-blit.cpp IntelGtBlitABI.h
 	@mkdir -p $(BUILD_DIR)
-	$(CXX) $(ARCH) -isysroot $(SDK) -std=c++17 -O2 -Wall -Wextra \
-		-framework IOKit -framework CoreFoundation -o $@ iggt-blit.cpp
+	$(CXX) $(ARCH) -isysroot $(SDK) -std=c++17 -O2 -Wall -Wextra -I . \
+		-framework IOKit -framework CoreFoundation -o $@ ../tools/iggt-blit.cpp

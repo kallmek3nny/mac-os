@@ -74,7 +74,7 @@ static void checkInt(const char *label, int got, int want)
 }
 
 //
-//  ONE GOOD GROUP, spelled as bare literals and used by most sections below.
+//  ONE LINEAR GROUP, spelled as bare literals and used by most sections below.
 //
 //  THE CAPTURED WORD CANNOT BE THE ACCEPT-PATH INPUT, AND THAT IS A FACT ABOUT
 //  THE SILICON RATHER THAN A CONVENIENCE.
@@ -83,19 +83,21 @@ static void checkInt(const char *label, int got, int want)
 //  of that word is SET. Bit 15 is PLANE_CTL_RENDER_DECOMP, so igFbInheritable()
 //  returns COMPRESSED at its second arm and never reaches format, stride or
 //  geometry -- tests/test_intel_framebuffer.cpp says so in its own header, and
-//  this suite's first draft ignored it and composed a "good" group out of the
-//  captured word. Every accept-path check then reported verdict 2.
+//  this suite's first draft ignored it and composed an acceptable group out of
+//  the captured word. Every accept-path check then reported verdict 2.
 //
-//  So the accept group is COMPOSED, and it is composed by clearing exactly one
-//  bit of the observed word:
+//  The captured word is also Y-tiled (tiling field 12:10 = 4). The accept fixture
+//  is therefore COMPOSED by clearing the render-compression bit and the Y-tiling
+//  bit:
 //
-//      0x82009000 & ~0x00008000 = 0x82001000
+//      0x82009000 & ~0x00009000 = 0x82000000
 //
-//  Enabled (bit 31), tiling code 1 = X-tiled (bits 12:10, unchanged from the
-//  capture), format field (bits 27:23) = 4 = XRGB_8888, compression cleared.
-//  Naming the derivation matters more than the value: this is the observed word
-//  MINUS one bit, not a number invented to make a line go green, and the one bit
-//  removed is named.
+//  Enabled (bit 31), tiling field (bits 12:10) = 0 = linear, format field
+//  (bits 27:23) = 4, which is code 2 = XRGB_2101010; compression cleared.
+//
+//  The format codes are 4-bit at bit 24 (reference/i915/
+//  skl_universal_plane_regs.h:43-60), so 5-bit field 4 is code 2, and
+//  XRGB_8888 is field 8. The captured word remains separately pinned below.
 //
 //  The geometry is 1280x800 rather than the captured 1920x1080 on purpose, and it
 //  must not be "fixed": handoff16 SS4 records why. A test raster equal to the
@@ -116,7 +118,7 @@ static void checkInt(const char *label, int got, int want)
 //      64 * 128 = 8192 bytes, and 8192 >= 1280 * 4 = 5120, with padding left over
 //      so stride-vs-visible-width is a real distinction rather than an equality.
 //
-#define GOOD_CTL        0x82001000u   // observed 0x82009000 with bit 15 cleared
+#define GOOD_CTL        0x82000000u   // observed word with compression and Y tiling cleared
 #define GOOD_SIZE       0x031F04FFu   // height 799+1=800, width 1279+1=1280
 #define GOOD_STRIDE     0x00000040u   // 64 * 128 = 8192 bytes, >= 1280 * 4
 #define GOOD_SURF       0x00100000u   // 1 MiB in, 4 KiB aligned
@@ -124,8 +126,7 @@ static void checkInt(const char *label, int got, int want)
 
 //
 //  The observed word itself, kept as its own literal and asserted in section 4b
-//  to be exactly one bit away from GOOD_CTL and to refuse as COMPRESSED. Without
-//  that pair the derivation above is prose, and prose is what went wrong here.
+//  to differ from the linear fixture only by its compression and Y-tiling bits.
 //
 #define OBSERVED_CTL    0x82009000u
 
@@ -230,13 +231,22 @@ static void testSentinelsAgree(void)
 }
 
 //
-//  4. The accept path, over a PLANE_CTL word witnessed on silicon.
+//  4. The synthetic linear accept path, based on a PLANE_CTL word witnessed on silicon.
 //
 static void testAcceptPath(void)
 {
-    section("4. the accept path, over a captured PLANE_CTL word");
+    section("4. the synthetic linear accept path, based on a captured PLANE_CTL word");
 
-    checkU32("the captured word decodes to XRGB_8888", igFbFormat(GOOD_CTL), 4u);
+    //  CORRECTED 2026-11-01 (t-a7929c). GOOD_CTL's 5-bit field (27:23) is 4, but
+    //  the codes are 4-bit and sit at bit 24 (reference/i915/
+    //  skl_universal_plane_regs.h:43-60), so field 4 is code 2, XRGB_2101010.
+    //  This section used to read it as XRGB_8888 (code 4, field 8) and pinned
+    //  8-bit components and masks over a 10-bit surface. The accept path is now
+    //  the format the firmware really programmed; section 8 composes the 8-bit
+    //  side of the pair.
+    checkU32("the captured word decodes to XRGB_2101010", igFbFormat(GOOD_CTL), 2u);
+    checkInt("and NOT to XRGB_8888, the raw field's coincidence",
+             igFbFormat(GOOD_CTL) != 4u ? 1 : 0, 1);
 
     checkU32("the good group is usable",
              igPresentVerdict(GOOD_CTL, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
@@ -258,9 +268,9 @@ static void testAcceptPath(void)
     checkU32("bits per pixel is 32",
              igPresentBitsPerPixel(GOOD_CTL, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
                                    GOOD_APERTURE), 32u);
-    checkU32("component bits is 8",
+    checkU32("component bits is 10",
              igPresentComponentBits(GOOD_CTL, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
-                                    GOOD_APERTURE), 8u);
+                                    GOOD_APERTURE), 10u);
     checkU32("component count is 3",
              igPresentComponentCount(GOOD_CTL, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
                                      GOOD_APERTURE), 3u);
@@ -282,36 +292,37 @@ static void testAcceptPath(void)
     checkU32("masks answer OK",
              igPresentMasks(GOOD_CTL, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
                             GOOD_APERTURE, &r, &g, &b), 0u);
-    checkU32("red mask is 8-bit XRGB",   r, 0x00FF0000u);
-    checkU32("green mask is 8-bit XRGB", g, 0x0000FF00u);
-    checkU32("blue mask is 8-bit XRGB",  b, 0x000000FFu);
+    checkU32("red mask is 10-bit XRGB",   r, 0x3FF00000u);
+    checkU32("green mask is 10-bit XRGB", g, 0x000FFC00u);
+    checkU32("blue mask is 10-bit XRGB",  b, 0x000003FFu);
 
     //
-    //  4b. THE ACCEPT WORD IS THE OBSERVED WORD MINUS ONE NAMED BIT.
+    //  4b. THE ACCEPT FIXTURE CLEARS THE OBSERVED COMPRESSION AND Y-TILING BITS.
     //
-    //  Everything above runs over GOOD_CTL, which is COMPOSED. The fixture comment
-    //  says it is 0x82009000 with bit 15 cleared, and a comment saying that is
-    //  exactly what this suite's first draft had while being wrong -- it claimed
-    //  the captured word was uncompressed and composed an accept path that could
-    //  never accept.
+    //  Everything above runs over GOOD_CTL, which is COMPOSED from the observed
+    //  word by clearing bit 15 (render compression) and bit 12 (Y tiling). The
+    //  capture itself is not a valid linear accept-path input.
     //
-    //  So the relation is pinned rather than described. Three claims, and each one
-    //  fails separately:
+    //  Pin the relationship and each relevant field separately:
     //
-    //    - the two words differ in exactly one bit, and it is bit 15
+    //    - the two words differ in exactly bits 15 and 12
     //    - the observed word REFUSES, and specifically as NOT_INHERITABLE
     //    - the observed word is otherwise identical, i.e. it still decodes to the
     //      same format, so the clearing did not quietly change the subject
     //
-    //  Without the third, clearing an arbitrary bit that happened to yield an
-    //  inheritable word would satisfy the first two.
+    //  Without the field checks, clearing arbitrary bits could accidentally make
+    //  a fixture look acceptable without representing a linear surface.
     //
-    checkU32("observed word is the accept word plus bit 15",
-             OBSERVED_CTL, GOOD_CTL | 0x00008000u);
-    checkU32("the two words differ in exactly bit 15",
-             OBSERVED_CTL ^ GOOD_CTL, 0x00008000u);
-    checkU32("the observed word still decodes to XRGB_8888",
-             igFbFormat(OBSERVED_CTL), 4u);
+    checkU32("observed word is the linear fixture plus compression and Y tiling",
+             OBSERVED_CTL, GOOD_CTL | 0x00009000u);
+    checkU32("the words differ in render compression and Y tiling bits",
+             OBSERVED_CTL ^ GOOD_CTL, 0x00009000u);
+    checkU32("the linear fixture has linear tiling",
+             igFbTiling(GOOD_CTL), IG_FB_TILING_LINEAR);
+    checkU32("the observed word has Y tiling",
+             igFbTiling(OBSERVED_CTL), IG_FB_TILING_Y);
+    checkU32("the observed word still decodes to XRGB_2101010",
+             igFbFormat(OBSERVED_CTL), 2u);
     checkU32("the observed word is refused as NOT_INHERITABLE",
              igPresentVerdict(OBSERVED_CTL, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
                               GOOD_APERTURE), 2u);
@@ -389,7 +400,7 @@ static void testEachRefusalArm(void)
     //  CTL word carries 14 in the format field with every other bit unchanged.
     //  This is the arm that proves the pixel test runs at all: the plane is
     //  enabled, linear, uncompressed, and its scanout arithmetic is fine.
-    const IGPR32 ctl565 = (GOOD_CTL & ~(0x0Fu << 23)) | (14u << 23);
+    const IGPR32 ctl565 = (GOOD_CTL & ~(0x1Fu << 23)) | (14u << 24);
     checkU32("the composed word really decodes to RGB_565",
              igFbFormat(ctl565), 14u);
     checkU32("an undescribable format is PIXEL",
@@ -435,7 +446,7 @@ static void testRefusalOrder(void)
     //  about. RGB_565 with a zero aperture: the pixel refusal is a permanent fact
     //  about IOKit's vocabulary, the scanout refusal is a mapping somebody can go
     //  and make bigger. The actionable half wins.
-    const IGPR32 ctl565 = (GOOD_CTL & ~(0x0Fu << 23)) | (14u << 23);
+    const IGPR32 ctl565 = (GOOD_CTL & ~(0x1Fu << 23)) | (14u << 24);
     checkU32("an undescribable format with no aperture reports the scanout",
              igPresentVerdict(ctl565, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF, 0ull),
              3u);
@@ -466,7 +477,7 @@ static void testAccessorsRefuse(void)
 {
     section("7. no accessor answers for a refused group");
 
-    const IGPR32 ctl565 = (GOOD_CTL & ~(0x0Fu << 23)) | (14u << 23);
+    const IGPR32 ctl565 = (GOOD_CTL & ~(0x1Fu << 23)) | (14u << 24);
 
     struct BadGroup {
         const char *label;
@@ -549,7 +560,7 @@ static void testMasks(void)
 {
     section("8. the mask out-params write the sentinel rather than leaving values");
 
-    const IGPR32 ctl565 = (GOOD_CTL & ~(0x0Fu << 23)) | (14u << 23);
+    const IGPR32 ctl565 = (GOOD_CTL & ~(0x1Fu << 23)) | (14u << 24);
 
     //  A refused group must OVERWRITE all three, never leave them. The caller's
     //  values here are the initialiser zeros 3050-handoff29 SS2 measured, and a
@@ -584,32 +595,47 @@ static void testMasks(void)
              igPresentMasks(GOOD_CTL, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
                             GOOD_APERTURE, &r, &g, 0), 1u);
 
-    //  The 10-bit format is describable and its masks differ from the 8-bit ones
-    //  in every channel. This is the pair IntelPixel.hpp exists for:
-    //  igFbBytesPerPixel() returns 4 for BOTH, so a component width derived from
+    //  The pair IntelPixel.hpp exists for: igFbBytesPerPixel() returns 4 for
+    //  both XRGB_2101010 and XRGB_8888, so a component width derived from
     //  bytes-per-pixel is right for one and wrong for the other -- and the wrong
     //  direction yields a picture whose colours are wrong rather than one that is
     //  obviously broken.
-    const IGPR32 ctl1010 = (GOOD_CTL & ~(0x0Fu << 23)) | (2u << 23);
-    checkU32("the composed word really decodes to XRGB_2101010",
-             igFbFormat(ctl1010), 2u);
-    checkU32("the 10-bit plane is usable",
-             igPresentVerdict(ctl1010, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
+    //
+    //  CORRECTED 2026-11-01 (t-a7929c). GOOD_CTL is itself the 10-bit format --
+    //  the capture is XRGB_2101010, code 2 at bit 25 -- so section 4 is the
+    //  10-bit side of the pair and this section composes the 8-bit side. The old
+    //  composition, (2u << 23) under a 0x0F << 23 clear, wrote 5-bit field 2,
+    //  which is code 1 (NV12). Code n belongs at bit 24
+    //  (REG_FIELD_PREP(PLANE_CTL_FORMAT_MASK_SKL, n),
+    //  reference/i915/skl_universal_plane_regs.h:50-60), and the clear has to
+    //  cover all five field bits, 0x1F << 23.
+    const IGPR32 ctl8888 = (GOOD_CTL & ~(0x1Fu << 23)) | (4u << 24);
+    checkU32("the composed word differs from GOOD_CTL only in bits 27:23",
+             (ctl8888 ^ GOOD_CTL) & ~(0x1Fu << 23), 0u);
+    checkU32("the composed word really decodes to XRGB_8888",
+             igFbFormat(ctl8888), 4u);
+    checkU32("the 8-bit plane is usable",
+             igPresentVerdict(ctl8888, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
                               GOOD_APERTURE), 0u);
-    checkU32("the 10-bit plane still reports 32 bits per pixel",
-             igPresentBitsPerPixel(ctl1010, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
+    checkU32("the 8-bit plane also reports 32 bits per pixel",
+             igPresentBitsPerPixel(ctl8888, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
                                    GOOD_APERTURE), 32u);
-    checkU32("and 10 bits per component, not 8",
-             igPresentComponentBits(ctl1010, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
-                                    GOOD_APERTURE), 10u);
+    checkU32("but 8 bits per component, not 10",
+             igPresentComponentBits(ctl8888, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
+                                    GOOD_APERTURE), 8u);
 
     r = 0u; g = 0u; b = 0u;
-    checkU32("the 10-bit masks answer OK",
-             igPresentMasks(ctl1010, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
+    checkU32("the 8-bit masks answer OK",
+             igPresentMasks(ctl8888, GOOD_STRIDE, GOOD_SIZE, GOOD_SURF,
                             GOOD_APERTURE, &r, &g, &b), 0u);
-    checkU32("red mask is 10-bit",   r, 0x3FF00000u);
-    checkU32("green mask is 10-bit", g, 0x000FFC00u);
-    checkU32("blue mask is 10-bit",  b, 0x000003FFu);
+    checkU32("red mask is 8-bit",   r, 0x00FF0000u);
+    checkU32("green mask is 8-bit", g, 0x0000FF00u);
+    checkU32("blue mask is 8-bit",  b, 0x000000FFu);
+
+    //  NEGATIVE CONTROL for the bit-23 composition this section used to make:
+    //  code 2 written at bit 23 is 5-bit field 2, which decodes to code 1.
+    checkU32("code 2 written at bit 23 decodes to code 1, not 2",
+             igFbFormat((GOOD_CTL & ~(0x1Fu << 23)) | (2u << 23)), 1u);
 }
 
 int main(void)

@@ -62,6 +62,13 @@ public:
     virtual IOReturn enablePCIPowerManagement(IOOptionBits state);
 
     virtual IODeviceMemory *getDeviceMemoryWithIndex(unsigned int index);
+
+    // Apple: "virtual IODeviceMemory * getDeviceMemoryWithRegister( UInt8 reg );"
+    // (step7-results/apple-headers/IOKit/pci/IOPCIDevice.h:612). Looks a BAR up
+    // by its config-space register (kIOPCIConfigBaseAddress0..5), not by its
+    // position in the device-memory list. The provider retains the result; the
+    // caller must not release it.
+    virtual IODeviceMemory *getDeviceMemoryWithRegister(UInt8 reg);
 };
 
 #endif // NVSHIM_IOKIT_PCI_IOPCIDEVICE_H

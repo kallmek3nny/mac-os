@@ -51,6 +51,38 @@ extern "C" void bzero(void *dst, unsigned long long len);
 extern "C" unsigned long strlcpy(char *dst, const char *src, unsigned long len);
 extern "C" void IODelay(unsigned int microseconds);
 
+// Added for t-fccff1. NVGspWprBootUcodeStageService.cpp:183 and
+// NVGspWprMetaStageService.cpp:270 stage firmware bytes with bcopy, reaching it
+// only through IOLib.h. In Apple's tree that works because IOLib.h includes
+// <libkern/OSAtomic.h>, which includes <string.h> (osfmk/libsa/string.h) -- so,
+// as with bzero above, it is declared here to keep the include-graph shape.
+//
+// Apple: extern void bcopy(const void *src __sized_by(n), void *dst __sized_by(n), size_t n);
+// SOURCE FIRST, DESTINATION SECOND -- the reverse of memcpy. The const on src is
+// kept so a const source passed in the destination slot fails to compile here
+// exactly as it would against Apple's header. The length is unsigned long long
+// for the same reason memset's is (size_t on the probe target). Apple's
+// __sized_by annotations and its always_inline overload that forwards to
+// memmove are omitted: they change bounds checking, not the signature.
+extern "C" void bcopy(const void *src, void *dst, unsigned long long len);
+
+// Added for t-fccff1. IntelSinkCandidateService.cpp:97/99/120 fence MMIO with
+// OSSynchronizeIO(). Apple defines it in <libkern/OSAtomic.h> (which IOLib.h
+// includes), inside extern "C", split only by architecture -- there is no
+// KERNEL / KERNEL_PRIVATE guard:
+//   arm/arm64:  extern void OSSynchronizeIO(void);
+//   otherwise:  static __inline__ void OSSynchronizeIO(void) { }
+// An x86_64 kext gets the empty inline, so on this target it is NOT a barrier.
+// The shim mirrors that rather than inventing one; any ordering the Intel path
+// actually needs must come from somewhere else, and this stub will not hide it.
+#if defined(__arm__) || defined(__arm64__)
+extern "C" void OSSynchronizeIO(void);
+#else
+static inline void OSSynchronizeIO(void)
+{
+}
+#endif
+
 extern "C" void *IOMalloc(unsigned long size);
 extern "C" void  IOFree(void *address, unsigned long size);
 

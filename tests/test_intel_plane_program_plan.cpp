@@ -7,7 +7,7 @@
 static unsigned gChecks = 0u;
 static unsigned gFailures = 0u;
 
-static void check(bool cond, const char *what)
+static void checkTrue(bool cond, const char *what)
 {
     ++gChecks;
     if (!cond) {
@@ -38,7 +38,7 @@ static IgPlaneLiveObservation goldenObservation()
 {
     const IgPlaneLiveSample sample = observedSample();
     IgPlaneLiveObservation out = {};
-    check(igPlaneLiveObserve(&sample, &out) == IG_PLANE_LIVE_OK,
+    checkTrue(igPlaneLiveObserve(&sample, &out) == IG_PLANE_LIVE_OK,
           "golden live observation accepted");
     return out;
 }
@@ -57,7 +57,7 @@ static IGSinkGgttPlan goldenMapping()
         0x01000000ull,
         0x00100000u,
         &out);
-    check(verdict == IG_SINK_GGTT_PLAN_OK, "golden GGTT mapping plan accepted");
+    checkTrue(verdict == IG_SINK_GGTT_PLAN_OK, "golden GGTT mapping plan accepted");
     return out;
 }
 
@@ -110,8 +110,8 @@ static void expectRefusal(const IgPlaneLiveObservation &prior,
     poison(&out);
     const IgPlaneProgramPlan before = out;
     const IGU32 verdict = igPlaneProgramPlan(&prior, &mapping, &request, &out);
-    check(verdict == expected, what);
-    check(sameBytes(out, before), "refusal leaves output untouched");
+    checkTrue(verdict == expected, what);
+    checkTrue(sameBytes(out, before), "refusal leaves output untouched");
 }
 
 static void testGolden()
@@ -123,29 +123,29 @@ static void testGolden()
     IgPlaneProgramPlan out = {};
 
     const IGU32 verdict = igPlaneProgramPlan(&prior, &mapping, &request, &out);
-    check(verdict == IG_PLANE_PROGRAM_PLAN_OK, "golden request accepted");
-    check(out.valid, "plan valid");
-    check(out.deviceId == 0x9A68u, "exact target retained");
-    check(out.pipe == IG_TRANSCODER_A, "pipe A retained");
-    check(out.plane == 0u, "primary plane retained");
-    check(out.width == 1920u && out.height == 1080u, "panel geometry retained");
-    check(out.strideBytes == 7680u, "tight linear stride retained");
-    check(out.linearStrideUnits == 120u,
+    checkTrue(verdict == IG_PLANE_PROGRAM_PLAN_OK, "golden request accepted");
+    checkTrue(out.valid, "plan valid");
+    checkTrue(out.deviceId == 0x9A68u, "exact target retained");
+    checkTrue(out.pipe == IG_TRANSCODER_A, "pipe A retained");
+    checkTrue(out.plane == 0u, "primary plane retained");
+    checkTrue(out.width == 1920u && out.height == 1080u, "panel geometry retained");
+    checkTrue(out.strideBytes == 7680u, "tight linear stride retained");
+    checkTrue(out.linearStrideUnits == 120u,
           "linear 7680-byte stride uses source-backed 64-byte units");
-    check(out.visibleBytes == kSurfaceBytes, "visible byte extent exact");
-    check(out.surfaceBytes == kSurfaceBytes, "surface extent retained");
-    check(out.mappedBytes >= out.surfaceBytes, "GGTT mapping covers surface");
-    check(out.mappingPageCount == mapping.pteCount, "mapping page count retained");
-    check(out.enable && out.fullPipe && out.noScaling && out.uncompressed,
+    checkTrue(out.visibleBytes == kSurfaceBytes, "visible byte extent exact");
+    checkTrue(out.surfaceBytes == kSurfaceBytes, "surface extent retained");
+    checkTrue(out.mappedBytes >= out.surfaceBytes, "GGTT mapping covers surface");
+    checkTrue(out.mappingPageCount == mapping.pteCount, "mapping page count retained");
+    checkTrue(out.enable && out.fullPipe && out.noScaling && out.uncompressed,
           "narrow full-pipe semantic contract retained");
-    check(out.synchronousOnly, "async flip remains disallowed");
-    check(out.mappingOwnershipRequired && out.mappingPinRequired,
+    checkTrue(out.synchronousOnly, "async flip remains disallowed");
+    checkTrue(out.mappingOwnershipRequired && out.mappingPinRequired,
           "ownership and lifetime requirements retained");
-    check(out.sequencingProofRequired && out.latchProofRequired,
+    checkTrue(out.sequencingProofRequired && out.latchProofRequired,
           "future sequencing/latch proof explicitly still required");
-    check(out.rollbackOrQuarantineRequired,
+    checkTrue(out.rollbackOrQuarantineRequired,
           "rollback-or-quarantine requirement retained");
-    check(!out.runtimeWriteAuthorized,
+    checkTrue(!out.runtimeWriteAuthorized,
           "pure plan never authorizes runtime display writes");
 }
 
@@ -157,16 +157,16 @@ static void testNullsAndIdentity()
     const IgPlaneProgramRequest request = goldenRequest();
     IgPlaneProgramPlan out = {};
 
-    check(igPlaneProgramPlan(&prior, &mapping, &request, nullptr) ==
+    checkTrue(igPlaneProgramPlan(&prior, &mapping, &request, nullptr) ==
               IG_PLANE_PROGRAM_PLAN_ERR_NULL_OUTPUT,
           "null output refused");
-    check(igPlaneProgramPlan(nullptr, &mapping, &request, &out) ==
+    checkTrue(igPlaneProgramPlan(nullptr, &mapping, &request, &out) ==
               IG_PLANE_PROGRAM_PLAN_ERR_NULL_OBSERVATION,
           "null observation refused");
-    check(igPlaneProgramPlan(&prior, nullptr, &request, &out) ==
+    checkTrue(igPlaneProgramPlan(&prior, nullptr, &request, &out) ==
               IG_PLANE_PROGRAM_PLAN_ERR_NULL_MAPPING,
           "null mapping refused");
-    check(igPlaneProgramPlan(&prior, &mapping, nullptr, &out) ==
+    checkTrue(igPlaneProgramPlan(&prior, &mapping, nullptr, &out) ==
               IG_PLANE_PROGRAM_PLAN_ERR_NULL_REQUEST,
           "null request refused");
 
@@ -339,10 +339,10 @@ static void testVerdictNamesAndAtomicity()
     std::puts("7. verdict names are stable and refusals remain atomic");
     for (IGU32 v = 0u; v <= IG_PLANE_PROGRAM_PLAN_VERDICT_LIMIT; ++v) {
         const char *name = igPlaneProgramPlanVerdictName(v);
-        check(name != nullptr && std::strcmp(name, "unknown") != 0,
+        checkTrue(name != nullptr && std::strcmp(name, "unknown") != 0,
               "in-range verdict named");
     }
-    check(std::strcmp(igPlaneProgramPlanVerdictName(
+    checkTrue(std::strcmp(igPlaneProgramPlanVerdictName(
                           IG_PLANE_PROGRAM_PLAN_VERDICT_LIMIT + 1u),
                       "unknown") == 0,
           "out-of-range verdict unknown");
@@ -354,10 +354,10 @@ static void testVerdictNamesAndAtomicity()
     IgPlaneProgramPlan out = {};
     poison(&out);
     const IgPlaneProgramPlan before = out;
-    check(igPlaneProgramPlan(&prior, &mapping, &r, &out) ==
+    checkTrue(igPlaneProgramPlan(&prior, &mapping, &r, &out) ==
               IG_PLANE_PROGRAM_PLAN_ERR_ASYNC_FLIP,
           "atomic refusal trigger");
-    check(sameBytes(out, before), "atomic refusal leaves entire plan untouched");
+    checkTrue(sameBytes(out, before), "atomic refusal leaves entire plan untouched");
 }
 
 int main()
@@ -370,11 +370,6 @@ int main()
     testMappingSafety();
     testVerdictNamesAndAtomicity();
 
-    if (gFailures != 0u) {
-        std::printf("%u/%u Intel plane program-plan checks failed\n", gFailures, gChecks);
-        return 1;
-    }
-
-    std::printf("Intel Tiger Lake plane program plan: %u checks passed\n", gChecks);
-    return 0;
+    std::printf("\n%d checks, %d failures\n", static_cast<int>(gChecks), static_cast<int>(gFailures));
+    return gFailures == 0 ? 0 : 1;
 }

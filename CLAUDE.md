@@ -430,8 +430,16 @@ Do not open a card assuming its premise still holds.
   time-critical rather than important: attaching an external display BEFORE the
   one boot makes Q3 answerable on a second pipe and converts several policy
   constants into measurements, and it cannot be done afterwards.
-- `3050-handoff37.md` — most recent state on the NVIDIA track, and the one to read
-  first on this side. `3050-handoff35.md` and `3050-handoff36.md` sit between it and
+- `3050-handoff44.md` — most recent NVIDIA handoff, and the one to read first on
+  this side. It closes `3050-handoff43.md` §7 item 2 and found no defect in
+  shipping code: `phase0-kext/` is content-identical, so it owes no
+  `build-payload/` rebuild, and its §5 explains why the rebuild handoff43 §6
+  deferred is already done. Its §7 is the current NVIDIA open list.
+  `3050-handoff38.md` through `3050-handoff43.md` sit between it and handoff37,
+  each a direct continuation of the one before; `3050-handoff43.md` is the one
+  that closed a live shipping-code defect (a framebuffer size published from a
+  refused read).
+- `3050-handoff37.md` — the state handoff38 continues from. `3050-handoff35.md` and `3050-handoff36.md` sit between it and
   handoff34 and were never added to this list; they are ordinary continuations of
   the log-only-diagnosis sweep and can be read after. **§0 is the section that
   matters, because it answers the question the whole track exists to ask**: the

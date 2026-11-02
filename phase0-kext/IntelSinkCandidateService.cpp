@@ -185,9 +185,12 @@ void IntelSinkCandidateService::enterQuarantine(const char *reason)
 
 void IntelSinkCandidateService::releasePeerDma(void)
 {
-    if (fPeerDMABound && fPeerDMA) {
-        fPeerDMA->clearMemoryDescriptor();
+    // Clear the flag BEFORE the release so a re-entrant teardown is a no-op.
+    // fPeerDMABound implies fPeerDMA: it is set only after a successful bind
+    // and cleared here before fPeerDMA is dropped.
+    if (fPeerDMABound) {
         fPeerDMABound=false;
+        fPeerDMA->clearMemoryDescriptor();
     }
     OSSafeReleaseNULL(fPeerDMA);
     setProperty("IGSinkCandidatePeerDmaMapped",false);
@@ -250,18 +253,23 @@ bool IntelSinkCandidateService::releaseGgtt(void)
     fGgttTxnPrepared=false;
     fGgttEntries=0;
 
-    if (fDMABound && fIntelDMA) {
-        fIntelDMA->clearMemoryDescriptor();
+    // Clear the flag BEFORE the release so a re-entrant teardown is a no-op.
+    // fDMABound implies fIntelDMA: it is set only after a successful bind and
+    // cleared here before fIntelDMA is dropped.
+    if (fDMABound) {
         fDMABound=false;
+        fIntelDMA->clearMemoryDescriptor();
     }
     OSSafeReleaseNULL(fIntelDMA);
 
     OSSafeReleaseNULL(fBarMap);
     fMMIO=nullptr;
     fBarBytes=0;
-    if (fOpened && fPCIDevice) {
-        fPCIDevice->close(this);
-        fOpened=false;
+    if (fPCIDevice) {
+        if (fOpened) {
+            fOpened=false;
+            fPCIDevice->close(this);
+        }
     }
 
     setProperty("IGSinkCandidateGgttMapped",false);
@@ -273,9 +281,12 @@ bool IntelSinkCandidateService::releaseGgtt(void)
 
 void IntelSinkCandidateService::releaseBacking(void)
 {
-    if (fPrepared && fBacking) {
-        fBacking->complete(kIODirectionInOut);
+    // Clear the flag BEFORE the release so a re-entrant teardown is a no-op.
+    // fPrepared implies fBacking: it is set only after a successful prepare()
+    // and cleared here before fBacking is dropped.
+    if (fPrepared) {
         fPrepared=false;
+        fBacking->complete(kIODirectionInOut);
     }
     OSSafeReleaseNULL(fBacking);
 }

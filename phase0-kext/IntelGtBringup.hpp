@@ -12,6 +12,7 @@
 #include "IntelGtSurfaceHandles.hpp"
 
 struct IntelGtSurfaceRuntimeState;
+struct IntelGtScanoutRuntimeState;
 
 class IntelGtBringup : public IOService {
     OSDeclareDefaultStructors(IntelGtBringup)
@@ -38,6 +39,16 @@ public:
     IOReturn freePersistentSurface(UInt64 handle);
     IOReturn fillPersistentSurface32(UInt64 handle, UInt32 color);
     IOReturn copyPersistentSurface32(UInt64 sourceHandle, UInt64 destinationHandle);
+
+    // Inherited-scanout entry point, iggt-bringup=4 only (IntelGtScanout.cpp).
+    // Fills one rectangle of the pipe A plane 1 surface the firmware already
+    // presents. The caller names pixels, never a GPU address. Synchronous:
+    // returns after fence completion and CSB retirement, like the fills above.
+    IOReturn fillScanoutRect32(UInt32 x, UInt32 y, UInt32 w, UInt32 h, UInt32 color);
+    // Width and height of that sampled plane, for the user client's rectangle
+    // check (IntelGtScanoutRect.hpp). kIOReturnNotReady unless iggt-bringup>=4
+    // mapped a sample whose igPresentVerdict() was IG_PRESENT_OK (t-619d61).
+    IOReturn scanoutPlaneSize32(UInt32 *outWidth, UInt32 *outHeight);
 private:
     enum { PoolBytes = 128 * 1024, PoolPages = PoolBytes / 4096 };
     IOLock *fQueueLock;
@@ -46,6 +57,7 @@ private:
     IOBufferMemoryDescriptor *fPool;
     IODMACommand *fDMA;
     IntelGtSurfaceRuntimeState *fSurfaceRuntime;
+    IntelGtScanoutRuntimeState *fScanoutRuntime;
     IGGtSurfaceHandleArena fSurfaceHandles = {};
     volatile UInt8 *fMMIO;
     UInt8 *fCPU;
@@ -67,6 +79,10 @@ private:
     bool allocateMemory(void);
     bool stagePersistentSurface(void);
     bool releasePersistentSurface(void);
+    // Borrowed inherited scanout: private leaf tables hung from pd[1..].
+    bool mapScanout(void);
+    bool drawScanoutProbe(void);
+    bool releaseScanout(void);
     bool installGGTT(void);
     bool buildContext(void);
     bool submitCopy(void);

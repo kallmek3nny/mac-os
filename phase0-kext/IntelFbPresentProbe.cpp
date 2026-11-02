@@ -115,6 +115,19 @@ bool IntelFbPresentProbe::start(IOService *provider)
         goto fail;
     }
 
+    //
+    // The range IOKit maps as the framebuffer, built only now that the verdict
+    // has accepted the sample, so fApertureRange is never the whole BAR.
+    // IOFramebuffer fetches it with getApertureRange(kIOFBSystemAperture) and
+    // reports a VENDOR_BUG (IOLog, or panic) when its length is zero or shorter
+    // than the mode needs -- apple-oss-distributions/IOGraphics main,
+    // IOGraphicsFamily/IOFramebuffer.cpp:10399-10428. The in-tree model of a
+    // framebuffer answering that call is IONDRVFramebuffer::getApertureRange,
+    // IONDRVSupport/IONDRVFramebuffer.cpp:1997.
+    //
+    if (!sliceScanout())
+        goto fail;
+
     publishPresentation();
 
     IGLOG("start: complete -- presenting %ux%u, %u bpp, %u bytes per row",
@@ -159,9 +172,10 @@ void IntelFbPresentProbe::stop(IOService *provider)
 bool IntelFbPresentProbe::mapBar0(void)
 {
     IODeviceMemory *bar =
-        fPCIDevice->getDeviceMemoryWithIndex(IG_PRESENT_BAR0_INDEX);
+        fPCIDevice->getDeviceMemoryWithRegister(IG_PRESENT_BAR0_REGISTER);
     if (bar == nullptr) {
-        IGLOG("mapBar0: no device memory at index %d", IG_PRESENT_BAR0_INDEX);
+        IGLOG("mapBar0: no device memory for BAR register 0x%x",
+              (unsigned) IG_PRESENT_BAR0_REGISTER);
         return false;
     }
 
@@ -214,31 +228,29 @@ void IntelFbPresentProbe::unmapBar0(void)
 }
 
 //
-// The aperture is described, never mapped.
+// The aperture is measured here and sliced in sliceScanout(), never mapped.
 //
 // getApertureRange() hands IOKit an IODeviceMemory and IOKit maps it itself when
 // it wants the pixels; this class has no reason to hold a second virtual mapping
-// of a surface it never touches. What it DOES need is the aperture's LENGTH,
-// because that is the one input igPresentVerdict() cannot derive from the four
-// plane words.
+// of a surface it never touches. What describeAperture() needs is the
+// aperture's LENGTH, because that is the one input igPresentVerdict() cannot
+// derive from the four plane words.
 //
-// The range is retained for the lifetime of the attachment because
-// getApertureRange() may be called more than once and Apple's contract does not
-// say the caller releases it.
+// The whole-BAR range is NOT retained. IOPCIDevice.h says the IODeviceMemory
+// getDeviceMemoryWithRegister() returns "is retained by the provider, so is
+// valid while attached, or while any mappings to it exist. It should not be
+// released by the caller." And the whole BAR is never what IOKit is handed.
 //
 bool IntelFbPresentProbe::describeAperture(void)
 {
     IODeviceMemory *range =
-        fPCIDevice->getDeviceMemoryWithIndex(IG_PRESENT_APERTURE_INDEX);
+        fPCIDevice->getDeviceMemoryWithRegister(IG_PRESENT_APERTURE_REGISTER);
 
     if (range == nullptr) {
-        IGLOG("describeAperture: no device memory at index %d -- refusing",
-              IG_PRESENT_APERTURE_INDEX);
+        IGLOG("describeAperture: no device memory for BAR register 0x%x -- "
+              "refusing", (unsigned) IG_PRESENT_APERTURE_REGISTER);
         return false;
     }
-
-    range->retain();
-    fApertureRange = range;
 
     IOByteCount bytes = range->getLength();
     fApertureBytes = (IGPR64) bytes;
@@ -256,10 +268,70 @@ bool IntelFbPresentProbe::describeAperture(void)
     //
     if (fApertureBytes == 0) {
         IGLOG("describeAperture: aperture has zero length -- refusing");
-        OSSafeReleaseNULL(fApertureRange);
         return false;
     }
 
+    return true;
+}
+
+//
+// The scanout slice: the one range getApertureRange() ever hands IOKit.
+//
+// IOFramebuffer maps byte 0 of the kIOFBSystemAperture range as pixel (0,0), so
+// handing it the whole GMADR puts every pixel IGPresentBaseOffset bytes away
+// from where the plane actually scans out whenever PLANE_SURF is non-zero. The
+// surface's offset within GMADR is its graphics address, because the aperture
+// maps the GGTT one-to-one from offset 0.
+//
+// Built ONCE, after samplePlane() accepted, from the two IntelFbPresent.hpp
+// helpers and nothing else -- no arithmetic over a register value here. Held in
+// fApertureRange for the lifetime of the attachment; free(), stop() and
+// start()'s fail path already release that field, so every exit releases the
+// slice. fApertureRange stays nullptr until the slice exists, so no caller can
+// be handed the whole BAR even inside start().
+//
+bool IntelFbPresentProbe::sliceScanout(void)
+{
+    if (!presentable()) {
+        IGLOG("sliceScanout: not presentable (%s) -- refusing",
+              igPresentVerdictName(fPresentVerdict));
+        return false;
+    }
+
+    IODeviceMemory *gmadr =
+        fPCIDevice->getDeviceMemoryWithRegister(IG_PRESENT_APERTURE_REGISTER);
+    if (gmadr == nullptr) {
+        IGLOG("sliceScanout: no device memory for BAR register 0x%x -- "
+              "refusing", (unsigned) IG_PRESENT_APERTURE_REGISTER);
+        return false;
+    }
+
+    IGPR32 offset = igPresentBaseOffset(fCtl, fStride, fSize, fSurf,
+                                        fApertureBytes);
+    IGPR64 extent = igPresentExtentBytes(fCtl, fStride, fSize, fSurf,
+                                         fApertureBytes);
+
+    //
+    // withSubRange() refuses a slice that runs past the end of its parent, so a
+    // nullptr here is an allocation failure or a slice igPresentVerdict() should
+    // already have refused. Either way IOKit is handed nothing.
+    //
+    IODeviceMemory *slice =
+        IODeviceMemory::withSubRange(gmadr, (IOPhysicalAddress) offset,
+                                     (IOPhysicalLength) extent);
+    if (slice == nullptr) {
+        IGLOG("sliceScanout: withSubRange(0x%x, %llu) of the %llu-byte "
+              "aperture failed -- refusing", (unsigned) offset,
+              (unsigned long long) extent,
+              (unsigned long long) fApertureBytes);
+        return false;
+    }
+
+    OSSafeReleaseNULL(fApertureRange);
+    fApertureRange = slice;
+
+    IGLOG("sliceScanout: handing IOKit %llu bytes at aperture offset 0x%x",
+          (unsigned long long) extent, (unsigned) offset);
     return true;
 }
 
@@ -789,4 +861,148 @@ bool IntelFbPresentProbe::isConsoleDevice(void)
         return false;
 
     return false;
+}
+
+//
+// ---- FB-2: connection and timing -------------------------------------------
+//
+// IntelFbPresentProbe.hpp carries the audit behind these two: which of the hooks
+// FB-2 named IOFramebuffer and IODisplay actually consult for one fixed built-in
+// panel, the Apple IOGraphics file:line for each, and why the rest are left to
+// the base class. Neither writes a register. Both consult presentable() first,
+// like every override above, and the shape gate holds them to it because both
+// are declared APPLE_KEXT_OVERRIDE.
+//
+
+IOReturn IntelFbPresentProbe::getAttributeForConnection(IOIndex connectIndex,
+                                                        IOSelect attribute,
+                                                        uintptr_t *value)
+{
+    //
+    // NOT PRESENTABLE MEANS "DISABLED", AND DISABLED IS A SUCCESS.
+    //
+    // IOFramebuffer.cpp:7788 reads online-ness as
+    //     nowOnline = (!dead && ((kIOReturnSuccess != err) || connectEnabled));
+    // so an ERROR from kConnectionCheckEnable puts the display ONLINE. The usual
+    // refusal would say the opposite of what it means here: a panel this class
+    // could not describe would be brought online on the strength of the refusal.
+    // So the two enable attributes answer success-and-zero, and every other
+    // attribute is refused.
+    //
+    if (!presentable()) {
+        if (attribute == kConnectionEnable || attribute == kConnectionCheckEnable) {
+            if (value == nullptr)
+                return kIOReturnBadArgument;
+            *value = 0;
+            return kIOReturnSuccess;
+        }
+        return kIOReturnUnsupported;
+    }
+
+    if (connectIndex != IG_PRESENT_CONNECTION_INDEX) {
+        IGLOG("getAttributeForConnection: connection %u is not the one panel "
+              "(%u) -- refusing", (unsigned) connectIndex,
+              (unsigned) IG_PRESENT_CONNECTION_INDEX);
+        return kIOReturnBadArgument;
+    }
+
+    switch (attribute) {
+        case kConnectionEnable:
+        case kConnectionCheckEnable:
+            //
+            // Enabled. The panel is the machine's own, lit by the firmware's
+            // programming before this class attached, and nothing in this class
+            // can disconnect it. Both attributes are answered directly rather
+            // than through the base's CheckEnable -> Enable recursion
+            // (IOFramebuffer.cpp:13325-13331), so neither answer depends on the
+            // other's arm staying in this switch.
+            //
+            if (value == nullptr)
+                return kIOReturnBadArgument;
+            *value = 1;
+            return kIOReturnSuccess;
+
+        case kConnectionFlags:
+            //
+            // Built in, and nothing else. The only other flag defined beside it
+            // is kIOConnectionStereoSync (IOGraphicsTypes.h:1097), and a laptop
+            // eDP panel is not a stereo-sync connection.
+            //
+            if (value == nullptr)
+                return kIOReturnBadArgument;
+            *value = kIOConnectionBuiltIn;
+            return kIOReturnSuccess;
+
+        case kConnectionSupportsHLDDCSense:
+        case kConnectionSupportsLLDDCSense:
+            //
+            // No DDC and no EDID. value is NOT touched: IODisplay.cpp:863-864
+            // asks for HLDDCSense with a NULL value, so a write here would be a
+            // null store on the one path known to reach this arm.
+            //
+            return kIOReturnUnsupported;
+
+        default:
+            break;
+    }
+
+    //
+    // Every attribute FB-2 did not name goes to the base, exactly as it did
+    // before this override existed. The display-parameter, gamma-scale, overscan
+    // and VBL-multiplier arms at IOFramebuffer.cpp:13255-13323 are IOFramebuffer's
+    // own bookkeeping rather than a claim about this hardware, and changing what
+    // they answer is not this card's to decide.
+    //
+    return super::getAttributeForConnection(connectIndex, attribute, value);
+}
+
+IOReturn IntelFbPresentProbe::getTimingInfoForDisplayMode(
+    IODisplayModeID displayMode,
+    IOTimingInformation *info)
+{
+    if (!presentable())
+        return kIOReturnUnsupported;
+
+    if (info == nullptr)
+        return kIOReturnBadArgument;
+
+    if (displayMode != IG_PRESENT_MODE_ID) {
+        IGLOG("getTimingInfoForDisplayMode: mode %d is not the one inherited "
+              "mode (%d) -- refusing", (int) displayMode, IG_PRESENT_MODE_ID);
+        return kIOReturnBadArgument;
+    }
+
+    //
+    // NOT A STANDARD TIMING, AND NO DETAILED TIMING. Both are written here, and
+    // neither is left to the caller's initialiser.
+    //
+    // IOFramebuffer.h:732-733 is the whole contract for a driver in this
+    // position: appleTimingID is timingInvalid when the mode has no Apple
+    // constant, and kIODetailedTimingValid is CLEARED when the driver cannot
+    // supply detailedInfo.v2. The clear is the load-bearing line. Callers SET
+    // the flag before asking (IOFramebuffer.cpp:10724, :11487), so leaving flags
+    // alone would answer "detailed timing valid" over a union this class never
+    // wrote, and IOFramebuffer.cpp:7934-7941 would read its pixelClock.
+    //
+    // kIOScalingInfoValid is cleared for the same reason, since
+    // IOFramebuffer.cpp:10738-10744 reads the same union's scaler fields when it
+    // is set. No caller read for FB-2 sets it, so that clear is defensive rather
+    // than corrective.
+    //
+    // Not kIOTimingIDApple_FixedRateLCD: nothing read for FB-2 shows what a
+    // consumer does with it, so it would be a claim without a source. And never
+    // kIOTimingIDApple_0x0_0hz_Offline, because IOFramebuffer.cpp:7825-7827
+    // would adopt this mode as the OFFLINE mode.
+    //
+    // Success rather than a refusal, because IOFramebuffer.h:735 says a
+    // non-success return "will prevent the system from using the device". The
+    // refresh rate stays IG_PRESENT_REFRESH_UNMEASURED in
+    // getInformationForDisplayMode(), and detailedInfo gets filled only once
+    // DISP-1 has decoded the transcoder timings and the pixel clock from the
+    // captures.
+    //
+    info->appleTimingID = kIOTimingIDInvalid;
+    info->flags        &= ~((UInt32) (kIODetailedTimingValid | kIOScalingInfoValid));
+
+    return kIOReturnSuccess;
 }

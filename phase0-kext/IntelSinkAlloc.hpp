@@ -30,7 +30,12 @@
 #define IG_SINK_ALLOC_BASE_ALIGN   0x40000u
 #define IG_SINK_ALLOC_STRIDE_ALIGN 64u
 
-// The sink is XRGB8888, the format the firmware plane already scans out.
+// The sink is XRGB8888. That is NOT the format the firmware plane scans out:
+// the captured PLANE_CTL 0x82009000 is XRGB_2101010 (FORMAT 27:24 == 2;
+// corrected 2026-11-01, t-a7929c -- this line used to say the two matched).
+// Both are 32 bpp, so this plan's stride and size are unaffected, but XRGB8888
+// pixels behind a plane still set to 2101010 would show wrong colours, so the
+// sink's format cannot be inherited from the firmware plane for free.
 #define IG_SINK_ALLOC_BPP          32u
 
 enum IgSinkAllocResult {

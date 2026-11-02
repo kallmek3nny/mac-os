@@ -434,11 +434,24 @@ class SourceListTests(unittest.TestCase):
         # decode translation unit, which is what the split exists to prevent:
         # a .cpp of pure logic is a file tests/ can no longer compile under
         # MSVC. Every shell registers its metaclass, and nothing else does.
+        #
+        # One IOKit class may be spread over several translation units.
+        # IntelGtBringup registers its metaclass in IntelGtBringup.cpp, and
+        # IntelGtBringupSurface.cpp, IntelGtPersistentSurfaces.cpp and
+        # IntelGtFill.cpp define further IntelGtBringup:: members out of line.
+        # Those files are still shell code, so they pass, but only on the
+        # strict terms in shell_source_problems(): a file that registers no
+        # metaclass must define at least one member, and every class it
+        # defines members of must be registered by a SOURCES file. A
+        # pure-logic TU defines no members and stays red; so does a member of
+        # a class nothing registers. ShellSourceRuleTests pins both.
+        texts = {}
         for name in self.sources:
             path = os.path.join(_REPO, "phase0-kext", name)
             with open(path, encoding="utf-8", errors="replace") as handle:
-                text = handle.read()
-            self.assertIn("OSDefineMetaClassAndStructors", text, name)
+                texts[name] = handle.read()
+        problems = shell_source_problems(texts)
+        self.assertEqual(problems, [], "\n".join(problems))
 
     def test_every_named_source_exists(self):
         for name in self.sources:
@@ -452,6 +465,95 @@ class SourceListTests(unittest.TestCase):
         kext_dir = os.path.join(_REPO, "phase0-kext")
         on_disk = sorted(n for n in os.listdir(kext_dir) if n.endswith(".cpp"))
         self.assertEqual(sorted(self.sources), on_disk)
+
+
+_REGISTERS = re.compile(r"\bOSDefineMetaClassAndStructors\s*\(\s*(\w+)")
+
+# An out-of-line member definition: "Class::member(" at the very start of a
+# line, optionally after a return type ("IOReturn ", "const char *"). The line
+# must start with an identifier, so an indented call such as
+# "    return IOService::start(provider);" is never read as a definition, and the
+# return-type part cannot contain ':', so "A::B::c(" is not read as a member
+# of B.
+_MEMBER_DEFINITION = re.compile(
+    r"^(?:[A-Za-z_][\w \t<>*&,]*?[ \t*&])?(\w+)::~?\w+\s*\(", re.M)
+
+
+def shell_source_problems(texts):
+    """Every reason a SOURCES file is not IOKit shell code, as sorted strings.
+
+    ``texts`` maps each SOURCES name to its contents. A file passes if it
+    registers a metaclass with OSDefineMetaClassAndStructors, or if it defines
+    at least one out-of-line member and every class it defines members of is
+    registered by some file in ``texts``. An empty list means every file passes.
+    """
+    registered = set()
+    for text in texts.values():
+        registered.update(_REGISTERS.findall(text))
+    problems = []
+    for name in sorted(texts):
+        text = texts[name]
+        if _REGISTERS.search(text):
+            continue
+        owners = sorted(set(_MEMBER_DEFINITION.findall(text)))
+        if not owners:
+            problems.append(
+                "%s registers no metaclass and defines no class member: a "
+                "pure-logic translation unit" % name)
+            continue
+        for owner in owners:
+            if owner not in registered:
+                problems.append(
+                    "%s defines members of %s, which no SOURCES file "
+                    "registers" % (name, owner))
+    return problems
+
+
+class ShellSourceRuleTests(unittest.TestCase):
+    """Negative controls for shell_source_problems(), so the split-TU allowance
+    cannot quietly turn into a pass for everything."""
+
+    SHELL = "OSDefineMetaClassAndStructors(Owner, IOService);\n"
+
+    def test_a_registering_shell_passes(self):
+        self.assertEqual(shell_source_problems({"Owner.cpp": self.SHELL}), [])
+
+    def test_a_member_of_a_registered_class_passes(self):
+        split = ("IOReturn Owner::extra(UInt32 value)\n{\n"
+                 "    return IOService::start(nullptr);\n}\n")
+        self.assertEqual(
+            shell_source_problems({"Owner.cpp": self.SHELL, "Owner2.cpp": split}),
+            [])
+
+    def test_a_pure_logic_translation_unit_stays_red(self):
+        pure = ("namespace {\nbool fits(unsigned v) { return v != 0; }\n}\n"
+                "bool gtEncodeFill32(unsigned *b) {\n    return fits(*b);\n}\n")
+        problems = shell_source_problems({"Owner.cpp": self.SHELL, "Pure.cpp": pure})
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("Pure.cpp", problems[0])
+        self.assertIn("pure-logic", problems[0])
+
+    def test_an_indented_qualified_call_is_not_a_member(self):
+        # Only a definition at the start of a line counts. A file whose sole
+        # "::" is a call inside a function body is still pure logic.
+        calls = "bool helper(void)\n{\n    return Owner::extra(0);\n}\n"
+        problems = shell_source_problems({"Owner.cpp": self.SHELL, "Calls.cpp": calls})
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("Calls.cpp", problems[0])
+
+    def test_a_member_of_an_unregistered_class_stays_red(self):
+        stray = "bool Stray::start(IOService *provider)\n{\n    return true;\n}\n"
+        problems = shell_source_problems({"Owner.cpp": self.SHELL, "Stray.cpp": stray})
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("Stray.cpp", problems[0])
+        self.assertIn("Stray,", problems[0])
+
+    def test_one_unregistered_owner_among_registered_ones_stays_red(self):
+        mixed = ("IOReturn Owner::extra(void)\n{\n    return 0;\n}\n"
+                 "Stray::~Stray()\n{\n}\n")
+        problems = shell_source_problems({"Owner.cpp": self.SHELL, "Mixed.cpp": mixed})
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("Stray", problems[0])
 
 
 if __name__ == "__main__":

@@ -365,6 +365,21 @@ Each was measured this session rather than carried forward, except where noted.
    progress is a diagnostic rather than a measurement claim and the caller
    publishes it on both arms deliberately, but it is the identical construction
    and it deserves a decision rather than an accident. Cheapest remaining work.
+   **DONE 2026-10-30.** Decided in code rather than left to accident:
+   `pollGfwBoot()` now returns an `NVGfwBootVerdict` instead of a bool. The
+   UNREADABLE arm (an all-ones read) deliberately does NOT write
+   `*outProgress`; the TIMEOUT arm does, because the register decoded and the
+   value is a real measurement of how far GFW got. The publisher puts
+   `NVGfwBootProgress` in the registry only under
+   `nvGfwBootProgressWasRead(gfwVerdict)`, and `NVGfwBootOk` is an equality
+   against the accepting verdict via `nvGfwBootVerdictIsOk()`. Guarded by
+   `tests/test_probe_firmware_state_publication.py`, now 40 tests (up from the
+   26 this file reports), green this session, including negative controls for
+   a deleted or negated progress guard and for a guard spelled with `IsOk`.
+   The change first appears in git at baseline `8d08c7b` (2026-09-26), after
+   this file was written. Verified by reading and by the source-level gate,
+   not by running `pollGfwBoot()`: the kext has still never been loaded.
+   Local edit only, committed on 2026-10-30.
 2. **`CLAUDE.md`'s read-order list stops at `3050-handoff37.md`.** Six NVIDIA
    sessions are now unlisted (38 through 43, and this file makes seven). This
    cost handoff43 a wrong first read -- a stale handoff opened as current -- and
@@ -374,15 +389,329 @@ Each was measured this session rather than carried forward, except where noted.
    session invites the collision `intel-handoff26.md` §8 records. Worth one
    careful pass by whoever has the file uncontended, and it is now the item with
    the clearest measured cost.
+   **DONE 2026-10-29.** `CLAUDE.md`'s read-order list now names
+   `3050-handoff44.md` as the NVIDIA file to read first and lists handoff38
+   through handoff43 as direct continuations between it and handoff37. Made
+   with the file uncontended: its last commit is the Intel `74d010f` of
+   2026-10-12, which matches its modification time, and no Intel PR is open.
+   Local edit only, committed on 2026-10-30.
 3. **`test_intel_scanout` still has no `MEASURED` provenance entry**, for the
    sixth session. Adding one would vouch for a C++ suite this session did not
    author, though note the C++ gate now reads 12 of 12 green.
+   **DONE 2026-10-30 -- already closed; nothing added.** The entry exists:
+   `"test_intel_scanout": 61` is line 1402 of `tests/test_check_count_floor.py`,
+   inside the `MEASURED` dict (lines 1289 to 1415), and its provenance comment
+   near line 677 records the first reading of 2026-08-19, 61 checks, 0
+   failures. The suite is also built: `tests/CMakeLists.txt` line 138 registers
+   it with `add_kext_test`. `git log -S` finds the name in both files only at
+   baseline `8d08c7b` (2026-09-26), so git cannot date the entry more closely.
+   Re-measured this session: `tests/build/test_intel_scanout.exe` (built
+   2026-09-27, newer than the suite and `phase0-kext/IntelScanout.hpp`, both
+   2026-08-19) exits 0 with `61 checks, 0 failures`, equal to the floor. The C++
+   gate's 12 of 12 was not re-run. No source or test file changed; this note is
+   the only edit, local and committed on 2026-10-30.
 4. **The Python count's missing test in
    `tests/test_probe_boot42_log_arms.py`** (`3050-handoff42.md` §5a) -- it
    collects 19 where handoff41 §4 reports 20. The module is green and its
    positive control passes, so what is open is only WHICH check was lost, and
    that is unrecoverable without a previous revision in a tree that is not a git
    checkout.
+   **DONE 2026-10-30.** Not one lost check but four lost properties. Measured
+   against `3050-handoff41.md` §2 and §4 rather than by guessing at the
+   twentieth name: the module carried none of handoff41 §2 items 2, 3 and 6,
+   and only the header half of item 5 -- the bare-`return;` count, the
+   dead-read-before-fall-through ordering, the log-only rule, and the rule that
+   the shell must not grow its own `nvChipVerdict()`. Three of the nine negative
+   controls handoff41 §4 tabulates went with them (`NVLOG` replaced by
+   `setProperty`, the verdict defined in the shell, the deleted dead-read
+   `return;`). All four are restored in `audit()` as properties 6 through 9,
+   re-measured against `decodeBoot42()` as it stands, each with one negative
+   control that asserts its own message AND that nothing else reddened. The
+   module now collects **23**, green this session. 23 is not handoff41's 20;
+   handoff42 §5a's taxonomy mismatch still holds and the count was not forced to
+   match. Only `tests/` changed, so `phase0-kext/` owes no `build-payload/`
+   rebuild. Local edit only, committed on 2026-10-30.
+   **Full Python gate, re-run after this edit (log 2026-10-30 16:29):**
+   `tests\run-python-tests.bat` exit 1, **1442 tests**, `FAILED (failures=14)`,
+   0 skipped. None of the 14 is this session's: all 23 boot42 tests read `ok` in
+   that run, and no failure detail names `tests/test_probe_boot42_log_arms.py`,
+   `CLAUDE.md` or this file. What is red, all in files this session did not
+   touch: 69 C++ suites under `tests/` with no CMake registration, no `MEASURED`
+   entry and no count-gate listing (the `test_nv_gsp_*`, `test_nv_ampere_*` and
+   `test_intel_gt_*` families among them), one of which,
+   `test_intel_display_transaction_lifetime.cpp`, makes 7 check-helper calls
+   against a floor of 20; `IntelDisplayTransactionLifetime.hpp` absent from the
+   header gate's section 1; `build-payload/` stale (shipped files differ from
+   the tree and sources are missing from it); `check-prepare-balance` at 16
+   failures across 74 checks in `phase0-kext/`; `publishPlaneLiveObservation`
+   never calling `igSampleVerdict()`, with the shape gate's
+   `IntelDisplayProbe::publishPlane` mutation anchor now matching twice;
+   `phase0-kext/iggt-blit.cpp` missing from the kext Makefile's source list and
+   not an IOKit shell; and `NVGspBooterHs.hpp` citing a
+   `nouveau/extract-firmware-nouveau.py` that does not resolve. Against
+   `.pygate-baseline.log` (2026-09-27: 1407 tests, `failures=14, skipped=27`)
+   the equal count hides a changed set: seven baseline failures are gone and
+   seven new ones appeared. `test_intel_scanout` is not among the 69 suites
+   lacking a `MEASURED` entry, so item 3 above may already be closed; not
+   checked further here.
+   **Cited-path failure closed 2026-10-30.** `NVGspBooterHs.hpp` line 5 names
+   `nouveau/extract-firmware-nouveau.py` as the source of truth for the
+   `nvfw_hs_header_v2` Booter layout. The only copy on disk is under
+   `reference/open-gpu-kernel-modules/`, which `.gitignore` line 2 excludes
+   (`git check-ignore -v` exit 0; `git ls-files` lists nothing under its
+   `nouveau/` directory), so a clean checkout has no file to resolve to. The
+   comment is true and the tool is upstream's, so this is an allowance, not a
+   defect -- the same call `handoff15.md` made for the bare
+   `extract-firmware-nouveau.py` cited at line 40 of `NVRiscvUcode.hpp`. The
+   directory-qualified token is now its own `ALLOWED` entry in
+   `tests/test_source_cited_paths.py`, with that reason; nothing was vendored.
+   That module alone, on `agent/handoff44-section7-closeout`: 5 tests, OK. This
+   note and the `ALLOWED` entry landed together in `8a46077`; not pushed.
+   **Full Python gate re-run at `8a46077`:** `Ran 1442 tests`,
+   `FAILED (failures=13)`, down from 14, and none of the 13 is in
+   `test_source_cited_paths`. By module: `test_cmake_registration` 2,
+   `test_check_count_floor` 2, `test_kext_makefile` 2, `test_guest_build_kext` 2,
+   `test_intel_publisher_sample_shape` 2, `test_check_count_last_line` 1,
+   `test_check_header_coverage` 1, `test_check_prepare_balance` 1. All 13 stay
+   open; this session did not touch them.
+   **Registration gap narrowed 2026-11-01 (`c6e07bb`).** 35 of the 69
+   unregistered suites, the ones whose `main()` already ends on an exact count
+   `printf`, are now in `tests/CMakeLists.txt`, in `SUITES` in
+   `tests/test_check_count_last_line.py` and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first reading with
+   g++ 16.1.0 on 2026-11-01. ctest now builds and runs 62 suites. The
+   count-last-line gate also lists the new `checks, failures` users and accepts
+   `return gFailures ? 1 : 0;` alongside `return gFailures == 0 ? 0 : 1;` (same
+   exit status). Building them surfaced MSVC C4310 (level 4) at
+   `phase0-kext/NVGspWprImage.hpp` line 140: the complemented known-flags mask
+   was cast down to a byte, truncating a constant. The one-byte `flags` is now
+   widened instead; the verdict is unchanged for every input. Readings after the
+   last edit: `tests\build-msvc.bat` exit 0, 62 of 62 passed, 0 C4310 lines;
+   `tests\run-python-tests.bat` `Ran 1442 tests`, `FAILED (failures=13)`, the
+   same 13 test methods as at `8a46077`. Still open: the other 34 suites, whose
+   final line is not a count format (`test_intel_gt_fill` also needs
+   `phase0-kext/IntelGtBlitter.cpp` linked; a trial g++ link with it compiled
+   and ran clean). `phase0-kext/` changed, so this adds to the `build-payload/`
+   staleness `test_guest_build_kext` already reports; not rebuilt, and the
+   header edit was not built in the guest. Hygiene only: the offload distance
+   moves by zero and the kext has still never been loaded. Not pushed.
+   **Three WPR suites registered 2026-11-01 (`6045861`).**
+   `test_nv_gsp_wpr_candidate`, `test_nv_gsp_wpr_ga107_facts` and
+   `test_nv_gsp_wpr_sysmem` were unregistered only because `main()` ended on a
+   labelled count line (`GA107 WPR candidate: ...`, `GA107 WPR facts: ...`,
+   `WPR sysmem bridge: ...`). The label is gone: each now prints the exact
+   `"\n%d checks, %d failures\n"` line, and their existing `gFailures ? 1 : 0`
+   tails already pass the count-last-line gate (`test_nv_gsp_wpr_ga107_facts`
+   writes it `gFailures?1:0`, which the whitespace strip folds in). No Python
+   gate matched the old labels. All three are now in `tests/CMakeLists.txt`, in
+   `SUITES` and the `checks, failures` list in
+   `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++ 16.1.0
+   reading on 2026-11-01: 45, 38 and 35 checks, 0 failures, zero warnings. The
+   new CMakeLists comment quotes the old labels with single quotes, because a
+   first draft with double quotes tripped `test_no_quoted_hash_in_cmakelists`.
+   Readings after the last edit: `tests\build-msvc.bat` exit 0, 65 of 65
+   passed; `tests\run-python-tests.bat` `Ran 1442 tests`,
+   `FAILED (failures=13)`, the same 13 test methods as at `c6e07bb`. Still
+   open: the other 31 suites, whose final line is not a count format. Only
+   `tests/` changed, so the `build-payload/` staleness is unchanged. Hygiene
+   only: the offload distance moves by zero and the kext has still never been
+   loaded. Not pushed.
+   **Three Ampere suites registered 2026-11-01 (`c066cf7`).**
+   `test_nv_ampere_channel_runtime`, `test_nv_ampere_copy_publication_bridge`
+   and `test_nv_ampere_copy_publication_runtime` were unregistered only
+   because `main()` printed `"%u checks, %u failures\n"` from `unsigned`
+   counters and returned `gFailures == 0u ? 0 : 1`, and the count-last-line
+   gate accepts neither. Each now prints the exact
+   `"\n%d checks, %d failures\n"` line with `static_cast<int>` arguments (a
+   C4477 lookup did not settle whether `%d` with an `unsigned` argument warns
+   under MSVC) and returns `gFailures == 0 ? 0 : 1`. All three are now in
+   `tests/CMakeLists.txt`, in `SUITES` and the `checks, failures` list in
+   `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++ 16.1.0
+   reading on 2026-11-01: 164, 30 and 182 checks, 0 failures, zero warnings.
+   Readings after the last edit: `tests\build-msvc.bat` exit 0, 68 of 68
+   passed; `tests\run-python-tests.bat` `Ran 1442 tests`,
+   `FAILED (failures=13)`, the same 13 test methods as at `6045861`. Still
+   open: the other 28 suites, whose final line is not a count format. Only
+   `tests/` changed, so the `build-payload/` staleness is unchanged. Hygiene
+   only: the offload distance moves by zero and the kext has still never been
+   loaded. Not pushed.
+   **Two NVIDIA suites registered 2026-11-01 (`1ae367d`).**
+   `test_nv_ga107_pci_identity` and `test_nv_gsp_rpc_receive_tracker` were
+   unregistered only because `main()` printed `"%u checks, %u failures\n"`
+   from `unsigned` counters, which the count-last-line gate does not accept.
+   Each now prints the exact `"\n%d checks, %d failures\n"` line with
+   `static_cast<int>` arguments and keeps its `return failures?1:0;` tail,
+   which the tail pattern in `tests/test_check_count_last_line.py` now accepts
+   next to `gFailures==0?0:1` and `gFailures?1:0`. Both are now in
+   `tests/CMakeLists.txt`, in `SUITES` and the `checks, failures` list in
+   `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++ 16.1.0
+   reading on 2026-11-01: 24 and 325 checks, 0 failures, zero warnings.
+   Neither calls a `check[A-Z]*` helper, so `SourcesStillCallChecks` counts 0
+   for both; that test was already red at `c066cf7`. Readings after the last
+   edit: `tests\build-msvc.bat` exit 0, 70 of 70 passed;
+   `tests\run-python-tests.bat` `Ran 1442 tests`, `FAILED (failures=13)`, the
+   same 13 test methods as at `c066cf7`. Still open: the other 26 suites,
+   whose final line is not a count format. Only `tests/` changed, so the
+   `build-payload/` staleness is unchanged. Hygiene only: the offload distance
+   moves by zero and the kext has still never been loaded. Not pushed.
+   **Three NVIDIA suites registered 2026-11-01 (`f5110c1`).**
+   `test_nv_gsp_booter_success_retirement_plan`,
+   `test_nv_intel_shared_surface_handoff_anchored_provenance` and
+   `test_nv_intel_shared_surface_handoff_provenance` were unregistered only
+   because `main()` printed `"checks=%u failures=%u\n"` (the booter suite) or
+   `"%u checks, %u failures\n"` (the two handoff suites) from `unsigned`
+   counters, with a `gFailures == 0u` tail. Each now prints the exact
+   `"\n%d checks, %d failures\n"` line with `static_cast<int>` arguments and
+   returns `gFailures == 0 ? 0 : 1`. All three are now in
+   `tests/CMakeLists.txt`, in `SUITES` and the `checks, failures` list in
+   `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++ 16.1.0
+   reading on 2026-11-01: 59, 44 and 67 checks, 0 failures, zero warnings.
+   Registering them exposed three MSVC-only faults that the g++ readings did
+   not show. The booter suite opened its fixture through a cwd-relative path,
+   and ctest runs it from `tests/build`, so MSVC failed it on `fixture open`.
+   It now opens the fixture through `NV_FIRMWARE_DIR`, which
+   `tests/CMakeLists.txt` injects. A fallback keeps a hand-built binary run
+   from the repo root working. `phase0-kext/NVGspBooterPatch.hpp` used
+   `__UINTPTR_TYPE__`, which cl.exe does not have (C4430/C2146).
+   `NVGspBooterPatchPtr` now falls back to `unsigned __int64` on `_WIN64` and
+   `unsigned int` otherwise, and any other compiler without it stops at
+   `#error`. `phase0-kext/NVGspBooterRunPlan.hpp` now passes the 32-bit
+   `hs.firmwareBytes`, already proven equal to `privateImageBytes`, to the
+   three `nvGspBooterHsRegionFits` calls. That clears C4244, and the verdict is
+   unchanged for every input. Readings after the last edit:
+   `tests\build-msvc.bat` exit 0, 73 of 73 passed, no compiler error or
+   warning lines; `tests\run-python-tests.bat` `Ran 1442 tests`,
+   `FAILED (failures=13)`, the same 13 test methods as at `1ae367d`. Still
+   open: the other 23 suites, whose final line is not a count format. This
+   commit also changed two `phase0-kext/` headers, and `build-payload/` was
+   not rebuilt. Hygiene only: the offload distance moves by zero and the kext
+   has still never been loaded. Not pushed.
+   **Six Intel display/plane and GSP booter suites registered 2026-11-01
+   (`35ec60b`).** `test_intel_display_transaction_lifetime`,
+   `test_intel_plane_program_plan`, `test_intel_plane_retirement_evidence`,
+   `test_intel_plane_transition_plan`, `test_nv_gsp_booter_exec_sequence_plan`
+   and `test_nv_gsp_booter_recovery_plan` were unregistered only because
+   `main()` ended on a labelled `"all %u ... checks passed"` or
+   `"... %u checks passed"` line from `unsigned` counters, after a
+   `"%u/%u ... checks failed"` early return. Each now prints the exact
+   `"\n%d checks, %d failures\n"` line with `static_cast<int>` arguments and
+   returns `gFailures == 0 ? 0 : 1`. All six are now in
+   `tests/CMakeLists.txt`, in `SUITES` and the `checks, failures` list in
+   `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++ 16.1.0
+   reading on 2026-11-01: 119, 127, 116, 77, 67 and 141 checks, 0 failures,
+   zero warnings. The two GSP booter suites now open their firmware fixtures
+   through `NV_FIRMWARE_DIR`, which `tests/CMakeLists.txt` injects, because
+   ctest runs them from `tests/build`. Readings after the last edit:
+   `tests\build-msvc.bat` exit 0, 79 of 79 passed, no compiler error or
+   warning lines; `tests\run-python-tests.bat` `Ran 1442 tests`,
+   `FAILED (failures=13)`, the same 13 test methods as at `de3e641`.
+   `test_each_suite_calls_check_helpers_many_times` still stops on
+   `test_intel_display_transaction_lifetime.cpp`: 7 static check-helper calls
+   against a floor of 20, although the suite reports 119 checks at run time,
+   so registering it did not close that failure. Still open: the other 17
+   suites, whose final line is not a count format. Only `tests/` changed, so
+   the `build-payload/` staleness is unchanged. Hygiene only: the offload
+   distance moves by zero and the kext has still never been loaded. Not
+   pushed.
+   **Four GSP booter transaction and shared copy/surface handoff suites
+   registered 2026-11-01 (`c8c6d38`).**
+   `test_nv_gsp_booter_transaction_lifetime`,
+   `test_nv_gsp_booter_transaction_recovery_contract`,
+   `test_nv_intel_shared_copy_lifetime` and
+   `test_nv_intel_shared_surface_handoff` were unregistered only because
+   `main()` ended on a labelled `"all %u ... checks passed"` line from
+   `unsigned` counters, after a `"%u/%u ... checks failed"` early return.
+   Each now prints the exact `"\n%d checks, %d failures\n"` line with
+   `static_cast<int>` arguments and returns `gFailures == 0 ? 0 : 1`. All four
+   are now in `tests/CMakeLists.txt`, in `SUITES` and the `checks, failures`
+   list in `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++
+   reading (`-Wall -Wextra -Wpedantic`) on 2026-11-01: 208, 35, 82 and 114
+   checks, 0 failures, zero warnings. The transaction-lifetime suite now opens
+   its firmware fixture through `NV_FIRMWARE_DIR`, which
+   `tests/CMakeLists.txt` injects, because ctest runs it from `tests/build`.
+   Readings after the last edit: `tests\build-msvc.bat` exit 0, 83 of 83
+   passed, no compiler error or warning lines; `tests\run-python-tests.bat`
+   `Ran 1442 tests`, `FAILED (failures=13)`, the same 13 test methods as at
+   `e59f732`. `test_each_suite_calls_check_helpers_many_times` still stops on
+   `test_intel_display_transaction_lifetime.cpp` (7 static check-helper
+   calls, floor 20). Still open: the other 13 suites, whose final line is not
+   a count format. Only `tests/` changed, so the `build-payload/` staleness is
+   unchanged. Hygiene only: the offload distance moves by zero and the kext
+   has still never been loaded. Not pushed.
+   **Three Intel GT fill, surface-handle ABI and sink GGTT transaction suites
+   registered 2026-11-01 (`4d05624`).**
+   `test_intel_gt_fill`, `test_intel_gt_surface_handle_abi` and
+   `test_intel_sink_ggtt_txn` were unregistered only because `main()` ended
+   on a labelled `"... tests passed"` `puts` after a `"%d failure(s)"` early
+   return, with no check counter. Each check helper now counts its calls, and
+   each `main()` ends on the exact `"\n%d checks, %d failures\n"` line and
+   `return failures ? 1 : 0;`. `test_intel_sink_ggtt_txn.cpp` also renames
+   its `fails` counter to `failures` and spreads its one-line `main()` over
+   several lines so the count-last-line gate finds the closing brace. All
+   three are now in `tests/CMakeLists.txt`, in `SUITES` and the
+   `checks, failures` list in `tests/test_check_count_last_line.py`, and in
+   `MEASURED` in `tests/test_check_count_floor.py`, each floor taken from a
+   first g++ reading (`-Wall -Wextra -Wpedantic`) on 2026-11-01: 34, 14 and
+   32 checks, 0 failures, zero warnings. `test_intel_gt_fill` exercises the
+   production `gtEncodeFill32` encoder, so `tests/CMakeLists.txt` links
+   `phase0-kext/IntelGtBlitter.cpp` into it with `target_sources`;
+   `add_kext_test` keeps its two-argument form. Readings after the last edit:
+   `tests\build-msvc.bat` exit 0, 86 of 86 passed, no compiler error or
+   warning lines; `tests\run-python-tests.bat` `Ran 1442 tests`,
+   `FAILED (failures=13)`, the same 13 test methods as at `2687e72`.
+   `test_each_suite_calls_check_helpers_many_times` still stops on
+   `test_intel_display_transaction_lifetime.cpp` (7 static check-helper
+   calls, floor 20). Still open: the other 10 suites, whose final line is not
+   a count format. Only `tests/` changed, so the `build-payload/` staleness is
+   unchanged. Hygiene only: the offload distance moves by zero and the kext
+   has still never been loaded. Not pushed.
+   **The last ten suites registered 2026-11-01 (t-3abea7; uncommitted when
+   this entry was written).** `test_intel_gt_surface`, `test_intel_gt_surface_handles`,
+   `test_intel_gt_surface_txn`, `test_intel_plane_live_observe`,
+   `test_nv_gsp_booter_fuse_patch_policy`, `test_nv_gsp_booter_hs`,
+   `test_nv_gsp_booter_patch`, `test_nv_gsp_booter_run_plan`,
+   `test_nv_intel_shared_surface_handoff_provenance_teardown_success` and
+   `test_nv_intel_shared_surface_handoff_teardown_failure` were the last
+   unregistered `tests/*.cpp` suites. Seven ended `main()` on an early-return
+   `"%d failure(s)"` line or a `std::cerr`/`std::cout` tail with no check
+   counter. Their check helpers now count calls, and each `main()` ends on the
+   exact `"\n%d checks, %d failures\n"` line and a gate-accepted return tail.
+   The four GSP booter suites among them now open their firmware fixtures
+   through `NV_FIRMWARE_DIR`, which `tests/CMakeLists.txt` injects, because
+   ctest runs them from `tests/build`. The other three already printed that
+   line but sat below `STATIC_CALL_FLOOR`. `test_intel_gt_surface_handles`
+   renamed its three check helpers to names the floor gate counts (0 to 74
+   static calls). The two shared surface-handoff teardown suites split each
+   combined check into one assertion per field and gained a matched control,
+   a replay control and teardown-order refusals. All ten are now in
+   `tests/CMakeLists.txt`, in `SUITES`, the `checks, failures` list and the
+   `BothFormatsStillInUseTests` expected list in
+   `tests/test_check_count_last_line.py`, and in `MEASURED` in
+   `tests/test_check_count_floor.py`, each floor taken from a first g++ 16.1.0
+   reading (`-Wall -Wextra -Wpedantic`) on 2026-11-01: 64, 314, 44, 70, 61,
+   60, 77, 95, 40 and 29 checks, 0 failures, exit 0. Readings after the last
+   edit: `tests\build-msvc.bat` exit 0, 96 of 96 passed, no `error` or
+   `fatal` lines (warning lines were not counted);
+   `test_check_count_last_line` 18 of 18 OK and `test_check_count_floor`
+   16 of 16 OK, `test_each_suite_calls_check_helpers_many_times` included;
+   `tests\run-python-tests.bat` `Ran 1479 tests`, `FAILED (failures=4)`.
+   `test_cmake_registration` is no longer red, and none of the four is a
+   t-3abea7 target: `test_the_checked_in_gate_is_currently_correct` (13
+   `phase0-kext/` headers that no gate section parses, t-fccff1), the two
+   `test_guest_build_kext` payload-freshness tests (the `build-payload/`
+   staleness), and `test_every_compiled_source_is_an_iokit_shell`
+   (t-01a7b0). Other cards landed tests and fixes in parallel, so the drop
+   from 13 failures and the rise from 1442 tests are not this card's alone.
+   No `tests/*.cpp` suite is left unregistered. Only `tests/` changed, so the
+   `build-payload/` staleness is unchanged. Hygiene only: the offload
+   distance moves by zero and the kext has still never been loaded. At the time
+   of this entry, these changes had not been pushed.
 5. **One `kextload` on a machine containing the card.** Unchanged, and still the
    single highest-value action in the whole project. Blocked on hardware, on SIP,
    and on `3050-handoff27.md` §1's mutual exclusion: the laptop cannot hold Linux

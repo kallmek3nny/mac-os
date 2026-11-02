@@ -264,6 +264,38 @@ That fits, but with little room, and the 26.7 GiB figure still contains the
 the lever worth pulling — reclaiming even half of that slack would put the
 image near 15 GB. That has not been done and is not claimed here.
 
+**Host-side reclaim, measured: 0 bytes.** The slack cannot be recovered from the
+host without booting the guest. A read-only census
+(`tools/qcow2_zero_census.py`, output in `qcow2-census-sonoma-base.log`) decoded
+every cluster `sonoma-base.qcow2` stores:
+
+| | |
+|---|---|
+| guest clusters (64 KiB) | 1 638 400 |
+| unallocated (already sparse) | 1 106 602 = 72 522 268 672 bytes |
+| allocated | 531 798 (171 144 standard, 360 654 compressed) = 34 851 913 728 bytes of guest data |
+| allocated clusters that decode to all zeros | **0** |
+| decode errors | 0 |
+| all-zero 4 KiB blocks inside non-zero clusters | 81 118 = 332 259 328 bytes; a 64 KiB-cluster qcow2 cannot drop these |
+| host bytes in decoded clusters / outside them | 28 567 438 677 / 62 683 819 (metadata, padding) |
+
+A zero-detecting rewrite can only drop clusters that decode to all zeros. There
+are none, so its ceiling is 0 bytes, and even a smaller-cluster target could gain
+at most 0.31 GiB of guest data. The §1 slack sits inside allocated clusters as
+non-zero stale data, not zeros. Whether the original `-c` conversion applied
+zero detection does not matter: no all-zero cluster is left for any pass to find.
+
+The candidate `F:/nv3050-qemu/trim-cand-zerodetect.qcow2` agrees. It is
+28 630 122 496 bytes, the same as the source, with identical `qemu-img map`
+totals (34 851 913 728 data, 72 522 268 672 zero, 0 unallocated), and
+`qemu-img check` finds no errors. How it was made is not on record, so the
+census is the evidence, not that file.
+
+The only remaining lever is inside the guest: zero the freed blocks, or give the
+guest a discard path, and then convert again. That needs a booted guest, and only
+the VMware copy boots (§8). It has not been done, so the laptop figure stays at
+~27 GB.
+
 ## 7. How to use what exists now
 
 ```sh

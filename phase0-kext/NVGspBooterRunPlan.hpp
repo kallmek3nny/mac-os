@@ -203,11 +203,14 @@ static inline NVGspBooterHsU32 nvGspPlanGa107BooterRun(
         hs.osDataBytes == 0u)
         return NV_GSP_BOOTER_RUN_ERR_LOAD_SEMANTICS;
 
-    if (!nvGspBooterHsRegionFits(privateImageBytes,
+    // privateImageBytes == hs.firmwareBytes is proven above, so pass the
+    // 32-bit field. The helper takes NVGspBooterHsU32, and narrowing the
+    // 64-bit parameter raised MSVC C4244 on all three calls. Same verdict.
+    if (!nvGspBooterHsRegionFits(hs.firmwareBytes,
                                  hs.appCodeOffset,hs.appCodeBytes) ||
-        !nvGspBooterHsRegionFits(privateImageBytes,
+        !nvGspBooterHsRegionFits(hs.firmwareBytes,
                                  hs.osDataOffset,hs.osDataBytes) ||
-        !nvGspBooterHsRegionFits(privateImageBytes,
+        !nvGspBooterHsRegionFits(hs.firmwareBytes,
                                  hs.patchLocation,hs.signatureStride))
         return NV_GSP_BOOTER_RUN_ERR_LOAD_RANGE;
 

@@ -80,6 +80,26 @@ public:
     virtual IOReturn gen64IOVMSegments(UInt64    *offset,
                                        Segment64 *segments,
                                        UInt32    *numSegments);
+
+    //
+    //  Added for t-4bfda4. Five phase0-kext sources call
+    //  synchronize(kIODirectionOut) on their IODMACommand:
+    //  NVGspBootArgsRehearsalService (twice), NVGspQueueBackingService,
+    //  NVGspRmImageStageService, NVGspWprBootUcodeStageService and
+    //  NVGspWprMetaStageService.
+    //
+    //  Transcribed from step7-results/apple-headers/IOKit/IODMACommand.h:
+    //
+    //      virtual IOReturn synchronize(IOOptionBits options);
+    //
+    //  The parameter is IOOptionBits, not IODirection, in Apple's header as
+    //  well, because it also carries kForceDoubleBuffer, which is not a
+    //  direction.
+    //
+    //  NARROWER: enum SynchronizeOptions (kForceDoubleBuffer) is not declared.
+    //  phase0-kext never passes it.
+    //
+    virtual IOReturn synchronize(IOOptionBits options);
 };
 
 #endif // NVSHIM_IOKIT_IODMACOMMAND_H

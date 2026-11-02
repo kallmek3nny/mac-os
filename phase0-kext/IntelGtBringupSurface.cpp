@@ -58,9 +58,13 @@ bool writePrivatePt(void *opaque, IGSurfaceU32 leaf, IGSurfaceU64 value)
 void releaseRuntimeStorage(IntelGtSurfaceRuntimeState *state)
 {
     if (!state) return;
-    if (state->dmaBound && state->dma) {
-        state->dma->clearMemoryDescriptor();
+    // Clear the flag BEFORE the release so a re-entrant teardown is a no-op.
+    // dmaBound implies dma: stagePersistentSurface() sets it only after a
+    // successful setMemoryDescriptor(), and it is cleared here before dma is
+    // dropped.
+    if (state->dmaBound) {
         state->dmaBound=false;
+        state->dma->clearMemoryDescriptor();
     }
     OSSafeReleaseNULL(state->dma);
     OSSafeReleaseNULL(state->backing);
